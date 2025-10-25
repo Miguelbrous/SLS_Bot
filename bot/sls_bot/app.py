@@ -397,7 +397,10 @@ def _load_state() -> dict:
         "consecutive_losses": 0,
         "cooldown_until_ts": 0,
         "last_entry_equity": None,
-        "blocked_reason": None
+        "blocked_reason": None,
+        "recent_results": [],
+        "cooldown_history": [],
+        "active_cooldown_reason": None
     }
 
 def _save_state(st: dict):
@@ -415,7 +418,10 @@ def _reset_daily_if_needed():
             "consecutive_losses": 0,
             "cooldown_until_ts": 0,
             "last_entry_equity": None,
-            "blocked_reason": None
+            "blocked_reason": None,
+            "recent_results": [],
+            "cooldown_history": [],
+            "active_cooldown_reason": None
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -436,13 +442,9 @@ def _enforce_dd_guard(cur_eq: float, st: dict):
     dd_mins = int(cfg.get("risk", {}).get("dd_cooldown_minutes", 120))
     drop = _current_drop_pct(cur_eq, st)
     if drop >= limit:
-        st["cooldown_until_ts"] = _now_ts() + dd_mins * 60
-        st["blocked_reason"] = "dd"
-        _save_state(st)
-        append_evento(EXCEL_DIR, {
-            "FechaHora": datetime.utcnow().isoformat(),
-            "Tipo": "COOLDOWN_DD",
-            "Detalle": f"DD {drop:.2f}% >= {limit}%. Cooldown {dd_mins} min."
+        _start_cooldown("drawdown", dd_mins, extra={
+            "drop_pct": drop,
+            "limit_pct": limit
         })
 
 def _is_blocked(st: dict) -> Tuple[bool, Optional[str], int]:
@@ -450,18 +452,75 @@ def _is_blocked(st: dict) -> Tuple[bool, Optional[str], int]:
     until = int(st.get("cooldown_until_ts") or 0)
     if until > now:
         return True, (st.get("blocked_reason") or "cooldown"), until
+    if st.get("blocked_reason"):
+        st["blocked_reason"] = None
+        st["active_cooldown_reason"] = None
+        _save_state(st)
     return False, None, 0
 
-def _start_cooldown(reason: str, minutes: int):
+def _append_cooldown_history(st: dict, reason: str, minutes: int, extra: Optional[dict] = None):
+    hist = st.get("cooldown_history") or []
+    hist.append({
+        "ts": datetime.utcnow().isoformat(),
+        "reason": reason,
+        "minutes": minutes,
+        "extra": extra or {},
+    })
+    st["cooldown_history"] = hist[-30:]
+
+
+def _start_cooldown(reason: str, minutes: int, extra: Optional[dict] = None):
     st = _load_state()
     st["cooldown_until_ts"] = _now_ts() + minutes * 60
     st["blocked_reason"] = reason
+    st["active_cooldown_reason"] = reason
+    _append_cooldown_history(st, reason, minutes, extra)
     _save_state(st)
     append_evento(EXCEL_DIR, {
         "FechaHora": datetime.utcnow().isoformat(),
         "Tipo": "COOLDOWN",
-        "Detalle": f"Motivo={reason}, minutos={minutes}"
+        "Detalle": json.dumps({
+            "reason": reason,
+            "minutes": minutes,
+            "extra": extra or {}
+        }, ensure_ascii=False)
     })
+
+
+def _register_trade_result(st: dict, pnl: float) -> dict:
+    now = _now_ts()
+    epsilon = float(cfg.get("risk", {}).get("pnl_epsilon", 0.05))
+    results = st.get("recent_results") or []
+    results.append({
+        "ts": now,
+        "pnl": pnl,
+        "win": 1 if pnl > epsilon else (-1 if pnl < -epsilon else 0),
+    })
+    window_minutes = int(cfg.get("risk", {}).get("cooldown_loss_window_minutes", 120))
+    window_seconds = max(5, window_minutes) * 60
+    filtered = [r for r in results if now - int(r.get("ts", now)) <= window_seconds]
+    st["recent_results"] = filtered[-50:]
+    return st
+
+
+def _loss_streak_reached(st: dict) -> bool:
+    threshold = int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
+    if threshold <= 0:
+        return False
+    epsilon = float(cfg.get("risk", {}).get("pnl_epsilon", 0.05))
+    results = st.get("recent_results") or []
+    streak = 0
+    for entry in reversed(results):
+        pnl = float(entry.get("pnl") or 0.0)
+        if pnl < -epsilon:
+            streak += 1
+        elif pnl > epsilon:
+            break
+        else:
+            continue
+        if streak >= threshold:
+            return True
+    return False
 
 # ----- ENDPOINTS BÁSICOS -----
 @app.get("/health")
@@ -634,6 +693,15 @@ def webhook(sig: Signal):
             mins  = int(cfg.get("risk", {}).get("cooldown_minutes", 60))
             if st["consecutive_losses"] >= nloss:
                 _start_cooldown("losses", mins)
+
+            st = _register_trade_result(st, pnl)
+            _save_state(st)
+            loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
+            if _loss_streak_reached(st):
+                _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
+                    "recent_results": len(st.get("recent_results") or []),
+                    "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
+                })
 
             return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
                     "consecutive_losses": st.get("consecutive_losses", 0)}

@@ -218,6 +218,20 @@ def get_status(_: None = Depends(require_panel_token)):
         "config_file": CFG_PATH_IN_USE,
         "api_health": health().model_dump(),
     }
+    # Try to enrich risk_state from bot logs if available
+    state_file = ROOT_DIR / "bot" / "logs" / "risk_state.json"
+    if state_file.exists():
+        try:
+            detailed_state = json.loads(state_file.read_text(encoding="utf-8"))
+            bot["risk_state_details"] = {
+                "consecutive_losses": detailed_state.get("consecutive_losses"),
+                "cooldown_until_ts": detailed_state.get("cooldown_until_ts"),
+                "active_cooldown_reason": detailed_state.get("active_cooldown_reason"),
+                "cooldown_history": detailed_state.get("cooldown_history", [])[-5:],
+                "recent_results": detailed_state.get("recent_results", [])[-5:],
+            }
+        except Exception:
+            pass
     return StatusResponse(services=services, bot=bot)
 
 
