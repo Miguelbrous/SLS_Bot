@@ -37,6 +37,17 @@
     "control_user": "panel",
     "control_password": "cambia_esto"
   },
+  "cerebro": {
+    "symbols": ["BTCUSDT", "ETHUSDT"],
+    "timeframes": ["15m", "1h"],
+    "refresh_seconds": 60,
+    "news_feeds": [
+      "https://www.binance.com/blog/rss",
+      "https://cointelegraph.com/rss"
+    ],
+    "min_confidence": 0.55,
+    "max_memory": 5000
+  },
   "ia": {
     "modo": "asesor",
     "riesgo_pct": 0.75,

@@ -70,6 +70,13 @@ else:
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
+try:
+    from cerebro.router import cerebro_router  # type: ignore
+
+    app.include_router(cerebro_router)
+except Exception:
+    pass
+
 
 def _parse_rotating_tokens(raw: str) -> List[Tuple[str, date | None]]:
     tokens: List[Tuple[str, date | None]] = []

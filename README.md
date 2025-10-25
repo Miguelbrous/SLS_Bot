@@ -7,6 +7,8 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `panel/` Next.js 14 (app router) que consume la API via `NEXT_PUBLIC_API_BASE` y `X-Panel-Token`.
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
+- `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
+  genera features y aprende de los resultados para proponer mejoras.
 
 ## Variables de entorno
 1. Copia `.env.example` como `.env` en la raiz (Terminal Windows PC) y ajusta:
