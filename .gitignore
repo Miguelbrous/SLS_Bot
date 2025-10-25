@@ -1,0 +1,45 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# --- Entornos virtuales ---
+venv/
+bot/venv/
+.venv/
+ENV/
+
+# --- Configuracion sensible ---
+.env
+*.env
+config/config.json
+config/*.secret.json
+
+# --- Logs y datos generados ---
+logs/
+*.log
+*.jsonl
+risk_state.json
+
+# --- Datos financieros ---
+excel/
+models/
+
+# --- Node/Next.js ---
+panel/node_modules/
+panel/.next/
+panel/out/
+panel/.turbo/
+
+# --- Builds / contenedores ---
+dist/
+build/
+Dockerfile.*.tmp
+
+# --- SO ---
+.DS_Store
+Thumbs.db
