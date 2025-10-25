@@ -1,0 +1,35 @@
+{
+  "env": "TESTNET",
+  "bybit": {
+    "api_key": "YOUR_API_KEY",
+    "api_secret": "YOUR_API_SECRET",
+    "base_url": "https://api-testnet.bybit.com",
+    "account_type": "UNIFIED",
+    "category": "linear",
+    "symbols": ["BTCUSDT", "ETHUSDT"],
+    "position_mode": "ONE_WAY",
+    "default_leverage": 20
+  },
+  "paths": {
+    "root": "./",
+    "excel_dir": "./excel",
+    "logs_dir": "./logs"
+  },
+  "risk": {
+    "daily_max_dd_pct": 4.0,
+    "cooldown_after_losses": 2,
+    "cooldown_minutes": 60,
+    "dd_cooldown_minutes": 120,
+    "pnl_epsilon": 0.05
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "webhook_path": "/webhook"
+  },
+  "ia": {
+    "modo": "asesor",
+    "riesgo_pct": 0.75,
+    "proba_enter": 0.6
+  }
+}
