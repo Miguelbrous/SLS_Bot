@@ -29,6 +29,7 @@ button:hover { border-color: var(--accent); }
 .badge { font-size:12px; padding: 2px 8px; border-radius: 999px; border:1px solid #2a2a2a; }
 .badge.ok   { color:#89ffce; border-color:#1b3e35; background:#0e2a24; }
 .badge.fail { color:#ffb6b6; border-color:#3e1b1b; background:#2a0e0e; }
+.badge.warn { color:#ffd089; border-color:#3e331b; background:#2a1b0e; }
 .badge.muted { color: var(--muted); border-color:#2a2a2a; background:#141414; }
 .badge-mini { font-size:10px; padding:1px 6px; text-transform: uppercase; letter-spacing: .04em; }
 
@@ -61,6 +62,10 @@ button:hover { border-color: var(--accent); }
 .pnl-symbol-meta { display:flex; justify-content:space-between; font-size:10px; opacity:.8; margin-top:4px; }
 .pnl-symbol-pnl { font-weight:600; }
 
+.risk-block { margin-top: 12px; border-top:1px solid #1f1f1f; padding-top:8px; }
+.risk-results { list-style:none; margin:6px 0 0; padding:0; display:flex; gap:8px; flex-wrap:wrap; font-size:11px; }
+.risk-results li { padding:4px 8px; border-radius:6px; background:#141414; border:1px solid #1f1f1f; }
+
 .loglist { list-style: none; padding: 0; margin: 0; }
 .loglist li { padding: 6px 8px; border-bottom: 1px dashed #222; white-space: pre; }
 
@@ -73,4 +78,4 @@ button:hover { border-color: var(--accent); }
 .svc-head { color: var(--muted); font-size: 13px; }
 
 .empty { opacity:.7; font-size: 12px; padding: 6px; border:1px dashed #222; border-radius:8px; }
-
+.empty.small { font-size:11px; padding:4px; }

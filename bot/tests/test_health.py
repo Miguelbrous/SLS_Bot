@@ -14,6 +14,8 @@ PNL_LOG_PATH = LOGS_DIR / "test_pnl.jsonl"
 PNL_LOG_PATH.write_text("", encoding="utf-8")
 PNL_SYMBOLS_PATH = LOGS_DIR / "test_pnl_symbols.json"
 PNL_SYMBOLS_PATH.write_text("{}", encoding="utf-8")
+RISK_STATE_PATH = PROJECT_ROOT / "bot" / "logs" / "risk_state.json"
+RISK_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 os.environ.setdefault("BRIDGE_LOG", str(LOGS_DIR / "bridge.log"))
 os.environ.setdefault("DECISIONS_LOG", str(LOGS_DIR / "decisions.jsonl"))
@@ -138,6 +140,24 @@ def test_pnl_endpoint_prefers_symbol_breakdown() -> None:
     symbols = {entry["symbol"]: entry for entry in payload["symbols"]}
     assert symbols["BTCUSDT"]["pnl_eur"] == 20.0
     assert symbols["ETHUSDT"]["trades"] == 2
+
+
+@patch("app.main.service_status", return_value=(True, "mocked"))
+def test_status_exposes_risk_state_details(mock_status) -> None:
+    RISK_STATE_PATH.write_text(json.dumps({
+        "consecutive_losses": 3,
+        "cooldown_until_ts": int(datetime.utcnow().timestamp()) + 600,
+        "active_cooldown_reason": "loss_streak",
+        "recent_results": [{"pnl": -2.0}, {"pnl": 1.0}],
+        "cooldown_history": [{"ts": datetime.utcnow().isoformat(), "reason": "loss_streak", "minutes": 30}],
+    }), encoding="utf-8")
+    response = client.get("/status", headers=_panel_headers())
+    assert response.status_code == 200
+    mock_status.assert_called()
+    details = response.json()["bot"]["risk_state_details"]
+    assert details["active_cooldown_reason"] == "loss_streak"
+    assert details["consecutive_losses"] == 3
+    assert len(details["recent_results"]) == 2
 
 
 

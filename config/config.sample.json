@@ -20,6 +20,9 @@
     "cooldown_after_losses": 2,
     "cooldown_minutes": 60,
     "dd_cooldown_minutes": 120,
+    "cooldown_loss_streak": 3,
+    "cooldown_loss_window_minutes": 120,
+    "cooldown_loss_minutes": 45,
     "pnl_epsilon": 0.05
   },
   "server": {

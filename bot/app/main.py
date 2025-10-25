@@ -219,7 +219,7 @@ def get_status(_: None = Depends(require_panel_token)):
         "api_health": health().model_dump(),
     }
     # Try to enrich risk_state from bot logs if available
-    state_file = ROOT_DIR / "bot" / "logs" / "risk_state.json"
+    state_file = ROOT_DIR / "logs" / "risk_state.json"
     if state_file.exists():
         try:
             detailed_state = json.loads(state_file.read_text(encoding="utf-8"))

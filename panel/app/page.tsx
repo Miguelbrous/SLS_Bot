@@ -17,6 +17,13 @@ type PnlItem = { day: string; pnl_eur: number; from_fills?: boolean; symbols?: S
 type LogResp = { lines: string[] };
 type DecisionRow = { ts?: string; symbol?: string; side?: string; confidence?: number };
 type DecisionsResp = { rows: DecisionRow[] };
+type RiskStateDetails = {
+  consecutive_losses?: number;
+  cooldown_until_ts?: number;
+  active_cooldown_reason?: string | null;
+  cooldown_history?: { ts: string; reason: string; minutes: number }[];
+  recent_results?: { ts?: number; pnl?: number }[];
+};
 
 export default function Page() {
   const [status, setStatus] = useState<StatusResp | null>(null);
@@ -50,6 +57,21 @@ export default function Page() {
 
   const slsActive = !!status?.services?.["sls-bot"]?.active;
   const aiActive = !!status?.services?.["ai-bridge"]?.active;
+  const riskDetails: RiskStateDetails | undefined = status?.bot?.risk_state_details;
+  const cooldownSeconds = riskDetails?.cooldown_until_ts
+    ? Math.max(0, riskDetails.cooldown_until_ts - Math.floor(Date.now() / 1000))
+    : 0;
+  const formatDuration = (seconds: number) => {
+    if (seconds <= 0) return "0m";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `${hours}h ${remMins}m`;
+    }
+    return `${mins}m ${secs}s`;
+  };
 
   return (
     <>
@@ -103,6 +125,34 @@ export default function Page() {
               <span>PID API:</span> {status?.bot?.api_health?.pid ?? "-"}
             </div>
           </div>
+
+          {riskDetails ? (
+            <div className="risk-block">
+              <div className="badges" style={{ marginBottom: 4 }}>
+                <span className="badge">
+                  Racha pérdidas: {riskDetails.consecutive_losses ?? 0}
+                </span>
+                {riskDetails.active_cooldown_reason ? (
+                  <span className="badge warn">
+                    Cooldown ({riskDetails.active_cooldown_reason}) · {formatDuration(cooldownSeconds)}
+                  </span>
+                ) : (
+                  <span className="badge ok">Operando</span>
+                )}
+              </div>
+              {riskDetails.recent_results?.length ? (
+                <ul className="risk-results">
+                  {riskDetails.recent_results.slice(-5).map((res, idx) => (
+                    <li key={idx} className={res.pnl && res.pnl < 0 ? "neg" : "pos"}>
+                      {res.pnl?.toFixed(2)} USDT
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="empty small">Sin historial reciente</div>
+              )}
+            </div>
+          ) : null}
         </Card>
 
         <Card title="Decisiones (ultimas)">

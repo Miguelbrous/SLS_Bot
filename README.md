@@ -18,6 +18,11 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollarás sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
 3. Para el bot real, copia `config/config.sample.json` a `config/config.json` y completa tus credenciales. Si trabajas en el VPS, manten la version cifrada.
+4. Ajusta el bloque `risk` en `config/config.json`:
+   - `daily_max_dd_pct` / `dd_cooldown_minutes`: pausan el bot cuando la caída diaria supera el límite.
+   - `cooldown_after_losses` / `cooldown_minutes`: lógica tradicional por pérdidas consecutivas.
+   - `cooldown_loss_streak` / `cooldown_loss_window_minutes` / `cooldown_loss_minutes`: nuevo cooldown inteligente que cuenta las pérdidas de la ventana móvil y detiene el bot durante `cooldown_loss_minutes` si se supera la racha.
+   - `pnl_epsilon`: umbral mínimo para considerar una operación como ganadora/perdedora (evita que resultados muy pequeños rompan la racha).
 
 ## Requisitos
 - Python 3.11+ (evita problemas con dependencias cientificas).
