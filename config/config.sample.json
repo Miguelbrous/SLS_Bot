@@ -27,6 +27,13 @@
     "port": 8080,
     "webhook_path": "/webhook"
   },
+  "panel": {
+    "allowed_origins": ["http://localhost:3000"]
+  },
+  "auth": {
+    "control_user": "panel",
+    "control_password": "cambia_esto"
+  },
   "ia": {
     "modo": "asesor",
     "riesgo_pct": 0.75,

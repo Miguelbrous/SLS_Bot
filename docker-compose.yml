@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  panel:
+    build: ./panel
+    container_name: sls-panel
+    environment:
+      - API_BASE=http://127.0.0.1:8080
+      - NEXT_PUBLIC_API_BASE=http://127.0.0.1:8080
+      - NODE_ENV=production
+    network_mode: "host"
+    restart: unless-stopped

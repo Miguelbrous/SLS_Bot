@@ -1,0 +1,17 @@
+[Unit]
+Description=SLS Control API (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User={{SVC_USER}}
+Group={{SVC_USER}}
+WorkingDirectory={{APP_ROOT}}/bot
+EnvironmentFile=-/etc/sls_bot.env
+Environment="PYTHONPATH={{APP_ROOT}}/bot"
+ExecStart={{APP_ROOT}}/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port ${SLS_API_PORT:-8880}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

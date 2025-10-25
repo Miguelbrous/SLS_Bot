@@ -1,9 +1,12 @@
-from fastapi import FastAPI, Query
+﻿from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict
 import os
+import secrets
 import time, hmac, hashlib, json, requests
 import threading, math
 
@@ -33,6 +36,10 @@ ROOT = _path_or_default("root", ROOT_DEFAULT)
 EXCEL_DIR = _path_or_default("excel_dir", ROOT / "excel")
 LOGS_DIR = _path_or_default("logs_dir", ROOT / "logs")
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
+DECISIONS_LOG = LOGS_DIR / "decisions.jsonl"
+BRIDGE_LOG = LOGS_DIR / "bridge.log"
+PNL_LOG = LOGS_DIR / "pnl.jsonl"
+PNL_SYMBOLS_JSON = LOGS_DIR / "pnl_daily_symbols.json"
 
 # ==== CLIENTE BYBIT (pybit) ====
 bb = BybitClient(
@@ -46,6 +53,91 @@ BASE_URL = cfg["bybit"]["base_url"].rstrip("/")
 
 # ==== FASTAPI ====
 app = FastAPI(title="SLS Bot Webhook")
+
+
+def _parse_origins() -> list[str]:
+    env_val = os.getenv("ALLOWED_ORIGINS", "").strip()
+    env_origins = [o.strip() for o in env_val.split(",") if o.strip()]
+    panel_cfg = cfg.get("panel") or {}
+    cfg_origins = []
+    if isinstance(panel_cfg, dict):
+        cfg_origins = [o for o in panel_cfg.get("allowed_origins", []) if isinstance(o, str) and o]
+    origins = env_origins or cfg_origins
+    if not origins:
+        origins = ["http://localhost:3000"]
+    return origins
+
+
+ALLOWED_ORIGINS = _parse_origins()
+
+control_cfg = cfg.get("auth") or {}
+CONTROL_USER = os.getenv("CONTROL_USER") or control_cfg.get("control_user")
+CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD") or control_cfg.get("control_password")
+security = HTTPBasic()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def require_control_auth(credentials: HTTPBasicCredentials = Depends(security)) -> None:
+    if not CONTROL_USER or not CONTROL_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CONTROL_USER y CONTROL_PASSWORD no están configurados en el backend",
+        )
+    user_ok = secrets.compare_digest(credentials.username, CONTROL_USER)
+    pass_ok = secrets.compare_digest(credentials.password, CONTROL_PASSWORD)
+    if not (user_ok and pass_ok):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales inválidas",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+def _append_jsonl(path: Path, payload: dict) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def _append_bridge_log(message: str) -> None:
+    try:
+        BRIDGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with BRIDGE_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(f"{datetime.utcnow().isoformat()} {message}\n")
+    except Exception:
+        pass
+
+
+def _append_pnl_entry(entry: dict) -> None:
+    entry.setdefault("ts", datetime.utcnow().isoformat() + "Z")
+    _append_jsonl(PNL_LOG, entry)
+
+
+def _load_symbol_pnl_cache() -> dict:
+    try:
+        if not PNL_SYMBOLS_JSON.exists():
+            return {}
+        return json.loads(PNL_SYMBOLS_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_symbol_pnl_cache(payload: dict) -> None:
+    try:
+        PNL_SYMBOLS_JSON.parent.mkdir(parents=True, exist_ok=True)
+        PNL_SYMBOLS_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
 
 # ----- MODELOS -----
 class Confirmations(BaseModel):
@@ -76,6 +168,23 @@ class Signal(BaseModel):
     move_sl_to_be_on_tp1: Optional[bool] = True
     post_only: Optional[bool] = True
     confirmations: Optional[Confirmations] = None
+
+
+def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
+    entry = {
+        "ts": datetime.utcnow().isoformat() + "Z",
+        "symbol": symbol,
+        "side": side,
+        "confidence": float(sig.risk_score or 1),
+        "risk_pct": sig.risk_pct,
+        "leverage": sig.leverage,
+        "tf": sig.tf,
+        "session": sig.session,
+        "qty": qty,
+        "price": price_used,
+        "order_id": order_info.get("orderId"),
+    }
+    _append_jsonl(DECISIONS_LOG, entry)
 
 # ----- UTILS BÁSICAS -----
 QTY_STEP = {"BTCUSDT": 0.001, "ETHUSDT": 0.01}
@@ -496,7 +605,6 @@ def webhook(sig: Signal):
                 st["consecutive_losses"] = 0
             _save_state(st)
 
-            # evento CLOSE
             try:
                 append_evento(EXCEL_DIR, {
                     "FechaHora": datetime.utcnow().isoformat(),
@@ -511,6 +619,16 @@ def webhook(sig: Signal):
                 })
             except Exception:
                 pass
+
+            _append_pnl_entry({
+                "type": "close",
+                "symbol": sig.symbol.upper(),
+                "tf": sig.tf,
+                "pnl": pnl,
+                "before": last_entry,
+                "after": after,
+            })
+            _append_bridge_log(f"close {sig.symbol.upper()} pnl={pnl:.4f} after={after}")
 
             nloss = int(cfg.get("risk", {}).get("cooldown_after_losses", 2))
             mins  = int(cfg.get("risk", {}).get("cooldown_minutes", 60))
@@ -643,17 +761,17 @@ def webhook(sig: Signal):
                 daemon=True
             ).start()
 
-        # Log / Excel
+        # Log / Excel / Panel
         append_operacion(EXCEL_DIR, {
             "FechaHora": datetime.utcnow().isoformat(),
-            "Sesión": sig.session or "",
-            "Símbolo": symbol,
+            "Sesion": sig.session or "",
+            "Simbolo": symbol,
             "TF": sig.tf or "",
             "Tipo": side,
             "Riesgo(%)": sig.risk_pct or 1.0,
             "Leverage": sig.leverage or 10,
-            "Modo Tamaño": "percent_equity",
-            "Capital abrir(€)": 0,
+            "Modo Tamano": "percent_equity",
+            "Capital abrir(EUR)": 0,
             "Nocional(USDT)": round((sig.risk_pct or 1.0)/100 * balance * (sig.leverage or 10), 2),
             "Precio entrada": sig.price or 0,
             "SL": sig.sl or 0,
@@ -664,8 +782,15 @@ def webhook(sig: Signal):
             "Confirmaciones": str(sig.confirmations.dict() if sig.confirmations else {}),
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
+        _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)
+        _append_bridge_log(f"order {side} {symbol} qty={qty_str} price={sig.price or price_live}")
 
-        return {"status": "ok", "placed": placed, "qty": qty_str, "order_type": placed.get("orderType", payload.get("orderType"))}
+        return {
+            "status": "ok",
+            "placed": placed,
+            "qty": qty_str,
+            "order_type": placed.get("orderType", payload.get("orderType")),
+        }
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -690,6 +815,19 @@ def daily_summary(date: Optional[str] = None, write: bool = True):
             "Tipo": "RESUMEN_AUTOMATICO" if date == _today_str() else "RESUMEN_REBUILD",
             "Detalle": json.dumps(resumen, ensure_ascii=False)
         })
+        try:
+            pnl_eur = float(resumen.get("PnL €") or resumen.get("PnL �'�") or 0.0)
+        except Exception:
+            pnl_eur = 0.0
+        _append_pnl_entry({
+            "type": "daily",
+            "day": date,
+            "pnl_eur": pnl_eur,
+            "pnl_pct": resumen.get("PnL %"),
+            "start": resumen.get("Start Equity"),
+            "end": resumen.get("End Equity"),
+            "trades": resumen.get("Trades"),
+        })
     return {"status": "ok", "summary": resumen}
 
 def _daily_scheduler():
@@ -706,5 +844,112 @@ def _daily_scheduler():
 
 try:
     threading.Thread(target=_daily_scheduler, daemon=True).start()
+except Exception:
+    pass
+
+
+def _collect_closed_pnl_entries(start_ms: int, end_ms: int) -> list[dict]:
+    """Descarga el histórico de closed PnL de Bybit entre start/end usando paginación."""
+    rows: list[dict] = []
+    cursor: str | None = None
+    for _ in range(30):  # evita bucles infinitos
+        resp = bb.get_closed_pnl(start_time=start_ms, end_time=end_ms, cursor=cursor, limit=200)
+        if resp.get("retCode") != 0:
+            break
+        result = resp.get("result") or {}
+        batch = result.get("list") or []
+        rows.extend(batch)
+        cursor = result.get("nextPageCursor")
+        if not cursor:
+            break
+    return rows
+
+
+def _aggregate_closed_pnl(entries: list[dict]) -> dict[str, dict]:
+    """Agrupa por día y símbolo para generar breakdown real a partir de fills."""
+    aggregated: dict[str, dict] = {}
+    now_iso = datetime.utcnow().isoformat() + "Z"
+    for entry in entries:
+        ts_raw = entry.get("createdTime") or entry.get("updatedTime") or entry.get("execTime")
+        symbol = entry.get("symbol")
+        if not ts_raw or not symbol:
+            continue
+        try:
+            ts_ms = int(ts_raw)
+        except Exception:
+            continue
+        day = datetime.utcfromtimestamp(ts_ms / 1000).date().isoformat()
+        pnl_val = entry.get("closedPnl") or entry.get("pnl") or 0.0
+        fees_val = entry.get("cumCommission") or entry.get("fees") or 0.0
+        try:
+            pnl = float(pnl_val)
+        except Exception:
+            pnl = 0.0
+        try:
+            fees = float(fees_val)
+        except Exception:
+            fees = 0.0
+        ref = aggregated.setdefault(day, {"total": 0.0, "symbols": {}, "refreshed_at": now_iso})
+        ref["total"] += pnl
+        sym = ref["symbols"].setdefault(symbol, {"pnl": 0.0, "fees": 0.0, "trades": 0})
+        sym["pnl"] += pnl
+        sym["fees"] += fees
+        sym["trades"] += 1
+    return aggregated
+
+
+def _sync_symbol_pnl(days_back: int = 30) -> None:
+    """Reconstruye los últimos `days_back` días con datos reales de Bybit."""
+    end_dt = datetime.utcnow()
+    start_dt = end_dt - timedelta(days=days_back)
+    entries = _collect_closed_pnl_entries(
+        int(start_dt.timestamp() * 1000),
+        int(end_dt.timestamp() * 1000),
+    )
+    aggregated = _aggregate_closed_pnl(entries)
+    if not aggregated:
+        return
+    cache = _load_symbol_pnl_cache()
+    cache.update(aggregated)
+    # conserva solo los últimos 90 días para evitar archivos gigantes
+    keys = sorted(cache.keys())
+    if len(keys) > 90:
+        for day in keys[:-90]:
+            cache.pop(day, None)
+    _save_symbol_pnl_cache(cache)
+
+
+def _pnl_symbol_worker():
+    interval = max(600, int(os.getenv("PNL_SYMBOL_SYNC_SECONDS", "1800")))
+    while True:
+        try:
+            _sync_symbol_pnl()
+        except Exception as exc:
+            _append_bridge_log(f"pnl_sync_error={exc}")
+        time.sleep(interval)
+
+
+try:
+    threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
+except Exception:
+    pass
+
+
+def _bridge_heartbeat():
+    interval = max(5, int(os.getenv("BRIDGE_HEARTBEAT_SEC", "10")))
+    while True:
+        try:
+            balance = bb.get_balance()
+        except Exception:
+            balance = None
+        st = _load_state()
+        cooldown = st.get("cooldown_until_ts")
+        cooldown_left = max(0, (cooldown or 0) - _now_ts()) if cooldown else 0
+        _append_bridge_log(f"heartbeat balance={balance} cooldown_s={cooldown_left}")
+        time.sleep(interval)
+
+
+try:
+    threading.Thread(target=_bridge_heartbeat, daemon=True).start()
 except Exception:
     pass
