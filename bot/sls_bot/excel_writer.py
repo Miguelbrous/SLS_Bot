@@ -1,10 +1,14 @@
 from pathlib import Path
 from openpyxl import Workbook, load_workbook
-from datetime import datetime
+from datetime import datetime, timezone
 import json, re
 from typing import List, Dict, Any
 
 # ---------- utilidades base ----------
+def _default_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+
+
 def _ensure_book(path: Path, sheet: str, headers: list):
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
@@ -61,7 +65,7 @@ def append_operacion(excel_dir: Path, row: dict):
         wb = load_workbook(path)
         ws = wb[sheet]
         ws.append([
-            row.get("FechaHora", datetime.utcnow().isoformat()),
+            row.get("FechaHora", _default_timestamp()),
             row.get("Sesión", ""),
             row.get("Símbolo", ""),
             row.get("TF", ""),
@@ -105,7 +109,7 @@ def append_evento(excel_dir: Path, row: dict):
         wb = load_workbook(path)
         ws = wb[sheet]
         ws.append([
-            row.get("FechaHora", datetime.utcnow().isoformat()),
+            row.get("FechaHora", _default_timestamp()),
             row.get("Tipo", ""),
             row.get("Detalle", "")
         ])

@@ -1,7 +1,7 @@
 ﻿import json
 import os
 import secrets
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 
@@ -107,7 +107,7 @@ PANEL_TOKENS = _parse_rotating_tokens(PANEL_API_TOKENS_RAW)
 def _is_panel_token_valid(value: str) -> bool:
     if not PANEL_TOKENS:
         return False
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     for token, expires in PANEL_TOKENS:
         if expires and today > expires:
             continue
@@ -193,7 +193,7 @@ def require_panel_token(request: Request) -> None:
 
 @app.get("/health", response_model=Health)
 def health():
-    return Health(ok=True, time=str(datetime.utcnow()), pid=os.getpid())
+    return Health(ok=True, time=str(datetime.now(timezone.utc)), pid=os.getpid())
 
 
 @app.get("/status", response_model=StatusResponse)
@@ -306,7 +306,7 @@ def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_pane
                 continue
 
     out: List[PnLDailyItem] = []
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     for i in range(days):
         d = today - timedelta(days=days - 1 - i)
         key = str(d)

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, Dict, Any
 import os
 import secrets
@@ -30,6 +30,20 @@ CEREBRO_DEFAULT_TF = ((cerebro_cfg or {}).get("timeframes") or ["15m"])[0]
 
 ROOT_DEFAULT = Path(__file__).resolve().parents[2]
 paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def utc_now_naive() -> datetime:
+    return utc_now().replace(tzinfo=None)
+
+
+def utc_now_iso(z_suffix: bool = False) -> str:
+    iso_value = utc_now().isoformat()
+    return iso_value.replace("+00:00", "Z") if z_suffix else iso_value
+
 
 def _path_or_default(key: str, default: Path) -> Path:
     val = paths_cfg.get(key)
@@ -120,13 +134,13 @@ def _append_bridge_log(message: str) -> None:
     try:
         BRIDGE_LOG.parent.mkdir(parents=True, exist_ok=True)
         with BRIDGE_LOG.open("a", encoding="utf-8") as fh:
-            fh.write(f"{datetime.utcnow().isoformat()} {message}\n")
+            fh.write(f"{utc_now_naive().isoformat()} {message}\n")
     except Exception:
         pass
 
 
 def _append_pnl_entry(entry: dict) -> None:
-    entry.setdefault("ts", datetime.utcnow().isoformat() + "Z")
+    entry.setdefault("ts", utc_now_iso(z_suffix=True))
     _append_jsonl(PNL_LOG, entry)
 
 
@@ -182,7 +196,7 @@ class Signal(BaseModel):
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
     entry = {
-        "ts": datetime.utcnow().isoformat() + "Z",
+        "ts": utc_now_iso(z_suffix=True),
         "symbol": symbol,
         "side": side,
         "confidence": float(sig.risk_score or 1),
@@ -525,7 +539,7 @@ def _reset_daily_if_needed():
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
-            "FechaHora": datetime.utcnow().isoformat(),
+            "FechaHora": utc_now_naive().isoformat(),
             "Tipo": "RESET_DAILY",
             "Detalle": f"Equity inicial del día: {start_eq}"
         })
@@ -561,7 +575,7 @@ def _is_blocked(st: dict) -> Tuple[bool, Optional[str], int]:
 def _append_cooldown_history(st: dict, reason: str, minutes: int, extra: Optional[dict] = None):
     hist = st.get("cooldown_history") or []
     hist.append({
-        "ts": datetime.utcnow().isoformat(),
+        "ts": utc_now_naive().isoformat(),
         "reason": reason,
         "minutes": minutes,
         "extra": extra or {},
@@ -577,7 +591,7 @@ def _start_cooldown(reason: str, minutes: int, extra: Optional[dict] = None):
     _append_cooldown_history(st, reason, minutes, extra)
     _save_state(st)
     append_evento(EXCEL_DIR, {
-        "FechaHora": datetime.utcnow().isoformat(),
+        "FechaHora": utc_now_naive().isoformat(),
         "Tipo": "COOLDOWN",
         "Detalle": json.dumps({
             "reason": reason,
@@ -679,7 +693,7 @@ def _apply_dynamic_risk(sig: Signal, balance: float, st: dict) -> None:
 # ----- ENDPOINTS BÁSICOS -----
 @app.get("/health")
 def health():
-    return {"ok": True, "time": datetime.utcnow().isoformat()}
+    return {"ok": True, "time": utc_now_naive().isoformat()}
 
 @app.get("/whoami")
 def whoami():
@@ -820,7 +834,7 @@ def webhook(sig: Signal):
 
             try:
                 append_evento(EXCEL_DIR, {
-                    "FechaHora": datetime.utcnow().isoformat(),
+                    "FechaHora": utc_now_naive().isoformat(),
                     "Tipo": "CLOSE",
                     "Detalle": json.dumps({
                         "symbol": sig.symbol.upper(),
@@ -996,7 +1010,7 @@ def webhook(sig: Signal):
 
         # Log / Excel / Panel
         append_operacion(EXCEL_DIR, {
-            "FechaHora": datetime.utcnow().isoformat(),
+            "FechaHora": utc_now_naive().isoformat(),
             "Sesion": sig.session or "",
             "Simbolo": symbol,
             "TF": sig.tf or "",
@@ -1044,7 +1058,7 @@ def daily_summary(date: Optional[str] = None, write: bool = True):
     if write:
         upsert_resumen_diario(EXCEL_DIR, resumen)
         append_evento(EXCEL_DIR, {
-            "FechaHora": datetime.utcnow().isoformat(),
+            "FechaHora": utc_now_naive().isoformat(),
             "Tipo": "RESUMEN_AUTOMATICO" if date == _today_str() else "RESUMEN_REBUILD",
             "Detalle": json.dumps(resumen, ensure_ascii=False)
         })
@@ -1101,7 +1115,7 @@ def _collect_closed_pnl_entries(start_ms: int, end_ms: int) -> list[dict]:
 def _aggregate_closed_pnl(entries: list[dict]) -> dict[str, dict]:
     """Agrupa por día y símbolo para generar breakdown real a partir de fills."""
     aggregated: dict[str, dict] = {}
-    now_iso = datetime.utcnow().isoformat() + "Z"
+    now_iso = utc_now_iso(z_suffix=True)
     for entry in entries:
         ts_raw = entry.get("createdTime") or entry.get("updatedTime") or entry.get("execTime")
         symbol = entry.get("symbol")
@@ -1133,7 +1147,7 @@ def _aggregate_closed_pnl(entries: list[dict]) -> dict[str, dict]:
 
 def _sync_symbol_pnl(days_back: int = 30) -> None:
     """Reconstruye los últimos `days_back` días con datos reales de Bybit."""
-    end_dt = datetime.utcnow()
+    end_dt = utc_now()
     start_dt = end_dt - timedelta(days=days_back)
     entries = _collect_closed_pnl_entries(
         int(start_dt.timestamp() * 1000),

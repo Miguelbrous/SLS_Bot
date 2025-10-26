@@ -37,6 +37,10 @@ def _append_jsonl(path: Path, payload: dict) -> None:
         log.debug("Failed to append jsonl to %s", path, exc_info=True)
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 @dataclass
 class DecisionSnapshot:
     decision: PolicyDecision
@@ -188,7 +192,7 @@ class Cerebro:
     # ----- Persistencia auxiliar -----
     def _record_decision(self, symbol: str, timeframe: str, decision: PolicyDecision) -> None:
         payload = {
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": _utc_now_iso(),
             "symbol": symbol.upper(),
             "timeframe": timeframe,
             "action": decision.action,
@@ -202,7 +206,7 @@ class Cerebro:
 
     def _persist_experience(self, symbol: str, timeframe: str, pnl: float, features: Dict[str, float], decision: str) -> None:
         payload = {
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": _utc_now_iso(),
             "symbol": symbol.upper(),
             "timeframe": timeframe,
             "pnl": pnl,

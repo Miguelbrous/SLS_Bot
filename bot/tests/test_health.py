@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -103,7 +103,7 @@ def test_control_endpoint_accepts_forwarded_user_header(mock_action) -> None:
 
 
 def test_pnl_endpoint_aggregates_daily_entries() -> None:
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     yesterday = today - timedelta(days=1)
     _write_pnl([
         {"type": "close", "ts": f"{today}T10:00:00Z", "pnl": 15.5},
@@ -121,7 +121,7 @@ def test_pnl_endpoint_aggregates_daily_entries() -> None:
 
 
 def test_pnl_endpoint_prefers_symbol_breakdown() -> None:
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     _write_pnl([{"type": "close", "ts": f"{today}T09:00:00Z", "pnl": -1.0}])
     _write_symbol_breakdown({
         str(today): {
@@ -146,10 +146,10 @@ def test_pnl_endpoint_prefers_symbol_breakdown() -> None:
 def test_status_exposes_risk_state_details(mock_status) -> None:
     RISK_STATE_PATH.write_text(json.dumps({
         "consecutive_losses": 3,
-        "cooldown_until_ts": int(datetime.utcnow().timestamp()) + 600,
+        "cooldown_until_ts": int(datetime.now(timezone.utc).timestamp()) + 600,
         "active_cooldown_reason": "loss_streak",
         "recent_results": [{"pnl": -2.0}, {"pnl": 1.0}],
-        "cooldown_history": [{"ts": datetime.utcnow().isoformat(), "reason": "loss_streak", "minutes": 30}],
+        "cooldown_history": [{"ts": datetime.now(timezone.utc).isoformat(), "reason": "loss_streak", "minutes": 30}],
     }), encoding="utf-8")
     response = client.get("/status", headers=_panel_headers())
     assert response.status_code == 200

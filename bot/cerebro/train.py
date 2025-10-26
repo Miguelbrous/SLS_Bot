@@ -5,7 +5,7 @@ import json
 import math
 import random
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
@@ -142,10 +142,10 @@ def _compute_auc(preds: Sequence[float], labels: Sequence[int]) -> float:
 
 def save_artifact(output_dir: Path, weights: List[float], bias: float, means: List[float], stds: List[float], metrics: Dict[str, float]) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     artifact = {
         "version": timestamp,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "bias": bias,
         "features": [
             {

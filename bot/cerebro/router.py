@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query
@@ -15,13 +15,17 @@ except Exception:
     pass
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 @cerebro_router.get("/status")
 def cerebro_status():
     cerebro = get_cerebro()
     if not cerebro.config.enabled:
-        return {"ok": False, "enabled": False, "time": datetime.utcnow().isoformat() + "Z"}
+        return {"ok": False, "enabled": False, "time": _utc_now_iso()}
     data = cerebro.get_status()
-    data["time"] = datetime.utcnow().isoformat() + "Z"
+    data["time"] = _utc_now_iso()
     return data
 
 
