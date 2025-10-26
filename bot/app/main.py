@@ -236,6 +236,9 @@ def get_status(_: None = Depends(require_panel_token)):
                 "active_cooldown_reason": detailed_state.get("active_cooldown_reason"),
                 "cooldown_history": detailed_state.get("cooldown_history", [])[-5:],
                 "recent_results": detailed_state.get("recent_results", [])[-5:],
+                "dynamic_risk": detailed_state.get("dynamic_risk"),
+                "start_equity": detailed_state.get("start_equity"),
+                "current_equity": detailed_state.get("last_entry_equity"),
             }
         except Exception:
             pass

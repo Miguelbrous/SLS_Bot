@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from ..sls_bot import ia_signal_engine
 
@@ -19,17 +22,18 @@ class PolicyDecision:
     price: float
     stop_loss: float
     take_profit: float
-    metadata: Dict[str, float]
+    metadata: Dict[str, Any]
     reasons: list[str]
 
 
 class PolicyEnsemble:
-    """Combina heurísticas, noticias y el motor ML existente."""
+    """Combina heuristicas, noticias y el motor ML existente."""
 
-    def __init__(self, min_confidence: float, sl_atr: float, tp_atr: float):
+    def __init__(self, min_confidence: float, sl_atr: float, tp_atr: float, model_path: str | Path | None = None):
         self.min_confidence = min_confidence
         self.sl_atr = sl_atr
         self.tp_atr = tp_atr
+        self._model_artifact = self._load_model(model_path)
 
     def decide(
         self,
@@ -39,18 +43,20 @@ class PolicyEnsemble:
         market_row: dict,
         news_sentiment: float | None = None,
         memory_stats: dict | None = None,
+        session_context: dict | None = None,
+        news_meta: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         decision = payload["decision"]
         confidence = payload["confianza_pct"] / 100.0
         if news_sentiment is not None:
-            # Ajuste sencillo: si la noticia es negativa, penalizamos longs; si es positiva, penalizamos shorts.
             if decision == "LONG":
                 confidence = max(0.0, confidence + news_sentiment * 0.05)
             elif decision == "SHORT":
                 confidence = max(0.0, confidence - news_sentiment * 0.05)
         if confidence < self.min_confidence:
             decision = "NO_TRADE"
+
         price = float(market_row.get("close") or 0.0)
         atr = float(market_row.get("atr") or price * 0.005)
         if atr <= 0:
@@ -69,13 +75,69 @@ class PolicyEnsemble:
         if news_sentiment is not None:
             reasons.append(f"Sentimiento noticias={news_sentiment:+.2f}")
 
-        risk_pct = payload["riesgo_pct"]
+        risk_pct = float(payload["riesgo_pct"])
         memory_stats = memory_stats or {}
         if memory_stats.get("total", 0) >= 20:
             win_rate = float(memory_stats.get("win_rate") or 0.0)
             dyn_mult = max(0.5, min(1.5, 0.5 + win_rate))
             risk_pct = max(0.1, risk_pct * dyn_mult)
             reasons.append(f"Ajuste riesgo (win_rate={win_rate:.2%}, mult={dyn_mult:.2f})")
+
+        metadata: Dict[str, Any] = {
+            "news_sentiment": news_sentiment or 0.0,
+            "memory_win_rate": float(memory_stats.get("win_rate") or 0.0),
+        }
+        if news_meta:
+            metadata["news"] = news_meta
+
+        if session_context:
+            metadata["session_guard"] = session_context
+            guard_state = session_context.get("state")
+            guard_reason = session_context.get("reason")
+            session_name = session_context.get("session_name", "Sesion")
+            base_action = decision
+            if guard_reason:
+                reasons.append(guard_reason)
+            if guard_state in {"pre_open", "news_wait"}:
+                decision = "NO_TRADE"
+            elif guard_state == "news_ready":
+                risk_mult = float(session_context.get("risk_multiplier") or 1.0)
+                news_dir = session_context.get("news_direction")
+                if base_action in {"LONG", "SHORT"}:
+                    conflict = (base_action == "LONG" and news_dir == "bearish") or (
+                        base_action == "SHORT" and news_dir == "bullish"
+                    )
+                    if conflict:
+                        decision = "NO_TRADE"
+                        reasons.append(f"{session_name}: noticia {news_dir} contradice {base_action}")
+                    else:
+                        risk_pct = max(0.1, risk_pct * risk_mult)
+                        reasons.append(f"{session_name}: riesgo ajustado x{risk_mult:.2f} tras apertura")
+                else:
+                    risk_pct = max(0.1, risk_pct * risk_mult)
+
+        ml_features = {
+            "confidence": confidence,
+            "risk_pct": risk_pct,
+            "leverage": float(payload["leverage"]),
+            "news_sentiment": news_sentiment or 0.0,
+            "session_guard_risk_multiplier": float((session_context or {}).get("risk_multiplier") or 1.0),
+            "memory_win_rate": float(memory_stats.get("win_rate") or 0.0),
+            "session_guard_penalty": 1.0 if (session_context or {}).get("state") in {"pre_open", "news_wait"} else 0.0,
+        }
+        ml_score = self._score_with_model(ml_features)
+        if ml_score is not None and self._model_artifact:
+            metadata["ml_score"] = ml_score
+            metadata["model_version"] = self._model_artifact.get("version")
+            metadata["model_metrics"] = self._model_artifact.get("metrics")
+            reasons.append(f"Modelo entrenado score={ml_score:.2f}")
+            confidence = (confidence + ml_score) / 2.0
+            if ml_score < 0.4:
+                risk_pct = max(0.05, risk_pct * 0.7)
+                reasons.append("Modelo reduce riesgo por score bajo")
+            elif ml_score > 0.65:
+                risk_pct = min(risk_pct * 1.15, payload["riesgo_pct"] * 1.5)
+                reasons.append("Modelo permite subir riesgo por score alto")
 
         return PolicyDecision(
             symbol=symbol.upper(),
@@ -89,6 +151,48 @@ class PolicyEnsemble:
             price=price,
             stop_loss=stop_loss,
             take_profit=take_profit,
-            metadata={"news_sentiment": news_sentiment or 0.0},
+            metadata=metadata,
             reasons=reasons,
         )
+
+    # ----- Modelo entrenado -----
+    def _load_model(self, model_path: str | Path | None) -> Optional[dict]:
+        if not model_path:
+            return None
+        path = Path(model_path)
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            features = data.get("features") or []
+            if not isinstance(features, list):
+                return None
+            return data
+        except Exception:
+            return None
+
+    def _score_with_model(self, features: Dict[str, float]) -> Optional[float]:
+        if not self._model_artifact:
+            return None
+        total = 0.0
+        meta = self._model_artifact
+        feature_defs = meta.get("features") or []
+        if not feature_defs:
+            return None
+        for fdef in feature_defs:
+            name = fdef.get("name")
+            if not name:
+                continue
+            val = float(features.get(name, fdef.get("default", 0.0)))
+            mean = float(fdef.get("mean") or 0.0)
+            std = float(fdef.get("std") or 1.0)
+            if std == 0:
+                std = 1.0
+            norm = (val - mean) / std
+            total += norm * float(fdef.get("weight") or 0.0)
+        bias = float(meta.get("bias") or 0.0)
+        try:
+            z = bias + total
+            return 1.0 / (1.0 + math.exp(-z))
+        except OverflowError:
+            return None

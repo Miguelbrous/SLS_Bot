@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Sequence
+from typing import Sequence
 
 from ..sls_bot.config_loader import load_config
 from .filters import SessionGuardConfig
@@ -18,11 +18,42 @@ class CerebroConfig:
     max_memory: int = 5000
     sl_atr_multiple: float = 1.5
     tp_atr_multiple: float = 2.0
+    news_ttl_minutes: int = 45
+    session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
+
+
+DEFAULT_SESSION_GUARDS = [
+    {
+        "name": "Asia (Tokyo)",
+        "timezone": "Asia/Tokyo",
+        "open_time": "09:00",
+        "pre_open_minutes": 45,
+        "post_open_minutes": 30,
+        "wait_for_news_minutes": 45,
+    },
+    {
+        "name": "Europa (Londres)",
+        "timezone": "Europe/London",
+        "open_time": "08:00",
+        "pre_open_minutes": 45,
+        "post_open_minutes": 45,
+        "wait_for_news_minutes": 60,
+    },
+    {
+        "name": "America (Nueva York)",
+        "timezone": "America/New_York",
+        "open_time": "09:30",
+        "pre_open_minutes": 60,
+        "post_open_minutes": 60,
+        "wait_for_news_minutes": 60,
+    },
+]
 
     @classmethod
     def from_dict(cls, data: dict) -> "CerebroConfig":
         if not data:
             return cls()
+        raw_sessions = data.get("session_guards") or DEFAULT_SESSION_GUARDS
         return cls(
             enabled=bool(data.get("enabled", False)),
             symbols=data.get("symbols") or ["BTCUSDT"],
@@ -33,6 +64,8 @@ class CerebroConfig:
             max_memory=int(data.get("max_memory") or 5000),
             sl_atr_multiple=float(data.get("sl_atr_multiple") or 1.5),
             tp_atr_multiple=float(data.get("tp_atr_multiple") or 2.0),
+            news_ttl_minutes=int(data.get("news_ttl_minutes") or 45),
+            session_guards=[SessionGuardConfig.from_dict(item or {}) for item in raw_sessions],
         )
 
 

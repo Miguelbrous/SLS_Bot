@@ -1,71 +1,50 @@
 # Cerebro: Motor IA Autoaprendizaje
 
-Este documento describe la arquitectura propuesta para el “Cerebro” de SLS Bot, un
-servicio separado encargado de **observar**, **aprender** y **sugerir** ajustes a la
-estrategia en tiempo real.
+Cerebro es el servicio de IA que acompana al bot principal: observa el mercado, aprende de los
+resultados reales y propone ajustes de riesgo en tiempo real. Esta revision incorpora protecciones
+para las aperturas de mercados institucionales y un analizador ligero de noticias.
 
 ## Objetivos
 
-1. **Observabilidad continua**: recopilar mercado, indicadores, noticias y resultados
-   del bot para crear un contexto histórico.
-2. **Aprendizaje iterativo**: entrenar modelos (supervisado + heurístico) que
-   estimen la probabilidad de éxito de una operación futura.
-3. **Retroalimentación**: exponer decisiones sugeridas, niveles de confianza y
-   parámetros recomendados (riesgo, apalancamiento, filtros).
-4. **Memoria viva**: almacenar todas las operaciones con su contexto para seguir
-   mejorando sin depender de hojas de cálculo manuales.
+1. **Observabilidad continua**: recopila velas, indicadores propios, estado de riesgo del bot y feeds RSS.
+2. **Aprendizaje iterativo**: guarda cada trade real en la memoria de experiencias para reentrenar modelos.
+3. **Retroalimentacion inmediata**: expone decisiones con confianza, riesgo sugerido y razones.
+4. **Gobernanza del riesgo**: incluye reglas de drawdown y ahora una "session guard" para horas criticas.
 
 ## Componentes
 
-```
-┌─────────────┐        ┌──────────────┐        ┌──────────────┐
-│ DataSource  │  --->  │ FeatureStore │  --->  │ PolicyEngine │
-└─────────────┘        └──────────────┘        └──────────────┘
-      ^                       │                         │
-      │                       v                         v
-┌─────────────┐        ┌──────────────┐        ┌──────────────┐
-│ News/RSS    │        │ Experience   │        │ API / Router │
-│ Sentiment   │        │ Memory       │        │ (FastAPI)    │
-└─────────────┘        └──────────────┘        └──────────────┘
-```
+- **DataSources**: conectores a Bybit (OHLC + ATR) y RSS (titulares). Cada `fetch()` entrega diccionarios
+  crudos que la politica puede consumir directamente, ahora con sentimiento NLP (`vaderSentiment`) en cada titular.
+- **FeatureStore**: buffer circular (max 500) que almacena las ultimas velas por simbolo/timeframe.
+- **ExperienceMemory**: cola de tamano configurable que guarda `features + pnl + decision`.
+- **PolicyEnsemble**: combina `ia_signal_engine` + heuristicas de riesgo + sentimiento de noticias y un modelo ligero entrenado con los trades reales (logística).
+- **MarketSessionGuard** (nuevo): detecta las ventanas de apertura (Asia/Europa/USA) y bloquea/reduce
+  operaciones segun el contexto de noticias mas reciente.
+- **API Router**: expone `/cerebro/status`, `/cerebro/decide` y `/cerebro/learn` dentro del FastAPI principal.
 
-- **DataSources**: conectores a Bybit (velas + indicadores), noticias (RSS),
-  métricas internas y, en el futuro, on-chain u otras fuentes.
-- **FeatureStore**: cachea series temporales, normaliza y entrega “slices”
-  listos para la política.
-- **ExperienceMemory**: almacena cada operación real (features + resultado) para
-  reentrenar modelos y evaluar estrategias.
-- **PolicyEngine**: combina heurísticas, modelos existentes (`ia_signal_engine`)
-  y “penalizaciones” basadas en drawdown para generar una recomendación.
-- **API Router**: expone `/cerebro/status`, `/cerebro/decide` y `/cerebro/learn`
-  para integrarse con el panel o con scripts de despliegue.
+## Flujo rapido
 
-## Flujo de entrenamiento / inferencia
+1. `run_cycle()` descarga OHLC recientes y actualiza el FeatureStore.
+2. Lee los feeds RSS configurados, calcula un `NewsPulse` (sentimiento -1..1, noticia mas reciente y antiguedad).
+3. El guard de sesiones revisa si estamos dentro de la ventana de pre-apertura/post-apertura.
+4. PolicyEnsemble genera una decision (LONG/SHORT/NO_TRADE) con confianza, riesgo y SL/TP dinamicos.
+5. El bot real consume esa decision via `_maybe_apply_cerebro`. Si la accion es `NO_TRADE` la senal se descarta.
+6. Al cerrar una operacion se llama a `/cerebro/learn` para alimentar la memoria.
 
-1. **Ingesta** (`Cerebro.run_cycle`)
-   - Descarga OHLC reciente (`ia_utils.fetch_ohlc`) y calcula indicadores.
-   - Consulta noticias en RSS (lista configurable).
-   - Actualiza FeatureStore y guarda el “contexto” (últimas velas + sentimiento).
+## Proteccion ante aperturas
 
-2. **Evaluación**
-   - PolicyEngine recibe el contexto y produce:
-     - Dirección sugerida (`LONG/SHORT/NO_TRADE`).
-     - Confianza (0-1), riesgo sugerido y palanca sugerida.
-     - Explicaciones (por qué/qué indicadores activaron la señal).
+- **Pre-apertura** (`state=pre_open`): si falta `pre_open_minutes` para abrir (por defecto 45-60 segun region)
+  el Cerebro bloquea nuevas senales y en la metadata envia `should_close_positions=true` para que el bot pueda
+  reducir exposicion.
+- **Post-apertura sin noticias** (`state=news_wait`): tras la campanada se esperan noticias frescas (<= `wait_for_news_minutes`).
+  Mientras no llegue un titular reciente la decision se fuerza a `NO_TRADE`.
+- **Post-apertura con noticia** (`state=news_ready`): si hay un titular reciente el trade solo se permite cuando
+  la direccion de la noticia no contradice el lado sugerido. Aunque se apruebe, el riesgo se multiplica por
+  `risk_multiplier_after_news` (tipicamente 0.7-0.8) para entrar con menos tamano.
+- La metadata de cada decision incluye `session_guard` con `state`, `session_name`, ventanas `window_*_ts` y
+  un `reason` amigable para mostrar en el panel.
 
-3. **Feedback**
-   - Cuando el bot real cierra una operación se llama a `/cerebro/learn`.
-   - La memoria almacena `features + pnl` y actualiza métricas (winrate,
-     drawdown, racha).
-   - Se programa un “refresh” para reentrenar modelos (por ahora manual).
-
-4. **Consumo por el bot**
-   - `ia_router` o `sls_bot.app` pueden consultar `/cerebro/decide` para obtener
-     un “score” adicional y filtrarlo con la lógica existente.
-   - El panel mostrará el estado del cerebro (últimas decisiones, noticias
-     relevantes, confianza media).
-
-## Configuración (`config/config.json`)
+## Configuracion (`config/config.json`)
 
 ```jsonc
 "cerebro": {
@@ -80,47 +59,89 @@ estrategia en tiempo real.
   "min_confidence": 0.55,
   "max_memory": 5000,
   "sl_atr_multiple": 1.5,
-  "tp_atr_multiple": 2.0
+  "tp_atr_multiple": 2.0,
+  "news_ttl_minutes": 45,
+  "session_guards": [
+    {
+      "name": "Asia (Tokyo)",
+      "timezone": "Asia/Tokyo",
+      "open_time": "09:00",
+      "pre_open_minutes": 45,
+      "post_open_minutes": 30,
+      "wait_for_news_minutes": 45,
+      "risk_multiplier_after_news": 0.8,
+      "close_positions_minutes": 15
+    },
+    {
+      "name": "Europa (Londres)",
+      "timezone": "Europe/London",
+      "open_time": "08:00",
+      "pre_open_minutes": 45,
+      "post_open_minutes": 45,
+      "wait_for_news_minutes": 60,
+      "risk_multiplier_after_news": 0.75,
+      "close_positions_minutes": 20
+    },
+    {
+      "name": "America (Nueva York)",
+      "timezone": "America/New_York",
+      "open_time": "09:30",
+      "pre_open_minutes": 60,
+      "post_open_minutes": 60,
+      "wait_for_news_minutes": 60,
+      "risk_multiplier_after_news": 0.7,
+      "close_positions_minutes": 20
+    }
+  ]
 }
 ```
 
-- `symbols` / `timeframes`: universos que analizará el Cerebro.
-- `refresh_seconds`: cada cuánto se ejecuta `run_cycle`.
-- `news_feeds`: fuentes RSS confiables.
-- `min_confidence`: umbral para destacar señales.
-- `max_memory`: cantidad máxima de operaciones guardadas.
+- `news_ttl_minutes`: cuanto tiempo sigue siendo util una noticia para tomar decisiones si no hay sesion abierta.
+- `session_guards`: lista de ventanas por region. Puedes eliminar o ajustar horarios/tiempos segun la cobertura del bot.
+- `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una
+  noticia alineada.
 
-## Roadmap
+## Entrenamiento automático (`bot/cerebro/train.py`)
 
-1. **Versión Alfa (este commit)**: estructura del servicio, endpoints básicos,
-   ingesta de mercado/noticias, almacenamiento de experiencias y heurística
-   inicial combinada con el IA actual.
-2. **Versión Beta**
-   - Entrenamiento periódico (cron) con `ia_train.py`.
-   - Métricas de validación (AUC, Sharpe simulado).
-   - Ajuste automático de parámetros del bot (riesgo_pct, filtros).
-3. **Versión 1.0**
-   - Integración de NLP para clasificar noticias (bullish/bearish).
-   - Refuerzo continuo (policy gradient) usando simulaciones / backtests.
-   - Evaluación multi-símbolo y gestión de portafolio.
-
-## Integración con el Panel
-
-- `/status` ya expone `risk_state_details`.
-- `/cerebro/status` provee información adicional: última iteración, confianza
-  media y noticias relevantes.
-- Próximo paso: panel mostrará una tarjeta “Cerebro” con esos datos y un botón
-  para solicitar una decisión manualmente.
-
-## Cómo ejecutar
+Cada vez que el bot cierra una operación se escribe `logs/cerebro_experience.jsonl` con el `pnl`, las features de la decisión
+(confianza, riesgo, sentimiento de noticias, estado del guardián, etc.) y el resultado final. El comando:
 
 ```
 cd bot
-SLSBOT_CONFIG=../config/config.json \
-python -m cerebro.service --once      # Ejecuta un ciclo
-python -m cerebro.service --loop      # Ciclo continuo (usa refresh_seconds)
+python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir ../models/cerebro
 ```
 
-Los endpoints se montan automáticamente en la API principal (`/cerebro/*`)
-cuando `bot/app/main.py` puede importar el módulo.
-- El panel consulta \\/cerebro/status\\ y muestra las �ltimas decisiones, confianza y motivos en la tarjeta 'Cerebro IA'.
+1. Limpia/normaliza las features numéricas.
+2. Entrena una regresión logística ligera (gradiente descendente puro-Python).
+3. Calcula métricas en un holdout (`accuracy`, `win_rate`, `auc`).
+4. Guarda el artefacto (`models/cerebro/model_<timestamp>.json`) con pesos, medias/std de cada feature y métricas.
+5. Solo promueve a `models/cerebro/active_model.json` cuando `auc` y `win_rate` superan `--min-auc` / `--min-win-rate`
+   y además el nuevo modelo no empeora al activo.
+
+`PolicyEnsemble` carga automáticamente `active_model.json` (si existe) y mezcla su `ml_score` con la confianza del
+motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirlo hasta el máximo configurado.
+
+## Logs e historial
+
+- `logs/cerebro_decisions.jsonl`: cada decision publicada para auditar en el panel.
+- `logs/cerebro_experience.jsonl`: dataset usado por el entrenamiento.
+- `/cerebro/status` ahora expone `history` (últimas ~60 decisiones) para graficar confianza en el panel.
+
+## Integracion con el panel
+
+`/cerebro/status` devuelve cada decision con un bloque `metadata`. El panel ahora muestra:
+
+- Sentimiento de noticias y ultimo titular (si llega desde los feeds).
+- Estado de la Session Guard (badge amarillo/rojo segun `block_trade`).
+- Razones completas (`decision.reasons`) para auditar por que se bloqueo una senal.
+- Filtros por símbolo/timeframe, botón **Forzar decisión** (POST `/cerebro/decide`) y el gráfico de confianza histórica.
+
+## Ejecucion rapida
+
+```
+cd bot
+SLSBOT_CONFIG=../config/config.json python -m cerebro.service --once
+python -m cerebro.service --loop
+```
+
+Tambien puedes dejar que FastAPI importe `cerebro` para que los endpoints se sirvan junto al resto de la API.

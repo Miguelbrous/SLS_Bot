@@ -23,7 +23,20 @@
     "cooldown_loss_streak": 3,
     "cooldown_loss_window_minutes": 120,
     "cooldown_loss_minutes": 45,
-    "pnl_epsilon": 0.05
+    "pnl_epsilon": 0.05,
+    "dynamic_risk": {
+      "enabled": true,
+      "drawdown_tiers": [
+        { "drawdown": 0, "multiplier": 1.0 },
+        { "drawdown": 1.0, "multiplier": 0.85 },
+        { "drawdown": 2.5, "multiplier": 0.65 },
+        { "drawdown": 4.0, "multiplier": 0.45 }
+      ],
+      "min_multiplier": 0.25,
+      "max_multiplier": 1.6,
+      "equity_ceiling_pct": 8,
+      "multiplier_above_ceiling": 1.2
+    }
   },
   "server": {
     "host": "0.0.0.0",
@@ -49,7 +62,40 @@
     "min_confidence": 0.55,
     "max_memory": 5000,
     "sl_atr_multiple": 1.5,
-    "tp_atr_multiple": 2.0
+    "tp_atr_multiple": 2.0,
+    "news_ttl_minutes": 45,
+    "session_guards": [
+      {
+        "name": "Asia (Tokyo)",
+        "timezone": "Asia/Tokyo",
+        "open_time": "09:00",
+        "pre_open_minutes": 45,
+        "post_open_minutes": 30,
+        "wait_for_news_minutes": 45,
+        "risk_multiplier_after_news": 0.8,
+        "close_positions_minutes": 15
+      },
+      {
+        "name": "Europa (Londres)",
+        "timezone": "Europe/London",
+        "open_time": "08:00",
+        "pre_open_minutes": 45,
+        "post_open_minutes": 45,
+        "wait_for_news_minutes": 60,
+        "risk_multiplier_after_news": 0.75,
+        "close_positions_minutes": 20
+      },
+      {
+        "name": "America (Nueva York)",
+        "timezone": "America/New_York",
+        "open_time": "09:30",
+        "pre_open_minutes": 60,
+        "post_open_minutes": 60,
+        "wait_for_news_minutes": 60,
+        "risk_multiplier_after_news": 0.7,
+        "close_positions_minutes": 20
+      }
+    ]
   },
   "ia": {
     "modo": "asesor",

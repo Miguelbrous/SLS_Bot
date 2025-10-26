@@ -8,9 +8,12 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
 - `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
-  genera features y aprende de los resultados para proponer mejoras. Actívalo
-  habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondrá
-  `risk_pct`, `leverage` y SL/TP dinámicos y puede descartar operaciones (`NO_TRADE`).
+  genera features y aprende de los resultados para proponer mejoras. Act?valo
+  habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondr?
+  `risk_pct`, `leverage` y SL/TP din?micos, puede descartar operaciones (`NO_TRADE`)
+  y ahora integra un guardia de sesiones (Asia/Europa/USA) con sentimiento NLP
+  m?s un modelo ligero entrenado con tus propias operaciones (`bot/cerebro/train.py`)
+  que ajusta la confianza/riesgo solo cuando supera los umbrales de AUC/win-rate.
 
 ## Variables de entorno
 1. Copia `.env.example` como `.env` en la raiz (Terminal Windows PC) y ajusta:
@@ -20,7 +23,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `PANEL_API_TOKEN`: compatibilidad hacia atrás si aún manejas un solo token.
    - `TRUST_PROXY_BASIC` / `PROXY_BASIC_HEADER`: activa (`1`) cuando Nginx ya protege `/control/*` con Basic Auth y reenvía el usuario en `X-Forwarded-User`.
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
-   - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple` y un `min_confidence`; el bot usará esas salidas para ajustar riesgo, leverage y stop-loss/take-profit automáticamente.
+   - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple`, un `min_confidence`, el horizonte de noticias (`news_ttl_minutes`) y al menos una entrada en `session_guards`. El bot usar? esas salidas para ajustar riesgo, leverage, stop-loss/take-profit y bloquear entradas cuando el guardia de sesi?n est? activo.
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollarás sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
 3. Para el bot real, copia `config/config.sample.json` a `config/config.json` y completa tus credenciales. Si trabajas en el VPS, manten la version cifrada.
 4. Ajusta el bloque `risk` en `config/config.json`:
@@ -28,6 +31,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `cooldown_after_losses` / `cooldown_minutes`: lógica tradicional por pérdidas consecutivas.
    - `cooldown_loss_streak` / `cooldown_loss_window_minutes` / `cooldown_loss_minutes`: nuevo cooldown inteligente que cuenta las pérdidas de la ventana móvil y detiene el bot durante `cooldown_loss_minutes` si se supera la racha.
    - `pnl_epsilon`: umbral mínimo para considerar una operación como ganadora/perdedora (evita que resultados muy pequeños rompan la racha).
+   - `dynamic_risk`: habilita multiplicadores autom?ticos seg?n drawdown/equity (define `drawdown_tiers`, `min_multiplier`, `max_multiplier`, `equity_ceiling_pct`).
 
 ## Requisitos
 - Python 3.11+ (evita problemas con dependencias cientificas).
@@ -92,6 +96,14 @@ venv\Scripts\python scripts/tests/e2e_smoke.py
 ```
 Las pruebas de pytest usan `config/config.sample.json`, escriben `logs/test_pnl.jsonl` y fijan `SLS_SKIP_TIME_SYNC=1`. El script `scripts/tests/e2e_smoke.py` realiza un smoke test end-to-end contra una API en ejecución verificando `/health`, `/pnl/diario` y `/control`.
 
+## Modelo Cerebro (entrenamiento y despliegue)
+`
+cd C:/Users/migue/Desktop/SLS_Bot/bot
+python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir ../models/cerebro --min-auc 0.55 --min-win-rate 0.55
+`
+El script lee logs/cerebro_experience.jsonl, entrena una regresi�n log�stica ligera y solo promueve el artefacto a models/cerebro/active_model.json si supera los umbrales de AUC/win-rate y mejora el modelo vigente. PolicyEnsemble carga autom�ticamente ese archivo al iniciarse; basta con reiniciar el servicio del bot o el proceso de Cerebro tras cada entrenamiento.
+
+
 ## Automatización de despliegue
 - `scripts/deploy/bootstrap.sh` prepara el entorno Python/Node, ejecuta `pytest`, `npm run lint`/`build` y opcionalmente instala los servicios systemd si exportas `INSTALL_SYSTEMD=1 APP_ROOT=/opt/SLS_Bot SVC_USER=sls`.
 - `scripts/deploy/systemd/*.service` incluyen plantillas para `sls-api`, `sls-bot` y `sls-panel`. El script reemplaza `{{APP_ROOT}}` y `{{SVC_USER}}` automáticamente; si lo haces a mano, ajusta esas cadenas y copia los archivos a `/etc/systemd/system/`.
@@ -145,4 +157,3 @@ excel/ (ignorado)
 - Mantén `CONTROL_USER/CONTROL_PASSWORD`, `PANEL_API_TOKENS` y cualquier `.env` fuera del repo.
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.
-

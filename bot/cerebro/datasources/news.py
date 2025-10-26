@@ -8,6 +8,7 @@ from xml.etree import ElementTree
 import requests
 
 from .base import DataSource, NewsItem
+from ..nlp import get_sentiment_analyzer
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class RSSNewsDataSource(DataSource):
 
     def __init__(self, feeds: Sequence[str]):
         self.feeds = list(feeds) or []
+        self._sentiment = get_sentiment_analyzer()
 
     def fetch(self, *, symbol: str | None = None, timeframe: str | None = None, limit: int = 20) -> List[dict]:
         items: List[dict] = []
@@ -37,8 +39,13 @@ class RSSNewsDataSource(DataSource):
                             ts = datetime.strptime(pub, "%a, %d %b %Y %H:%M:%S %z").astimezone(timezone.utc)
                         except Exception:
                             ts = datetime.now(timezone.utc)
+                    sentiment_score = None
+                    if self._sentiment:
+                        res = self._sentiment.score(title)
+                        if res:
+                            sentiment_score = res.compound
                     items.append(
-                        NewsItem(title=title, url=link, published_at=ts, sentiment=None).__dict__
+                        NewsItem(title=title, url=link, published_at=ts, sentiment=sentiment_score).__dict__
                     )
             except Exception as exc:
                 log.warning("RSS fetch failed for %s: %s", url, exc)

@@ -268,15 +268,23 @@ def _notify_cerebro_learn(symbol: str, tf: Optional[str], pnl: float, st: dict) 
         return
     try:
         cerebro = get_cerebro()
+        metadata = info.get("metadata") or {}
+        session_guard = metadata.get("session_guard") or {}
+        features = {
+            "confidence": info.get("confidence"),
+            "risk_pct": info.get("risk_pct"),
+            "leverage": info.get("leverage"),
+            "news_sentiment": metadata.get("news_sentiment"),
+            "session_guard_state": session_guard.get("state"),
+            "session_guard_risk_multiplier": session_guard.get("risk_multiplier"),
+            "memory_win_rate": metadata.get("memory_win_rate"),
+            "ml_score": metadata.get("ml_score"),
+        }
         cerebro.register_trade(
             symbol=symbol.upper(),
             timeframe=tf or info.get("timeframe") or CEREBRO_DEFAULT_TF,
             pnl=pnl,
-            features={
-                "confidence": info.get("confidence"),
-                "risk_pct": info.get("risk_pct"),
-                "leverage": info.get("leverage"),
-            },
+            features=features,
             decision=info.get("action", "UNKNOWN"),
         )
     except Exception:
@@ -489,7 +497,8 @@ def _load_state() -> dict:
         "recent_results": [],
         "cooldown_history": [],
         "active_cooldown_reason": None,
-        "last_cerebro_decision": None
+        "last_cerebro_decision": None,
+        "dynamic_risk": {"enabled": False},
     }
 
 def _save_state(st: dict):
@@ -511,7 +520,8 @@ def _reset_daily_if_needed():
             "recent_results": [],
             "cooldown_history": [],
             "active_cooldown_reason": None,
-            "last_cerebro_decision": None
+            "last_cerebro_decision": None,
+            "dynamic_risk": {"enabled": False},
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -611,6 +621,60 @@ def _loss_streak_reached(st: dict) -> bool:
         if streak >= threshold:
             return True
     return False
+
+
+def _dynamic_risk_multiplier(st: dict, balance: float) -> Tuple[float, dict]:
+    dyn_cfg = (cfg.get("risk", {}).get("dynamic_risk") or {})
+    if not dyn_cfg or not dyn_cfg.get("enabled"):
+        return 1.0, {"enabled": False}
+    start_eq = float(st.get("start_equity") or balance or 0.0)
+    if start_eq <= 0:
+        return 1.0, {"enabled": False}
+    drop_pct = _current_drop_pct(balance, st)
+    tiers = dyn_cfg.get("drawdown_tiers") or [
+        {"drawdown": 0.0, "multiplier": 1.0},
+        {"drawdown": 1.0, "multiplier": 0.8},
+        {"drawdown": 2.0, "multiplier": 0.6},
+        {"drawdown": 3.5, "multiplier": 0.4},
+    ]
+    tiers = sorted(tiers, key=lambda item: float(item.get("drawdown") or 0.0))
+    multiplier = tiers[0].get("multiplier", 1.0)
+    for tier in tiers:
+        if drop_pct >= float(tier.get("drawdown") or 0.0):
+            multiplier = float(tier.get("multiplier") or multiplier)
+        else:
+            break
+    ceiling_pct = float(dyn_cfg.get("equity_ceiling_pct") or 0.0)
+    if ceiling_pct > 0 and balance >= start_eq * (1 + ceiling_pct / 100.0):
+        multiplier = max(multiplier, float(dyn_cfg.get("multiplier_above_ceiling") or multiplier))
+    multiplier = min(float(dyn_cfg.get("max_multiplier") or 1.5), multiplier)
+    multiplier = max(float(dyn_cfg.get("min_multiplier") or 0.2), multiplier)
+    return multiplier, {
+        "enabled": True,
+        "drawdown_pct": drop_pct,
+        "start_equity": start_eq,
+        "current_equity": balance,
+    }
+
+
+def _apply_dynamic_risk(sig: Signal, balance: float, st: dict) -> None:
+    mult, meta = _dynamic_risk_multiplier(st, balance)
+    if not meta.get("enabled"):
+        st["dynamic_risk"] = {"enabled": False}
+        return
+    base = float(sig.risk_pct or 1.0)
+    adjusted = max(0.05, base * mult)
+    sig.risk_pct = adjusted
+    st["dynamic_risk"] = {
+        "enabled": True,
+        "multiplier": mult,
+        "base_risk_pct": base,
+        "adjusted_risk_pct": adjusted,
+        "drawdown_pct": meta.get("drawdown_pct"),
+        "start_equity": meta.get("start_equity"),
+        "current_equity": meta.get("current_equity"),
+        "applied_ts": _now_ts(),
+    }
 
 # ----- ENDPOINTS BÁSICOS -----
 @app.get("/health")
@@ -807,6 +871,8 @@ def webhook(sig: Signal):
         cere_decision = _maybe_apply_cerebro(sig, price_live, st)
         if cere_decision and cere_decision.get("blocked"):
             return {"status": "filtered", "reason": cere_decision.get("reason", "cerebro")}
+        _apply_dynamic_risk(sig, balance, st)
+        _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
         tick = filters["tick"]
