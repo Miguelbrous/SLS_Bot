@@ -20,6 +20,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `PANEL_API_TOKEN`: compatibilidad hacia atrás si aún manejas un solo token.
    - `TRUST_PROXY_BASIC` / `PROXY_BASIC_HEADER`: activa (`1`) cuando Nginx ya protege `/control/*` con Basic Auth y reenvía el usuario en `X-Forwarded-User`.
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
+   - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple` y un `min_confidence`; el bot usará esas salidas para ajustar riesgo, leverage y stop-loss/take-profit automáticamente.
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollarás sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
 3. Para el bot real, copia `config/config.sample.json` a `config/config.json` y completa tus credenciales. Si trabajas en el VPS, manten la version cifrada.
 4. Ajusta el bloque `risk` en `config/config.json`:

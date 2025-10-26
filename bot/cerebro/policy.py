@@ -20,6 +20,7 @@ class PolicyDecision:
     stop_loss: float
     take_profit: float
     metadata: Dict[str, float]
+    reasons: list[str]
 
 
 class PolicyEnsemble:
@@ -37,6 +38,7 @@ class PolicyEnsemble:
         timeframe: str,
         market_row: dict,
         news_sentiment: float | None = None,
+        memory_stats: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         decision = payload["decision"]
@@ -60,12 +62,27 @@ class PolicyEnsemble:
             stop_loss = price + atr * self.sl_atr
             take_profit = max(0.0, price - atr * self.tp_atr)
 
+        reasons = [
+            f"Rules long/short={evid_rules['rules']['long']:.2f}/{evid_rules['rules']['short']:.2f}",
+            f"Confianza modelo={confidence:.2f}",
+        ]
+        if news_sentiment is not None:
+            reasons.append(f"Sentimiento noticias={news_sentiment:+.2f}")
+
+        risk_pct = payload["riesgo_pct"]
+        memory_stats = memory_stats or {}
+        if memory_stats.get("total", 0) >= 20:
+            win_rate = float(memory_stats.get("win_rate") or 0.0)
+            dyn_mult = max(0.5, min(1.5, 0.5 + win_rate))
+            risk_pct = max(0.1, risk_pct * dyn_mult)
+            reasons.append(f"Ajuste riesgo (win_rate={win_rate:.2%}, mult={dyn_mult:.2f})")
+
         return PolicyDecision(
             symbol=symbol.upper(),
             timeframe=timeframe,
             action=decision,
             confidence=confidence,
-            risk_pct=payload["riesgo_pct"],
+            risk_pct=risk_pct,
             leverage=payload["leverage"],
             summary=payload["resumen"],
             evidences={"rules_long": evid_rules["rules"]["long"], "rules_short": evid_rules["rules"]["short"]},
@@ -73,4 +90,5 @@ class PolicyEnsemble:
             stop_loss=stop_loss,
             take_profit=take_profit,
             metadata={"news_sentiment": news_sentiment or 0.0},
+            reasons=reasons,
         )

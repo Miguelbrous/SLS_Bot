@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .config import CerebroConfig, load_cerebro_config
 from .datasources.market import MarketDataSource
@@ -38,6 +38,27 @@ class Cerebro:
         self._lock = threading.Lock()
         self._decisions: Dict[str, DecisionSnapshot] = {}
         self._last_run = 0.0
+        self._loop_thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
+
+    def start_loop(self) -> None:
+        if not self.config.enabled or (self._loop_thread and self._loop_thread.is_alive()):
+            return
+        self._stop_event.clear()
+
+        def _loop() -> None:
+            while not self._stop_event.is_set():
+                try:
+                    self.run_cycle()
+                except Exception as exc:
+                    log.exception("Cerebro loop error: %s", exc)
+                time.sleep(max(10, self.config.refresh_seconds))
+
+        self._loop_thread = threading.Thread(target=_loop, daemon=True, name="cerebro-loop")
+        self._loop_thread.start()
+
+    def stop_loop(self) -> None:
+        self._stop_event.set()
 
     def run_cycle(self) -> None:
         if not self.config.enabled:
@@ -49,6 +70,7 @@ class Cerebro:
             if news_items:
                 # placeholder: sentimiento neutro, se puede ampliar con NLP
                 news_sentiment = 0.0
+            stats = self.memory.stats()
             for symbol in self.config.symbols:
                 for tf in self.config.timeframes:
                     try:
@@ -61,6 +83,7 @@ class Cerebro:
                             timeframe=tf,
                             market_row=rows[-1],
                             news_sentiment=news_sentiment,
+                            memory_stats=stats,
                         )
                         key = f"{symbol.upper()}::{tf}"
                         self._decisions[key] = DecisionSnapshot(

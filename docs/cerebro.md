@@ -123,3 +123,4 @@ python -m cerebro.service --loop      # Ciclo continuo (usa refresh_seconds)
 
 Los endpoints se montan automáticamente en la API principal (`/cerebro/*`)
 cuando `bot/app/main.py` puede importar el módulo.
+- El panel consulta \\/cerebro/status\\ y muestra las �ltimas decisiones, confianza y motivos en la tarjeta 'Cerebro IA'.

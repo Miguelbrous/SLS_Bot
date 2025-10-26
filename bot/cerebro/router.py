@@ -9,6 +9,11 @@ from .service import get_cerebro
 
 cerebro_router = APIRouter(prefix="/cerebro", tags=["cerebro"])
 
+try:
+    get_cerebro().start_loop()
+except Exception:
+    pass
+
 
 @cerebro_router.get("/status")
 def cerebro_status():

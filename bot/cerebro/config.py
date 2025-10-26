@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import List, Sequence
 
 from ..sls_bot.config_loader import load_config
+from .filters import SessionGuardConfig
 
 
 @dataclass

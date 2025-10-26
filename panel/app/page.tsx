@@ -17,6 +17,22 @@ type PnlItem = { day: string; pnl_eur: number; from_fills?: boolean; symbols?: S
 type LogResp = { lines: string[] };
 type DecisionRow = { ts?: string; symbol?: string; side?: string; confidence?: number };
 type DecisionsResp = { rows: DecisionRow[] };
+type CerebroDecision = {
+  action: string;
+  confidence: number;
+  risk_pct: number;
+  leverage: number;
+  summary: string;
+  reasons?: string[];
+  generated_at?: number;
+};
+type CerebroStatus = {
+  ok?: boolean;
+  enabled?: boolean;
+  time?: string;
+  decisions?: Record<string, CerebroDecision>;
+  memory?: { total?: number; win_rate?: number };
+};
 type RiskStateDetails = {
   consecutive_losses?: number;
   cooldown_until_ts?: number;
@@ -30,20 +46,23 @@ export default function Page() {
   const [decisiones, setDecisiones] = useState<DecisionRow[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [pnl, setPnl] = useState<PnlItem[]>([]);
+  const [cerebro, setCerebro] = useState<CerebroStatus | null>(null);
 
   async function loadAll() {
     try {
       const init = PANEL_TOKEN ? { headers: { "X-Panel-Token": PANEL_TOKEN } } : undefined;
-      const [s, d, l, p] = await Promise.all([
+      const [s, d, l, p, ce] = await Promise.all([
         fetch(`${API_BASE}/status`, init).then((r) => r.json()),
         fetch(`${API_BASE}/decisiones?limit=25`, init).then((r) => r.json()),
         fetch(`${API_BASE}/logs/bridge?limit=200`, init).then((r) => r.json()),
         fetch(`${API_BASE}/pnl/diario?days=7`, init).then((r) => r.json()),
+        fetch(`${API_BASE}/cerebro/status`, init).then((r) => r.json()).catch(() => null),
       ]);
       setStatus(s);
       setDecisiones((d as DecisionsResp).rows || []);
       setLogs((l as LogResp).lines || []);
       setPnl(p.days || []);
+      if (ce) setCerebro(ce);
     } catch {
       // silencioso para no antagonizar la UI
     }
@@ -153,6 +172,48 @@ export default function Page() {
               )}
             </div>
           ) : null}
+        </Card>
+
+        <Card title="Cerebro IA">
+          {cerebro?.enabled ? (
+            <>
+              <div className="kv">
+                <div>
+                  <span>Última iteración:</span> {cerebro?.time ?? "-"}
+                </div>
+                <div>
+                  <span>Experiencias:</span> {cerebro?.memory?.total ?? 0} ({Math.round((cerebro?.memory?.win_rate ?? 0) * 100)}% win)
+                </div>
+              </div>
+              {cerebro?.decisions && Object.keys(cerebro.decisions).length ? (
+                <ul className="cerebro-decisions">
+                  {Object.entries(cerebro.decisions).map(([key, dec]) => (
+                    <li key={key}>
+                      <div className="cerebro-head">
+                        <strong>{key}</strong>
+                        <span className={`badge ${dec.action === "NO_TRADE" ? "warn" : "ok"}`}>{dec.action}</span>
+                      </div>
+                      <div className="cerebro-meta">
+                        Confianza {Math.round((dec.confidence ?? 0) * 100)}% · Riesgo {dec.risk_pct?.toFixed(2)}% · Lev {dec.leverage}
+                      </div>
+                      <div className="cerebro-summary">{dec.summary}</div>
+                      {dec.reasons?.length ? (
+                        <ul className="cerebro-reasons">
+                          {dec.reasons.map((reason, idx) => (
+                            <li key={`${key}-reason-${idx}`}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="empty small">Sin decisiones recientes</div>
+              )}
+            </>
+          ) : (
+            <div className="empty small">Cerebro deshabilitado</div>
+          )}
         </Card>
 
         <Card title="Decisiones (ultimas)">
