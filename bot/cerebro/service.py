@@ -9,7 +9,7 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Deque, Dict, Optional
+from typing import Deque, Dict, List, Optional
 
 from .config import CerebroConfig, load_cerebro_config
 from .datasources.market import MarketDataSource
@@ -155,6 +155,35 @@ class Cerebro:
         key = f"{symbol.upper()}::{timeframe}"
         snap = self._decisions.get(key)
         return snap.decision if snap else None
+
+    def list_decisions(self, limit: int = 50) -> List[dict]:
+        limit = max(1, min(limit, 500))
+        rows: List[dict] = []
+        if DECISIONS_LOG.exists():
+            try:
+                with DECISIONS_LOG.open("r", encoding="utf-8", errors="ignore") as fh:
+                    lines = fh.readlines()[-limit:]
+                for raw in reversed(lines):
+                    raw = raw.strip()
+                    if not raw:
+                        continue
+                    try:
+                        rows.append(json.loads(raw))
+                    except json.JSONDecodeError:
+                        continue
+            except Exception:
+                log.debug("Failed to read decisions log", exc_info=True)
+        if len(rows) < limit:
+            with self._lock:
+                fallback = list(self._history)[-limit:]
+            for entry in reversed(fallback):
+                if any(row.get("ts") == entry.get("ts") for row in rows):
+                    continue
+                rows.append(entry)
+                if len(rows) >= limit:
+                    break
+        rows.sort(key=lambda item: item.get("ts", ""), reverse=True)
+        return rows[:limit]
 
     # ----- Persistencia auxiliar -----
     def _record_decision(self, symbol: str, timeframe: str, decision: PolicyDecision) -> None:

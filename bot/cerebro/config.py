@@ -7,21 +7,6 @@ from ..sls_bot.config_loader import load_config
 from .filters import SessionGuardConfig
 
 
-@dataclass
-class CerebroConfig:
-    enabled: bool = False
-    symbols: Sequence[str] = field(default_factory=lambda: ["BTCUSDT"])
-    timeframes: Sequence[str] = field(default_factory=lambda: ["15m"])
-    refresh_seconds: int = 60
-    news_feeds: Sequence[str] = field(default_factory=list)
-    min_confidence: float = 0.55
-    max_memory: int = 5000
-    sl_atr_multiple: float = 1.5
-    tp_atr_multiple: float = 2.0
-    news_ttl_minutes: int = 45
-    session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
-
-
 DEFAULT_SESSION_GUARDS = [
     {
         "name": "Asia (Tokyo)",
@@ -48,6 +33,21 @@ DEFAULT_SESSION_GUARDS = [
         "wait_for_news_minutes": 60,
     },
 ]
+
+
+@dataclass
+class CerebroConfig:
+    enabled: bool = False
+    symbols: Sequence[str] = field(default_factory=lambda: ["BTCUSDT"])
+    timeframes: Sequence[str] = field(default_factory=lambda: ["15m"])
+    refresh_seconds: int = 60
+    news_feeds: Sequence[str] = field(default_factory=list)
+    min_confidence: float = 0.55
+    max_memory: int = 5000
+    sl_atr_multiple: float = 1.5
+    tp_atr_multiple: float = 2.0
+    news_ttl_minutes: int = 45
+    session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> "CerebroConfig":

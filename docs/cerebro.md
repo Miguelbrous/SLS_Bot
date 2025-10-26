@@ -20,7 +20,7 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 - **PolicyEnsemble**: combina `ia_signal_engine` + heuristicas de riesgo + sentimiento de noticias y un modelo ligero entrenado con los trades reales (logística).
 - **MarketSessionGuard** (nuevo): detecta las ventanas de apertura (Asia/Europa/USA) y bloquea/reduce
   operaciones segun el contexto de noticias mas reciente.
-- **API Router**: expone `/cerebro/status`, `/cerebro/decide` y `/cerebro/learn` dentro del FastAPI principal.
+- **API Router**: expone `/cerebro/status`, `/cerebro/decide`, `/cerebro/learn` y `/cerebro/decisions` dentro del FastAPI principal (este último sirve el historial que también se guarda en `logs/cerebro_decisions.jsonl`).
 
 ## Flujo rapido
 
@@ -135,6 +135,21 @@ motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirl
 - Estado de la Session Guard (badge amarillo/rojo segun `block_trade`).
 - Razones completas (`decision.reasons`) para auditar por que se bloqueo una senal.
 - Filtros por símbolo/timeframe, botón **Forzar decisión** (POST `/cerebro/decide`) y el gráfico de confianza histórica.
+- Para auditoría o monitoreo externo puedes consultar `/cerebro/decisions?limit=50`, que lee directamente del log JSONL y siempre entrega las entradas más recientes.
+
+## Servicio dedicado
+
+Si quieres orquestar Cerebro como proceso separado del bot principal, usa `scripts/deploy/install_cerebro_service.sh`. El script copia `scripts/deploy/systemd/sls-cerebro.service`, sustituye `{{APP_ROOT}}/{{SVC_USER}}`, recarga systemd y deja el servicio activo. El comando que se ejecuta es:
+
+```
+{{APP_ROOT}}/venv/bin/python -m cerebro.service --loop
+```
+
+Healthcheck recomendado (ajusta puerto/api):
+
+```
+curl -fsS http://127.0.0.1:${SLS_API_PORT:-8880}/cerebro/status | jq '.time'
+```
 
 ## Ejecucion rapida
 

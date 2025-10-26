@@ -11,9 +11,10 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
   genera features y aprende de los resultados para proponer mejoras. Act?valo
   habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondr?
   `risk_pct`, `leverage` y SL/TP din?micos, puede descartar operaciones (`NO_TRADE`)
-  y ahora integra un guardia de sesiones (Asia/Europa/USA) con sentimiento NLP
-  m?s un modelo ligero entrenado con tus propias operaciones (`bot/cerebro/train.py`)
-  que ajusta la confianza/riesgo solo cuando supera los umbrales de AUC/win-rate.
+  y ahora integra un guardia de sesiones (Asia/Europa/USA) con sentimiento NLP,
+  logging/auditor?a (`/cerebro/decisions`) y un modelo ligero entrenado con tus
+  propias operaciones (`bot/cerebro/train.py`) que ajusta la confianza/riesgo solo
+  cuando supera los umbrales de AUC/win-rate.
 
 ## Variables de entorno
 1. Copia `.env.example` como `.env` en la raiz (Terminal Windows PC) y ajusta:
@@ -97,11 +98,20 @@ venv\Scripts\python scripts/tests/e2e_smoke.py
 Las pruebas de pytest usan `config/config.sample.json`, escriben `logs/test_pnl.jsonl` y fijan `SLS_SKIP_TIME_SYNC=1`. El script `scripts/tests/e2e_smoke.py` realiza un smoke test end-to-end contra una API en ejecuciÃ³n verificando `/health`, `/pnl/diario` y `/control`.
 
 ## Modelo Cerebro (entrenamiento y despliegue)
-`
+```
 cd C:/Users/migue/Desktop/SLS_Bot/bot
 python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir ../models/cerebro --min-auc 0.55 --min-win-rate 0.55
-`
+```
 El script lee logs/cerebro_experience.jsonl, entrena una regresión logística ligera y solo promueve el artefacto a models/cerebro/active_model.json si supera los umbrales de AUC/win-rate y mejora el modelo vigente. PolicyEnsemble carga automáticamente ese archivo al iniciarse; basta con reiniciar el servicio del bot o el proceso de Cerebro tras cada entrenamiento.
+
+## Servicio Cerebro IA (systemd)
+```
+bash APP_ROOT=/opt/SLS_Bot SVC_USER=sls ./scripts/deploy/install_cerebro_service.sh
+```
+El script copia `scripts/deploy/systemd/sls-cerebro.service`, reemplaza `{{APP_ROOT}}/{{SVC_USER}}`, recarga systemd y deja ejecutándose `python -m cerebro.service --loop`. Tras habilitarlo valida el estado con:
+```
+curl -fsS http://127.0.0.1:${SLS_API_PORT:-8880}/cerebro/status | jq '.time'
+```
 
 
 ## AutomatizaciÃ³n de despliegue
@@ -119,7 +129,7 @@ npm install
 ```
 npm run dev
 ```
-El panel leerÃ¡ `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`.
+El panel leerÃ¡ `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`. La tarjeta **Cerebro IA** permite filtrar por símbolo/timeframe, forzar una decisión (POST `/cerebro/decide`) y graficar la confianza usando el historial expuesto por `/cerebro/status`.
 ### Lint / Build
 ```
 npm run lint

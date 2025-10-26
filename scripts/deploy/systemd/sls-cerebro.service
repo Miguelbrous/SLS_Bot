@@ -1,0 +1,17 @@
+[Unit]
+Description=SLS Cerebro IA (servicio autónomo)
+After=network.target
+
+[Service]
+Type=simple
+User={{SVC_USER}}
+Group={{SVC_USER}}
+WorkingDirectory={{APP_ROOT}}/bot
+EnvironmentFile=-/etc/sls_bot.env
+Environment="PYTHONPATH={{APP_ROOT}}/bot"
+ExecStart={{APP_ROOT}}/venv/bin/python -m cerebro.service --loop
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

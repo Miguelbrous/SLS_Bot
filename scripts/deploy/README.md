@@ -71,3 +71,16 @@ SLS_CONTROL_PASSWORD='***' \
 /opt/SLS_Bot/venv/bin/python /opt/SLS_Bot/scripts/tests/e2e_smoke.py
 ```
 El script valida `/health`, `/pnl/diario` y `/control/*`. Integra este comando en tu pipeline (GitHub Actions, Jenkins, etc.) para detectar regresiones antes de abrir el panel a traders.
+
+## 7. Cerebro IA como servicio dedicado
+Si quieres aislar el loop de Cerebro (para que sobreviva a reinicios del bot principal) instala el nuevo unit file:
+```bash
+cd $APP_ROOT
+chmod +x scripts/deploy/install_cerebro_service.sh
+APP_ROOT=$APP_ROOT SVC_USER=$SVC_USER ./scripts/deploy/install_cerebro_service.sh
+```
+El script copia `scripts/deploy/systemd/sls-cerebro.service`, reemplaza `{{APP_ROOT}}/{{SVC_USER}}`, recarga systemd y habilita `sls-cerebro.service` (ejecuta `python -m cerebro.service --loop`). Para un healthcheck rápido:
+```bash
+curl -fsS http://127.0.0.1:${SLS_API_PORT:-8880}/cerebro/status | jq '.time'
+```
+Incorpora este servicio en tus dashboards (Prometheus, healthchecks externos, etc.) si necesitas observar la latencia de las decisiones IA de forma separada.

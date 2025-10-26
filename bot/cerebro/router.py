@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from .service import get_cerebro
 
@@ -55,3 +55,12 @@ def cerebro_learn(payload: Dict[str, Any]):
         raise HTTPException(status_code=400, detail="symbol requerido")
     cerebro.register_trade(symbol=symbol, timeframe=timeframe, pnl=pnl, features=features, decision=decision)
     return {"ok": True}
+
+
+@cerebro_router.get("/decisions")
+def cerebro_decisions(limit: int = Query(50, ge=1, le=200)):
+    cerebro = get_cerebro()
+    if not cerebro.config.enabled:
+        raise HTTPException(status_code=503, detail="Cerebro deshabilitado")
+    rows = cerebro.list_decisions(limit=limit)
+    return {"rows": rows, "count": len(rows)}
