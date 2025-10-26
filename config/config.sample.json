@@ -1,105 +1,152 @@
 {
-  "env": "TESTNET",
-  "bybit": {
-    "api_key": "YOUR_API_KEY",
-    "api_secret": "YOUR_API_SECRET",
-    "base_url": "https://api-testnet.bybit.com",
-    "account_type": "UNIFIED",
-    "category": "linear",
-    "symbols": ["BTCUSDT", "ETHUSDT"],
-    "position_mode": "ONE_WAY",
-    "default_leverage": 20
-  },
-  "paths": {
-    "root": "./",
-    "excel_dir": "./excel",
-    "logs_dir": "./logs"
-  },
-  "risk": {
-    "daily_max_dd_pct": 4.0,
-    "cooldown_after_losses": 2,
-    "cooldown_minutes": 60,
-    "dd_cooldown_minutes": 120,
-    "cooldown_loss_streak": 3,
-    "cooldown_loss_window_minutes": 120,
-    "cooldown_loss_minutes": 45,
-    "pnl_epsilon": 0.05,
-    "dynamic_risk": {
-      "enabled": true,
-      "drawdown_tiers": [
-        { "drawdown": 0, "multiplier": 1.0 },
-        { "drawdown": 1.0, "multiplier": 0.85 },
-        { "drawdown": 2.5, "multiplier": 0.65 },
-        { "drawdown": 4.0, "multiplier": 0.45 }
+  "default_mode": "test",
+  "shared": {
+    "paths": {
+      "root": "./",
+      "excel_dir": "./excel/{mode}",
+      "logs_dir": "./logs/{mode}"
+    },
+    "risk": {
+      "daily_max_dd_pct": 4.0,
+      "cooldown_after_losses": 2,
+      "cooldown_minutes": 60,
+      "dd_cooldown_minutes": 120,
+      "cooldown_loss_streak": 3,
+      "cooldown_loss_window_minutes": 120,
+      "cooldown_loss_minutes": 45,
+      "pnl_epsilon": 0.05,
+      "dynamic_risk": {
+        "enabled": true,
+        "drawdown_tiers": [
+          { "drawdown": 0, "multiplier": 1.0 },
+          { "drawdown": 1.0, "multiplier": 0.85 },
+          { "drawdown": 2.5, "multiplier": 0.65 },
+          { "drawdown": 4.0, "multiplier": 0.45 }
+        ],
+        "min_multiplier": 0.25,
+        "max_multiplier": 1.6,
+        "equity_ceiling_pct": 8,
+        "multiplier_above_ceiling": 1.2
+      }
+    },
+    "server": {
+      "host": "0.0.0.0",
+      "port": 8080,
+      "webhook_path": "/webhook"
+    },
+    "panel": {
+      "allowed_origins": ["http://localhost:3000"]
+    },
+    "auth": {
+      "control_user": "panel",
+      "control_password": "cambia_esto"
+    },
+    "cerebro": {
+      "enabled": false,
+      "symbols": ["BTCUSDT", "ETHUSDT"],
+      "timeframes": ["15m", "1h"],
+      "refresh_seconds": 60,
+      "news_feeds": [
+        "https://www.binance.com/blog/rss",
+        "https://cointelegraph.com/rss"
       ],
-      "min_multiplier": 0.25,
-      "max_multiplier": 1.6,
-      "equity_ceiling_pct": 8,
-      "multiplier_above_ceiling": 1.2
+      "min_confidence": 0.55,
+      "max_memory": 5000,
+      "sl_atr_multiple": 1.5,
+      "tp_atr_multiple": 2.0,
+      "news_ttl_minutes": 45,
+      "session_guards": [
+        {
+          "name": "Asia (Tokyo)",
+          "timezone": "Asia/Tokyo",
+          "open_time": "09:00",
+          "pre_open_minutes": 45,
+          "post_open_minutes": 30,
+          "wait_for_news_minutes": 45,
+          "risk_multiplier_after_news": 0.8,
+          "close_positions_minutes": 15
+        },
+        {
+          "name": "Europa (Londres)",
+          "timezone": "Europe/London",
+          "open_time": "08:00",
+          "pre_open_minutes": 45,
+          "post_open_minutes": 45,
+          "wait_for_news_minutes": 60,
+          "risk_multiplier_after_news": 0.75,
+          "close_positions_minutes": 20
+        },
+        {
+          "name": "America (Nueva York)",
+          "timezone": "America/New_York",
+          "open_time": "09:30",
+          "pre_open_minutes": 60,
+          "post_open_minutes": 60,
+          "wait_for_news_minutes": 60,
+          "risk_multiplier_after_news": 0.7,
+          "close_positions_minutes": 20
+        }
+      ]
+    },
+    "ia": {
+      "modo": "asesor",
+      "riesgo_pct": 0.75,
+      "proba_enter": 0.6
     }
   },
-  "server": {
-    "host": "0.0.0.0",
-    "port": 8080,
-    "webhook_path": "/webhook"
-  },
-  "panel": {
-    "allowed_origins": ["http://localhost:3000"]
-  },
-  "auth": {
-    "control_user": "panel",
-    "control_password": "cambia_esto"
-  },
-  "cerebro": {
-    "enabled": false,
-    "symbols": ["BTCUSDT", "ETHUSDT"],
-    "timeframes": ["15m", "1h"],
-    "refresh_seconds": 60,
-    "news_feeds": [
-      "https://www.binance.com/blog/rss",
-      "https://cointelegraph.com/rss"
-    ],
-    "min_confidence": 0.55,
-    "max_memory": 5000,
-    "sl_atr_multiple": 1.5,
-    "tp_atr_multiple": 2.0,
-    "news_ttl_minutes": 45,
-    "session_guards": [
-      {
-        "name": "Asia (Tokyo)",
-        "timezone": "Asia/Tokyo",
-        "open_time": "09:00",
-        "pre_open_minutes": 45,
-        "post_open_minutes": 30,
-        "wait_for_news_minutes": 45,
-        "risk_multiplier_after_news": 0.8,
-        "close_positions_minutes": 15
+  "modes": {
+    "test": {
+      "env": "TESTNET",
+      "bybit": {
+        "api_key": "TESTNET_API_KEY",
+        "api_secret": "TESTNET_API_SECRET",
+        "base_url": "https://api-testnet.bybit.com",
+        "account_type": "UNIFIED",
+        "category": "linear",
+        "symbols": ["BTCUSDT", "ETHUSDT"],
+        "position_mode": "ONE_WAY",
+        "default_leverage": 20
       },
-      {
-        "name": "Europa (Londres)",
-        "timezone": "Europe/London",
-        "open_time": "08:00",
-        "pre_open_minutes": 45,
-        "post_open_minutes": 45,
-        "wait_for_news_minutes": 60,
-        "risk_multiplier_after_news": 0.75,
-        "close_positions_minutes": 20
-      },
-      {
-        "name": "America (Nueva York)",
-        "timezone": "America/New_York",
-        "open_time": "09:30",
-        "pre_open_minutes": 60,
-        "post_open_minutes": 60,
-        "wait_for_news_minutes": 60,
-        "risk_multiplier_after_news": 0.7,
-        "close_positions_minutes": 20
+      "paths": {
+        "excel_dir": "./excel/test",
+        "logs_dir": "./logs/test"
       }
-    ]
-  },
-  "ia": {
-    "modo": "asesor",
-    "riesgo_pct": 0.75,
-    "proba_enter": 0.6
+    },
+    "real": {
+      "env": "MAINNET",
+      "bybit": {
+        "api_key": "MAINNET_API_KEY",
+        "api_secret": "MAINNET_API_SECRET",
+        "base_url": "https://api.bybit.com",
+        "account_type": "UNIFIED",
+        "category": "linear",
+        "symbols": ["BTCUSDT", "ETHUSDT"],
+        "position_mode": "ONE_WAY",
+        "default_leverage": 10
+      },
+      "risk": {
+        "daily_max_dd_pct": 2.0,
+        "cooldown_after_losses": 1,
+        "cooldown_minutes": 90,
+        "dynamic_risk": {
+          "drawdown_tiers": [
+            { "drawdown": 0, "multiplier": 0.9 },
+            { "drawdown": 1.0, "multiplier": 0.7 },
+            { "drawdown": 2.0, "multiplier": 0.55 }
+          ],
+          "min_multiplier": 0.2,
+          "max_multiplier": 1.0,
+          "equity_ceiling_pct": 5
+        }
+      },
+      "cerebro": {
+        "enabled": true,
+        "min_confidence": 0.6
+      },
+      "paths": {
+        "excel_dir": "./excel/real",
+        "logs_dir": "./logs/real"
+      }
+    }
   }
 }

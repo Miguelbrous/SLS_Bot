@@ -8,13 +8,14 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-LOGS_DIR = PROJECT_ROOT / "logs"
+MODE = os.getenv("SLSBOT_MODE", "test")
+LOGS_DIR = PROJECT_ROOT / "logs" / MODE
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 PNL_LOG_PATH = LOGS_DIR / "test_pnl.jsonl"
 PNL_LOG_PATH.write_text("", encoding="utf-8")
 PNL_SYMBOLS_PATH = LOGS_DIR / "test_pnl_symbols.json"
 PNL_SYMBOLS_PATH.write_text("{}", encoding="utf-8")
-RISK_STATE_PATH = PROJECT_ROOT / "bot" / "logs" / "risk_state.json"
+RISK_STATE_PATH = LOGS_DIR / "risk_state.json"
 RISK_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 os.environ.setdefault("BRIDGE_LOG", str(LOGS_DIR / "bridge.log"))

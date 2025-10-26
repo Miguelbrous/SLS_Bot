@@ -50,7 +50,10 @@ def _path_or_default(key: str, default: Path) -> Path:
     if not val:
         return default
     try:
-        return Path(val)
+        path_val = Path(os.path.expandvars(str(val))).expanduser()
+        if not path_val.is_absolute():
+            path_val = (ROOT_DEFAULT / path_val).resolve()
+        return path_val
     except Exception:
         return default
 

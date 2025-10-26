@@ -23,16 +23,25 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `PANEL_API_TOKENS`: lista separada por comas en formato `token@YYYY-MM-DD`. Puedes dejar un token sin fecha para la rotaci√≥n actual y mantener el anterior hasta su caducidad. La API acepta cualquiera que no haya expirado.
    - `PANEL_API_TOKEN`: compatibilidad hacia atr√°s si a√∫n manejas un solo token.
    - `TRUST_PROXY_BASIC` / `PROXY_BASIC_HEADER`: activa (`1`) cuando Nginx ya protege `/control/*` con Basic Auth y reenv√≠a el usuario en `X-Forwarded-User`.
+   - `SLSBOT_MODE`: `test` o `real`. Define quÈ perfil del `config.json` se aplica y habilita directorios independientes (`logs/{mode}`, `excel/{mode}`, `models/{mode}`...).
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
    - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple`, un `min_confidence`, el horizonte de noticias (`news_ttl_minutes`) y al menos una entrada en `session_guards`. El bot usar? esas salidas para ajustar riesgo, leverage, stop-loss/take-profit y bloquear entradas cuando el guardia de sesi?n est? activo.
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollar√°s sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
-3. Para el bot real, copia `config/config.sample.json` a `config/config.json` y completa tus credenciales. Si trabajas en el VPS, manten la version cifrada.
-4. Ajusta el bloque `risk` en `config/config.json`:
+3. Copia `config/config.sample.json` a `config/config.json`. El archivo ya trae un bloque `shared` y dos perfiles (`modes.test`/`modes.real`); personaliza tus llaves Bybit, rutas (`logs/{mode}`, `excel/{mode}`), `default_mode` y cualquier override por modo. Usa `SLSBOT_MODE` para alternar sin tocar el archivo (ideal para levantar simult·neamente el bot de pruebas y el real). Si trabajas en el VPS, mantÈn la versiÛn cifrada.
+4. Ajusta el bloque `risk` dentro de `shared` para valores comunes o sobrescribe `modes.*.risk` cuando quieras reglas distintas por modo:
    - `daily_max_dd_pct` / `dd_cooldown_minutes`: pausan el bot cuando la ca√≠da diaria supera el l√≠mite.
    - `cooldown_after_losses` / `cooldown_minutes`: l√≥gica tradicional por p√©rdidas consecutivas.
    - `cooldown_loss_streak` / `cooldown_loss_window_minutes` / `cooldown_loss_minutes`: nuevo cooldown inteligente que cuenta las p√©rdidas de la ventana m√≥vil y detiene el bot durante `cooldown_loss_minutes` si se supera la racha.
    - `pnl_epsilon`: umbral m√≠nimo para considerar una operaci√≥n como ganadora/perdedora (evita que resultados muy peque√±os rompan la racha).
    - `dynamic_risk`: habilita multiplicadores autom?ticos seg?n drawdown/equity (define `drawdown_tiers`, `min_multiplier`, `max_multiplier`, `equity_ceiling_pct`).
+
+## Modos prueba vs real
+- Define `SLSBOT_MODE` (`test` o `real`) en cada servicio. Ambos procesos pueden ejecutarse en paralelo usando el mismo `config.json` gracias a los perfiles (`modes.*`).
+- Ejecuta `python scripts/tools/infra_check.py --env-file .env` antes de desplegar para validar que las credenciales, rutas (`logs/{mode}`/`excel/{mode}`) y tokens estÈn completos.
+- El modo prueba usa claves y balances de testnet; apunta sus rutas a `logs/test`, `excel/test` y `models/cerebro/test` para que el aprendizaje y los reportes no se mezclen con producciÛn.
+- El modo real consume solo modelos promovidos. Puedes copiar artefactos manualmente o usar `python scripts/tools/promote_strategy.py --source-mode test --target-mode real` para mover `active_model.json`, validar mÈtricas y rotar el dataset de prueba en un paso.
+- Tras cada promociÛn, entrena un nuevo candidato en prueba (`python -m cerebro.train --mode test ...`) para que siempre haya una estrategia lista para subir a real.
+- Los logs (`logs/{mode}`) y Excel (`excel/{mode}`) quedan aislados, asÌ que revisa el panel apuntando al API correspondiente si quieres observar cada modo por separado.
 
 ## Requisitos
 - Python 3.11+ (evita problemas con dependencias cientificas).
@@ -100,9 +109,10 @@ Las pruebas de pytest usan `config/config.sample.json`, escriben `logs/test_pnl.
 ## Modelo Cerebro (entrenamiento y despliegue)
 ```
 cd C:/Users/migue/Desktop/SLS_Bot/bot
-python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir ../models/cerebro --min-auc 0.55 --min-win-rate 0.55
+set SLSBOT_MODE=test
+python -m cerebro.train --mode test --min-auc 0.55 --min-win-rate 0.55
 ```
-El script lee logs/cerebro_experience.jsonl, entrena una regresiÛn logÌstica ligera y solo promueve el artefacto a models/cerebro/active_model.json si supera los umbrales de AUC/win-rate y mejora el modelo vigente. PolicyEnsemble carga autom·ticamente ese archivo al iniciarse; basta con reiniciar el servicio del bot o el proceso de Cerebro tras cada entrenamiento.
+El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con `models/cerebro/<mode>` por defecto, por lo que no necesitas pasar rutas cuando sigues la convenciÛn de carpetas. Solo promueve `active_model.json` si supera los umbrales y mejora la mÈtrica previa; al terminar puedes ejecutar `scripts/tools/promote_strategy.py` para copiar el modelo al modo real y reiniciar el dataset de pruebas.
 
 ## Servicio Cerebro IA (systemd)
 ```

@@ -29,11 +29,8 @@ except Exception:  # pragma: no cover - optional dependency
     CFG_PATH_IN_USE = None  # type: ignore
 
 APP_DIR = Path(__file__).resolve().parent
-ROOT_DIR = APP_DIR.parent
-BRIDGE_LOG = Path(os.getenv("BRIDGE_LOG", ROOT_DIR / "logs" / "bridge.log"))
-DECISIONS_LOG = Path(os.getenv("DECISIONS_LOG", ROOT_DIR / "logs" / "decisions.jsonl"))
-PNL_LOG = Path(os.getenv("PNL_LOG", ROOT_DIR / "logs" / "pnl.jsonl"))
-PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", ROOT_DIR / "logs" / "pnl_daily_symbols.json"))
+BOT_DIR = APP_DIR.parent
+PROJECT_ROOT = BOT_DIR.parent
 
 CONTROL_USER = os.getenv("CONTROL_USER")
 CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD")
@@ -67,6 +64,27 @@ if load_config:
         BOT_CONFIG = {}
 else:
     BOT_CONFIG = {}
+
+
+def _resolve_path(value: Any, default: Path) -> Path:
+    if not value:
+        return default
+    try:
+        candidate = Path(os.path.expandvars(str(value))).expanduser()
+        if not candidate.is_absolute():
+            candidate = (PROJECT_ROOT / candidate).resolve()
+        return candidate
+    except Exception:
+        return default
+
+
+PATHS_CFG = BOT_CONFIG.get("paths") if isinstance(BOT_CONFIG, dict) else {}
+LOGS_DIR = _resolve_path(PATHS_CFG.get("logs_dir"), PROJECT_ROOT / "logs")
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+BRIDGE_LOG = Path(os.getenv("BRIDGE_LOG", LOGS_DIR / "bridge.log"))
+DECISIONS_LOG = Path(os.getenv("DECISIONS_LOG", LOGS_DIR / "decisions.jsonl"))
+PNL_LOG = Path(os.getenv("PNL_LOG", LOGS_DIR / "pnl.jsonl"))
+PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", LOGS_DIR / "pnl_daily_symbols.json"))
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -206,7 +224,7 @@ def get_status(_: None = Depends(require_panel_token)):
         "ai-bridge": ServiceState(active=ai_active, detail=ai_detail),
     }
     bybit_cfg = (BOT_CONFIG.get("bybit") if isinstance(BOT_CONFIG, dict) else {}) or {}
-    risk_state_path = ROOT_DIR / "logs" / "risk_state.json"
+    risk_state_path = LOGS_DIR / "risk_state.json"
     risk_state: Dict[str, Any] = {}
     if risk_state_path.exists():
         try:
@@ -220,13 +238,17 @@ def get_status(_: None = Depends(require_panel_token)):
                 "base_url": bybit_cfg.get("base_url"),
                 "symbols": bybit_cfg.get("symbols"),
             },
+            "mode": {
+                "active": BOT_CONFIG.get("_active_mode"),
+                "available": BOT_CONFIG.get("_available_modes"),
+            },
         },
         "risk_state": risk_state,
         "config_file": CFG_PATH_IN_USE,
         "api_health": health().model_dump(),
     }
     # Try to enrich risk_state from bot logs if available
-    state_file = ROOT_DIR / "logs" / "risk_state.json"
+    state_file = LOGS_DIR / "risk_state.json"
     if state_file.exists():
         try:
             detailed_state = json.loads(state_file.read_text(encoding="utf-8"))

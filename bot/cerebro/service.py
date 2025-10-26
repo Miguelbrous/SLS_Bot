@@ -21,9 +21,31 @@ from .policy import PolicyDecision, PolicyEnsemble
 
 log = logging.getLogger(__name__)
 
+try:
+    from ..sls_bot.config_loader import load_config as _load_bot_config
+except Exception:  # pragma: no cover - fallback when running standalone
+    _load_bot_config = None
+
+
+def _detect_mode() -> str:
+    env_mode = os.getenv("SLS_CEREBRO_MODE") or os.getenv("SLSBOT_MODE")
+    if env_mode:
+        return env_mode
+    if _load_bot_config:
+        try:
+            cfg = _load_bot_config()
+            mode = cfg.get("_active_mode")
+            if mode:
+                return str(mode)
+        except Exception:
+            pass
+    return "default"
+
+
+MODE_NAME = _detect_mode()
 ROOT_DIR = Path(os.getenv("SLS_CEREBRO_ROOT", Path(__file__).resolve().parents[2]))
-LOGS_DIR = Path(os.getenv("SLS_CEREBRO_LOGS", ROOT_DIR / "logs"))
-MODELS_DIR = Path(os.getenv("SLS_CEREBRO_MODELS", ROOT_DIR / "models" / "cerebro"))
+LOGS_DIR = Path(os.getenv("SLS_CEREBRO_LOGS", ROOT_DIR / "logs" / MODE_NAME))
+MODELS_DIR = Path(os.getenv("SLS_CEREBRO_MODELS", ROOT_DIR / "models" / "cerebro" / MODE_NAME))
 DECISIONS_LOG = LOGS_DIR / "cerebro_decisions.jsonl"
 EXPERIENCE_LOG = LOGS_DIR / "cerebro_experience.jsonl"
 
@@ -153,6 +175,7 @@ class Cerebro:
                 "decisions": decisions,
                 "memory": self.memory.stats(),
                 "history": list(self._history),
+                "mode": MODE_NAME,
             }
 
     def latest_decision(self, symbol: str, timeframe: str) -> PolicyDecision | None:
@@ -200,6 +223,7 @@ class Cerebro:
             "risk_pct": decision.risk_pct,
             "generated_at": getattr(decision, "generated_at", None),
             "metadata": decision.metadata,
+            "mode": MODE_NAME,
         }
         self._history.append(payload)
         _append_jsonl(DECISIONS_LOG, payload)
@@ -212,6 +236,7 @@ class Cerebro:
             "pnl": pnl,
             "decision": decision,
             "features": features,
+            "mode": MODE_NAME,
         }
         _append_jsonl(EXPERIENCE_LOG, payload)
 

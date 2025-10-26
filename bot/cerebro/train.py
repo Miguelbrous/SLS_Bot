@@ -3,15 +3,25 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_DATASET = Path(ROOT_DIR / "logs" / "cerebro_experience.jsonl")
-DEFAULT_OUTPUT = Path(ROOT_DIR / "models" / "cerebro")
+
+
+def _default_mode() -> str:
+    return (os.getenv("SLS_CEREBRO_MODE") or os.getenv("SLSBOT_MODE") or "test").lower()
+
+
+def _dataset_for_mode(mode: str) -> Path:
+    return Path(ROOT_DIR / "logs" / mode / "cerebro_experience.jsonl")
+
+
+def _output_for_mode(mode: str) -> Path:
+    return Path(ROOT_DIR / "models" / "cerebro" / mode)
 
 FEATURES = [
     "confidence",
@@ -140,12 +150,13 @@ def _compute_auc(preds: Sequence[float], labels: Sequence[int]) -> float:
     return auc
 
 
-def save_artifact(output_dir: Path, weights: List[float], bias: float, means: List[float], stds: List[float], metrics: Dict[str, float]) -> Path:
+def save_artifact(output_dir: Path, mode: str, weights: List[float], bias: float, means: List[float], stds: List[float], metrics: Dict[str, float]) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     artifact = {
         "version": timestamp,
         "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "mode": mode,
         "bias": bias,
         "features": [
             {
@@ -191,8 +202,9 @@ def maybe_promote(artifact_path: Path, metrics: Dict[str, float], min_auc: float
 
 def build_argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Entrena el modelo ligero del Cerebro IA.")
-    parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET, help="Ruta del jsonl con experiencias.")
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT, help="Carpeta donde guardar artefactos.")
+    parser.add_argument("--mode", type=str, default=None, help="Modo/profil (test, real, etc.). Por defecto usa SLSBOT_MODE o 'test'.")
+    parser.add_argument("--dataset", type=Path, default=None, help="Ruta del jsonl con experiencias (por defecto logs/<mode>/cerebro_experience.jsonl).")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Carpeta donde guardar artefactos (por defecto models/cerebro/<mode>).")
     parser.add_argument("--epochs", type=int, default=400)
     parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument("--min-auc", type=float, default=0.52)
@@ -204,7 +216,10 @@ def build_argparser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_argparser()
     args = parser.parse_args()
-    rows = load_rows(args.dataset)
+    mode = (args.mode or _default_mode()).lower()
+    dataset_path = args.dataset or _dataset_for_mode(mode)
+    output_dir = args.output_dir or _output_for_mode(mode)
+    rows = load_rows(dataset_path)
     if len(rows) < 50:
         raise SystemExit(f"Se necesitan al menos 50 experiencias, solo hay {len(rows)}")
     random.Random(42).shuffle(rows)
@@ -222,10 +237,16 @@ def main() -> None:
         "samples_train": len(train_rows),
         "samples_test": len(test_rows),
     }
-    artifact_path = save_artifact(args.output_dir, weights, bias, means, stds, metrics)
+    artifact_path = save_artifact(output_dir, mode, weights, bias, means, stds, metrics)
     promoted = maybe_promote(artifact_path, metrics, args.min_auc, args.min_win_rate)
     status = "PROMOVIDO" if promoted else "SOLO_ENTRENADO"
-    print(json.dumps({"status": status, "artifact": str(artifact_path), "metrics": metrics}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {"status": status, "artifact": str(artifact_path), "metrics": metrics, "mode": mode},
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
