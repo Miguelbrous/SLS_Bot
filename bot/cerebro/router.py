@@ -13,6 +13,8 @@ cerebro_router = APIRouter(prefix="/cerebro", tags=["cerebro"])
 @cerebro_router.get("/status")
 def cerebro_status():
     cerebro = get_cerebro()
+    if not cerebro.config.enabled:
+        return {"ok": False, "enabled": False, "time": datetime.utcnow().isoformat() + "Z"}
     data = cerebro.get_status()
     data["time"] = datetime.utcnow().isoformat() + "Z"
     return data
@@ -21,6 +23,8 @@ def cerebro_status():
 @cerebro_router.post("/decide")
 def cerebro_decide(payload: Dict[str, Any]):
     cerebro = get_cerebro()
+    if not cerebro.config.enabled:
+        raise HTTPException(status_code=503, detail="Cerebro deshabilitado")
     symbol = (payload.get("symbol") or "").upper()
     timeframe = payload.get("timeframe") or "15m"
     if not symbol:
@@ -35,6 +39,8 @@ def cerebro_decide(payload: Dict[str, Any]):
 @cerebro_router.post("/learn")
 def cerebro_learn(payload: Dict[str, Any]):
     cerebro = get_cerebro()
+    if not cerebro.config.enabled:
+        raise HTTPException(status_code=503, detail="Cerebro deshabilitado")
     symbol = (payload.get("symbol") or "").upper()
     timeframe = payload.get("timeframe") or "15m"
     pnl = float(payload.get("pnl") or 0.0)

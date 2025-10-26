@@ -38,6 +38,7 @@
     "control_password": "cambia_esto"
   },
   "cerebro": {
+    "enabled": false,
     "symbols": ["BTCUSDT", "ETHUSDT"],
     "timeframes": ["15m", "1h"],
     "refresh_seconds": 60,
@@ -46,7 +47,9 @@
       "https://cointelegraph.com/rss"
     ],
     "min_confidence": 0.55,
-    "max_memory": 5000
+    "max_memory": 5000,
+    "sl_atr_multiple": 1.5,
+    "tp_atr_multiple": 2.0
   },
   "ia": {
     "modo": "asesor",

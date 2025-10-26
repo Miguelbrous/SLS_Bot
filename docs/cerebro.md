@@ -69,6 +69,7 @@ estrategia en tiempo real.
 
 ```jsonc
 "cerebro": {
+  "enabled": true,
   "symbols": ["BTCUSDT", "ETHUSDT"],
   "timeframes": ["15m", "1h"],
   "refresh_seconds": 60,
@@ -77,7 +78,9 @@ estrategia en tiempo real.
     "https://cointelegraph.com/rss"
   ],
   "min_confidence": 0.55,
-  "max_memory": 5000
+  "max_memory": 5000,
+  "sl_atr_multiple": 1.5,
+  "tp_atr_multiple": 2.0
 }
 ```
 
@@ -104,7 +107,7 @@ estrategia en tiempo real.
 ## Integración con el Panel
 
 - `/status` ya expone `risk_state_details`.
-- `/cerebro/status` proveerá información adicional: última iteración, confianza
+- `/cerebro/status` provee información adicional: última iteración, confianza
   media y noticias relevantes.
 - Próximo paso: panel mostrará una tarjeta “Cerebro” con esos datos y un botón
   para solicitar una decisión manualmente.
@@ -120,4 +123,3 @@ python -m cerebro.service --loop      # Ciclo continuo (usa refresh_seconds)
 
 Los endpoints se montan automáticamente en la API principal (`/cerebro/*`)
 cuando `bot/app/main.py` puede importar el módulo.
-

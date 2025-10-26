@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 class DecisionSnapshot:
     decision: PolicyDecision
     generated_at: float
+    features: dict
 
 
 class Cerebro:
@@ -29,12 +30,18 @@ class Cerebro:
         self.market_source = MarketDataSource()
         self.news_source = RSSNewsDataSource(self.config.news_feeds)
         self.memory = ExperienceMemory(maxlen=self.config.max_memory)
-        self.policy = PolicyEnsemble(min_confidence=self.config.min_confidence)
+        self.policy = PolicyEnsemble(
+            min_confidence=self.config.min_confidence,
+            sl_atr=self.config.sl_atr_multiple,
+            tp_atr=self.config.tp_atr_multiple,
+        )
         self._lock = threading.Lock()
         self._decisions: Dict[str, DecisionSnapshot] = {}
         self._last_run = 0.0
 
     def run_cycle(self) -> None:
+        if not self.config.enabled:
+            return
         with self._lock:
             self._last_run = time.time()
             news_items = self.news_source.fetch(limit=10)
@@ -47,9 +54,18 @@ class Cerebro:
                     try:
                         rows = self.market_source.fetch(symbol=symbol, timeframe=tf, limit=200)
                         self.feature_store.update(symbol, tf, rows)
-                        decision = self.policy.decide(symbol=symbol, timeframe=tf, news_sentiment=news_sentiment)
+                        if not rows:
+                            continue
+                        decision = self.policy.decide(
+                            symbol=symbol,
+                            timeframe=tf,
+                            market_row=rows[-1],
+                            news_sentiment=news_sentiment,
+                        )
                         key = f"{symbol.upper()}::{tf}"
-                        self._decisions[key] = DecisionSnapshot(decision=decision, generated_at=self._last_run)
+                        self._decisions[key] = DecisionSnapshot(
+                            decision=decision, generated_at=self._last_run, features=rows[-1]
+                        )
                     except Exception as exc:
                         log.exception("Cerebro run_cycle failed for %s %s: %s", symbol, tf, exc)
 
@@ -59,7 +75,10 @@ class Cerebro:
 
     def get_status(self) -> dict:
         with self._lock:
-            decisions = {key: snapshot.decision.__dict__ | {"generated_at": snapshot.generated_at} for key, snapshot in self._decisions.items()}
+            decisions = {
+                key: snapshot.decision.__dict__ | {"generated_at": snapshot.generated_at}
+                for key, snapshot in self._decisions.items()
+            }
             return {
                 "config": self.config.__dict__,
                 "last_run_ts": self._last_run,

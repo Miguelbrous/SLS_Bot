@@ -8,7 +8,9 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
 - `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
-  genera features y aprende de los resultados para proponer mejoras.
+  genera features y aprende de los resultados para proponer mejoras. Actívalo
+  habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondrá
+  `risk_pct`, `leverage` y SL/TP dinámicos y puede descartar operaciones (`NO_TRADE`).
 
 ## Variables de entorno
 1. Copia `.env.example` como `.env` en la raiz (Terminal Windows PC) y ajusta:

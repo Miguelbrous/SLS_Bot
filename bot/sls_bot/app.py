@@ -4,7 +4,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Any
 import os
 import secrets
 import time, hmac, hashlib, json, requests
@@ -17,8 +17,16 @@ from .excel_writer import (
     compute_resumen_diario, upsert_resumen_diario
 )
 
+try:
+    from cerebro import get_cerebro  # type: ignore
+except Exception:
+    get_cerebro = None  # type: ignore
+
 # ==== CARGA CONFIG ====
 cfg = load_config()
+cerebro_cfg = cfg.get("cerebro") if isinstance(cfg, dict) else {}
+CEREBRO_ENABLED = bool((cerebro_cfg or {}).get("enabled", False))
+CEREBRO_DEFAULT_TF = ((cerebro_cfg or {}).get("timeframes") or ["15m"])[0]
 
 ROOT_DEFAULT = Path(__file__).resolve().parents[2]
 paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
@@ -168,6 +176,8 @@ class Signal(BaseModel):
     move_sl_to_be_on_tp1: Optional[bool] = True
     post_only: Optional[bool] = True
     confirmations: Optional[Confirmations] = None
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -193,8 +203,86 @@ def _qty_step_for(symbol: str) -> float: return QTY_STEP.get(symbol.upper(), 0.0
 def _calc_qty_base(balance_usdt: float, risk_pct: float, lev: int, price_ref: float) -> float:
     if not price_ref or price_ref <= 0:
         return 0.0
-    notional = balance_usdt * (risk_pct/100.0) * lev
+    notional = balance_usdt * (risk_pct / 100.0) * lev
     return notional / price_ref
+
+
+def _calc_stop_tp(symbol: str, side: str, price: float, atr: float) -> Tuple[float, float]:
+    if atr <= 0:
+        atr = price * 0.005  # fallback 0.5%
+    sl_mult = float(cfg.get('risk', {}).get('sl_atr_multiple', 1.5))
+    tp_mult = float(cfg.get('risk', {}).get('tp_atr_multiple', 2.0))
+    if side == 'LONG':
+        stop_loss = max(0.0, price - atr * sl_mult)
+        take_profit = price + atr * tp_mult
+    else:
+        stop_loss = price + atr * sl_mult
+        take_profit = max(0.0, price - atr * tp_mult)
+    return stop_loss, take_profit
+
+
+def _maybe_apply_cerebro(sig: Signal, price_live: float, st: dict) -> Optional[dict]:
+    if not (CEREBRO_ENABLED and get_cerebro and sig.tf):
+        return None
+    try:
+        cerebro = get_cerebro()
+    except Exception:
+        return None
+    try:
+        cerebro.run_cycle()
+        decision = cerebro.latest_decision(sig.symbol.upper(), sig.tf or CEREBRO_DEFAULT_TF)
+    except Exception:
+        return None
+    if not decision:
+        return None
+    info = {
+        "action": decision.action,
+        "confidence": decision.confidence,
+        "risk_pct": decision.risk_pct,
+        "leverage": decision.leverage,
+        "stop_loss": decision.stop_loss,
+        "take_profit": decision.take_profit,
+        "timeframe": decision.timeframe,
+        "symbol": decision.symbol,
+        "metadata": decision.metadata,
+    }
+    if decision.action == "NO_TRADE":
+        st["last_cerebro_decision"] = info
+        _save_state(st)
+        return {"blocked": True, "reason": "cerebro_no_trade"}
+
+    sig.risk_pct = decision.risk_pct or sig.risk_pct
+    sig.leverage = decision.leverage or sig.leverage
+    sig.stop_loss = decision.stop_loss
+    sig.take_profit = decision.take_profit
+    st["last_cerebro_decision"] = info
+    _save_state(st)
+    return {"blocked": False}
+
+
+def _notify_cerebro_learn(symbol: str, tf: Optional[str], pnl: float, st: dict) -> None:
+    if not (CEREBRO_ENABLED and get_cerebro):
+        return
+    info = st.get("last_cerebro_decision")
+    if not info:
+        return
+    try:
+        cerebro = get_cerebro()
+        cerebro.register_trade(
+            symbol=symbol.upper(),
+            timeframe=tf or info.get("timeframe") or CEREBRO_DEFAULT_TF,
+            pnl=pnl,
+            features={
+                "confidence": info.get("confidence"),
+                "risk_pct": info.get("risk_pct"),
+                "leverage": info.get("leverage"),
+            },
+            decision=info.get("action", "UNKNOWN"),
+        )
+    except Exception:
+        pass
+    st["last_cerebro_decision"] = None
+    _save_state(st)
 
 # ====== SINCRONIZACIÓN DE TIEMPO V5 ======
 _TIME_OFFSET_MS = 0  # server_ms - local_ms
@@ -400,7 +488,8 @@ def _load_state() -> dict:
         "blocked_reason": None,
         "recent_results": [],
         "cooldown_history": [],
-        "active_cooldown_reason": None
+        "active_cooldown_reason": None,
+        "last_cerebro_decision": None
     }
 
 def _save_state(st: dict):
@@ -421,7 +510,8 @@ def _reset_daily_if_needed():
             "blocked_reason": None,
             "recent_results": [],
             "cooldown_history": [],
-            "active_cooldown_reason": None
+            "active_cooldown_reason": None,
+            "last_cerebro_decision": None
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -702,6 +792,7 @@ def webhook(sig: Signal):
                     "recent_results": len(st.get("recent_results") or []),
                     "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
                 })
+            _notify_cerebro_learn(sig.symbol, sig.tf, pnl, st)
 
             return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
                     "consecutive_losses": st.get("consecutive_losses", 0)}
@@ -709,8 +800,13 @@ def webhook(sig: Signal):
         # ====== APERTURA ======
         side = sig.side or ("LONG" if "LONG" in sig.signal else "SHORT")
         symbol = sig.symbol.upper()
+        if not sig.tf:
+            sig.tf = CEREBRO_DEFAULT_TF
 
         price_live = bb.get_mark_price(symbol) or (60000.0 if "BTC" in symbol else 3000.0)
+        cere_decision = _maybe_apply_cerebro(sig, price_live, st)
+        if cere_decision and cere_decision.get("blocked"):
+            return {"status": "filtered", "reason": cere_decision.get("reason", "cerebro")}
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
         tick = filters["tick"]
@@ -721,11 +817,14 @@ def webhook(sig: Signal):
 
         # helper para SL/TP válidos (>0)
         def _add_tp_sl(payload: dict):
-            if sig.sl is not None and sig.sl > 0:
-                payload["stopLoss"] = str(_quantize_price(sig.sl, tick))
-            tp_raw = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
-            if tp_raw is not None:
-                payload["takeProfit"] = str(_quantize_price(tp_raw, tick))
+            sl_value = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
+            if sl_value is not None and sl_value > 0:
+                payload["stopLoss"] = str(_quantize_price(sl_value, tick))
+            tp_value = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
+            if tp_value is None:
+                tp_value = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
+            if tp_value is not None:
+                payload["takeProfit"] = str(_quantize_price(tp_value, tick))
                 payload["tpSlMode"]   = "Full"
 
         # LIMIT vs MARKET
