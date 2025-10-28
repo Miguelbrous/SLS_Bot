@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿# SLS_Bot
 
 Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. El repo tambien incluye stubs y utilidades IA para generar decisiones desde Bybit.
@@ -178,3 +179,6 @@ excel/ (ignorado)
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.
 
+=======
+# SLS_Bot
+>>>>>>> f91eea92f5d09a794832800818d920906f4be1be
