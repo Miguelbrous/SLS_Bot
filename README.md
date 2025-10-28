@@ -23,11 +23,11 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `PANEL_API_TOKENS`: lista separada por comas en formato `token@YYYY-MM-DD`. Puedes dejar un token sin fecha para la rotaciÃ³n actual y mantener el anterior hasta su caducidad. La API acepta cualquiera que no haya expirado.
    - `PANEL_API_TOKEN`: compatibilidad hacia atrÃ¡s si aÃºn manejas un solo token.
    - `TRUST_PROXY_BASIC` / `PROXY_BASIC_HEADER`: activa (`1`) cuando Nginx ya protege `/control/*` con Basic Auth y reenvÃ­a el usuario en `X-Forwarded-User`.
-   - `SLSBOT_MODE`: `test` o `real`. Define qué perfil del `config.json` se aplica y habilita directorios independientes (`logs/{mode}`, `excel/{mode}`, `models/{mode}`...).
+   - `SLSBOT_MODE`: `test` o `real`. Define quï¿½ perfil del `config.json` se aplica y habilita directorios independientes (`logs/{mode}`, `excel/{mode}`, `models/{mode}`...).
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
    - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple`, un `min_confidence`, el horizonte de noticias (`news_ttl_minutes`) y al menos una entrada en `session_guards`. El bot usar? esas salidas para ajustar riesgo, leverage, stop-loss/take-profit y bloquear entradas cuando el guardia de sesi?n est? activo.
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollarÃ¡s sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
-3. Copia `config/config.sample.json` a `config/config.json`. El archivo ya trae un bloque `shared` y dos perfiles (`modes.test`/`modes.real`); personaliza tus llaves Bybit, rutas (`logs/{mode}`, `excel/{mode}`), `default_mode` y cualquier override por modo. Usa `SLSBOT_MODE` para alternar sin tocar el archivo (ideal para levantar simultáneamente el bot de pruebas y el real). Si trabajas en el VPS, mantén la versión cifrada.
+3. Copia `config/config.sample.json` a `config/config.json`. El archivo ya trae un bloque `shared` y dos perfiles (`modes.test`/`modes.real`); personaliza tus llaves Bybit, rutas (`logs/{mode}`, `excel/{mode}`), `default_mode` y cualquier override por modo. Usa `SLSBOT_MODE` para alternar sin tocar el archivo (ideal para levantar simultï¿½neamente el bot de pruebas y el real). Si trabajas en el VPS, mantï¿½n la versiï¿½n cifrada.
 4. Ajusta el bloque `risk` dentro de `shared` para valores comunes o sobrescribe `modes.*.risk` cuando quieras reglas distintas por modo:
    - `daily_max_dd_pct` / `dd_cooldown_minutes`: pausan el bot cuando la caÃ­da diaria supera el lÃ­mite.
    - `cooldown_after_losses` / `cooldown_minutes`: lÃ³gica tradicional por pÃ©rdidas consecutivas.
@@ -37,11 +37,11 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 
 ## Modos prueba vs real
 - Define `SLSBOT_MODE` (`test` o `real`) en cada servicio. Ambos procesos pueden ejecutarse en paralelo usando el mismo `config.json` gracias a los perfiles (`modes.*`).
-- Ejecuta `python scripts/tools/infra_check.py --env-file .env` antes de desplegar para validar que las credenciales, rutas (`logs/{mode}`/`excel/{mode}`) y tokens estén completos.
-- El modo prueba usa claves y balances de testnet; apunta sus rutas a `logs/test`, `excel/test` y `models/cerebro/test` para que el aprendizaje y los reportes no se mezclen con producción.
-- El modo real consume solo modelos promovidos. Puedes copiar artefactos manualmente o usar `python scripts/tools/promote_strategy.py --source-mode test --target-mode real` para mover `active_model.json`, validar métricas y rotar el dataset de prueba en un paso.
-- Tras cada promoción, entrena un nuevo candidato en prueba (`python -m cerebro.train --mode test ...`) para que siempre haya una estrategia lista para subir a real.
-- Los logs (`logs/{mode}`) y Excel (`excel/{mode}`) quedan aislados, así que revisa el panel apuntando al API correspondiente si quieres observar cada modo por separado.
+- Ejecuta `python scripts/tools/infra_check.py --env-file .env` antes de desplegar para validar que las credenciales, rutas (`logs/{mode}`/`excel/{mode}`) y tokens estï¿½n completos.
+- El modo prueba usa claves y balances de testnet; apunta sus rutas a `logs/test`, `excel/test` y `models/cerebro/test` para que el aprendizaje y los reportes no se mezclen con producciï¿½n.
+- El modo real consume solo modelos promovidos. Puedes copiar artefactos manualmente o usar `python scripts/tools/promote_strategy.py --source-mode test --target-mode real` para mover `active_model.json`, validar mï¿½tricas y rotar el dataset de prueba en un paso.
+- Tras cada promociï¿½n, entrena un nuevo candidato en prueba (`python -m cerebro.train --mode test ...`) para que siempre haya una estrategia lista para subir a real.
+- Los logs (`logs/{mode}`) y Excel (`excel/{mode}`) quedan aislados, asï¿½ que revisa el panel apuntando al API correspondiente si quieres observar cada modo por separado.
 
 ## Requisitos
 - Python 3.11+ (evita problemas con dependencias cientificas).
@@ -112,13 +112,13 @@ cd C:/Users/migue/Desktop/SLS_Bot/bot
 set SLSBOT_MODE=test
 python -m cerebro.train --mode test --min-auc 0.55 --min-win-rate 0.55
 ```
-El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con `models/cerebro/<mode>` por defecto, por lo que no necesitas pasar rutas cuando sigues la convención de carpetas. Solo promueve `active_model.json` si supera los umbrales y mejora la métrica previa; al terminar puedes ejecutar `scripts/tools/promote_strategy.py` para copiar el modelo al modo real y reiniciar el dataset de pruebas.
+El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con `models/cerebro/<mode>` por defecto, por lo que no necesitas pasar rutas cuando sigues la convenciï¿½n de carpetas. Solo promueve `active_model.json` si supera los umbrales y mejora la mï¿½trica previa; al terminar puedes ejecutar `scripts/tools/promote_strategy.py` para copiar el modelo al modo real y reiniciar el dataset de pruebas.
 
 ## Servicio Cerebro IA (systemd)
 ```
 bash APP_ROOT=/opt/SLS_Bot SVC_USER=sls ./scripts/deploy/install_cerebro_service.sh
 ```
-El script copia `scripts/deploy/systemd/sls-cerebro.service`, reemplaza `{{APP_ROOT}}/{{SVC_USER}}`, recarga systemd y deja ejecutándose `python -m cerebro.service --loop`. Tras habilitarlo valida el estado con:
+El script copia `scripts/deploy/systemd/sls-cerebro.service`, reemplaza `{{APP_ROOT}}/{{SVC_USER}}`, recarga systemd y deja ejecutï¿½ndose `python -m cerebro.service --loop`. Tras habilitarlo valida el estado con:
 ```
 curl -fsS http://127.0.0.1:${SLS_API_PORT:-8880}/cerebro/status | jq '.time'
 ```
@@ -139,7 +139,7 @@ npm install
 ```
 npm run dev
 ```
-El panel leerÃ¡ `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`. La tarjeta **Cerebro IA** permite filtrar por símbolo/timeframe, forzar una decisión (POST `/cerebro/decide`) y graficar la confianza usando el historial expuesto por `/cerebro/status`.
+El panel leerÃ¡ `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`. La tarjeta **Cerebro IA** permite filtrar por sï¿½mbolo/timeframe, forzar una decisiï¿½n (POST `/cerebro/decide`) y graficar la confianza usando el historial expuesto por `/cerebro/status`.
 ### Lint / Build
 ```
 npm run lint
@@ -177,3 +177,4 @@ excel/ (ignorado)
 - MantÃ©n `CONTROL_USER/CONTROL_PASSWORD`, `PANEL_API_TOKENS` y cualquier `.env` fuera del repo.
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.
+

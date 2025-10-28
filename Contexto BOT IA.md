@@ -1,4 +1,4 @@
-# Contexto BOT IA
+﻿# Contexto BOT IA
 
 Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve como punto de partida cuando se abre un nuevo chat o cuando alguien más toma el relevo. Cada vez que modifiquemos archivos clave deberíamos regresar aquí y actualizar la sección correspondiente.
 
@@ -21,7 +21,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 | `config/` | `config.sample.json` con la estructura multi-modo. Copiar a `config.json` (no versionar). |
 | `logs/{mode}/` | Bridge logs, decisiones, PnL, estado de riesgo y datasets Cerebro segregados por modo. |
 | `excel/{mode}/` | Libros `26. Plan de inversión.xlsx` vinculados a operaciones/eventos del modo correspondiente. |
-| `scripts/tools/` | Utilidades CLI: `infra_check.py` para validar entorno y `promote_strategy.py` para mover modelos TEST→REAL. |
+| `scripts/` | Deploy (`scripts/deploy`), pruebas (`scripts/tests/e2e_smoke.py`), utilidades Python (`scripts/tools/*.py`) y el gestor `scripts/manage.sh`. |
 
 ---
 
@@ -54,3 +54,5 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - **Nombres de archivos**: usa rutas relativas (`bot/sls_bot/app.py`) para que sean clicables desde la CLI.  
 - **Formato**: Markdown plano para mantener compatibilidad con cualquier editor. Añade secciones/separadores si crece el alcance.  
 - **Versionado**: incluye este archivo en cualquier PR/commit que modifique la arquitectura o instructivos operativos. De ese modo siempre estará sincronizado con la base de código.
+
+

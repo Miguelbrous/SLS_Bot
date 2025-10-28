@@ -1,4 +1,4 @@
-# Checklist para el remoto (estructura completa)
+﻿# Checklist para el remoto (estructura completa)
 
 Este repositorio **debe** tener exactamente los directorios y archivos listados. Si tu VPS no los muestra, elimina la carpeta actual y vuelve a clonar desde el origen correcto antes de continuar.
 
@@ -48,8 +48,7 @@ SLS_Bot/
 ├─ config/
 │  ├─ config.sample.json
 │  └─ config.json
-├─ scripts/
-│  ├─ deploy/
+├─ scripts/\n│  ├─ manage.sh\n│  ├─ deploy/
 │  │  ├─ bootstrap.sh
 │  │  ├─ README.md
 │  │  └─ systemd/
@@ -100,7 +99,10 @@ SLS_Bot/
 
 4. **Configurar archivos sensibles:**
    - Copia `config/config.sample.json` → `config/config.json` y rellena credenciales para `modes.test.bybit` (testnet) y `modes.real.bybit` (mainnet).  
-   - Crea `./.env` (o `/etc/sls_bot.env` en VPS) a partir de `.env.example` con `SLSBOT_MODE`, `BYBIT_*`, `CONTROL_USER`, `CONTROL_PASSWORD`, `PANEL_API_TOKENS`, etc.  
+   - Crea `./.env` (o `/etc/sls_bot.env` en VPS) a partir de `.env.example` con `SLSBOT_MODE`, `BYBIT_*`, `CONTROL_USER`, `CONTROL_PASSWORD`, `PANEL_API_TOKENS`, etc.  \n   - Ejecuta chmod +x scripts/manage.sh para poder usar el gestor de servicios (encender-api, pagar-todo, estado, etc.).
    - Crea `panel/.env` usando `panel/.env.example` con `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN`, etc.
 
 5. **Confirmación final:** si después de estos pasos vuelve a faltar cualquier archivo, estás en otro repositorio o la rama remota no coincide; repite desde el paso 1 hasta que el árbol sea idéntico al listado.
+
+
+

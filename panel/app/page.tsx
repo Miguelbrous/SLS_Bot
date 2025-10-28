@@ -5,7 +5,7 @@ import Card from "./components/Card";
 import Controls from "./components/Controls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8880";
-const PANEL_TOKEN = process.env.NEXT_PUBLIC_PANEL_API_TOKEN;
+const PANEL_TOKEN = process.env.NEXT_PUBLIC_PANEL_API_TOKEN?.trim();
 
 type ServiceStatus = { active: boolean; detail?: string };
 type StatusResp = {
@@ -146,7 +146,9 @@ export default function Page() {
 
   async function loadAll() {
     try {
-      const init = PANEL_TOKEN ? { headers: { "X-Panel-Token": PANEL_TOKEN } } : undefined;
+      const headers: Record<string, string> = {};
+      if (PANEL_TOKEN) headers["X-Panel-Token"] = PANEL_TOKEN;
+      const init = Object.keys(headers).length ? { headers } : undefined;
       const [s, d, l, p, ce] = await Promise.all([
         fetch(`${API_BASE}/status`, init).then((r) => r.json()),
         fetch(`${API_BASE}/decisiones?limit=25`, init).then((r) => r.json()),
@@ -176,21 +178,13 @@ export default function Page() {
     }
     try {
       setForceStatus({ state: "loading" });
-      const init =
-        PANEL_TOKEN && PANEL_TOKEN.length
-          ? {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Panel-Token": PANEL_TOKEN,
-              },
-              body: JSON.stringify({ symbol, timeframe }),
-            }
-          : {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ symbol, timeframe }),
-            };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (PANEL_TOKEN) headers["X-Panel-Token"] = PANEL_TOKEN;
+      const init = {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ symbol, timeframe }),
+      };
       const resp = await fetch(`${API_BASE}/cerebro/decide`, init);
       if (!resp.ok) {
         const detail = await resp.json().catch(() => ({}));
@@ -269,7 +263,9 @@ export default function Page() {
 
   const slsActive = !!status?.services?.["sls-bot"]?.active;
   const aiActive = !!status?.services?.["ai-bridge"]?.active;
-  const riskDetails: RiskStateDetails | undefined = status?.bot?.risk_state_details;
+  const riskDetails: RiskStateDetails | undefined =
+    (status?.bot?.risk_state_details as RiskStateDetails | undefined) ||
+    (status?.bot?.risk_state as RiskStateDetails | undefined);
   const cooldownSeconds = riskDetails?.cooldown_until_ts
     ? Math.max(0, riskDetails.cooldown_until_ts - Math.floor(Date.now() / 1000))
     : 0;
