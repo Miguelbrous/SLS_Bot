@@ -4,6 +4,8 @@ VENV ?= $(ROOT)/.venv
 PYTHON_BIN := $(VENV)/bin/python
 PIP_BIN := $(VENV)/bin/pip
 NPM_BIN ?= npm
+ENV_FILE ?= $(ROOT)/.env
+MANAGER := $(ROOT)/scripts/manage_bot.py
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -12,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -47,3 +49,15 @@ lint: ## Ejecuta lint del panel.
 clean: ## Limpia artefactos (venv, node_modules, builds).
 	rm -rf $(VENV)
 	rm -rf panel/node_modules panel/.next panel/out panel/.turbo
+
+encender: ## Enciende todos los servicios via systemd (requiere VPS). Usa .env si existe.
+	@python3 $(MANAGER) encender $(if $(wildcard $(ENV_FILE)),--env-file $(ENV_FILE),)
+
+apagar: ## Detiene todos los servicios via systemd (requiere VPS).
+	@python3 $(MANAGER) apagar
+
+reiniciar: ## Reinicia servicios y muestra diagnostico resumido (requiere VPS). Usa .env si existe.
+	@python3 $(MANAGER) reiniciar $(if $(wildcard $(ENV_FILE)),--env-file $(ENV_FILE),)
+
+diagnostico: ## Obtiene estado y ultimos logs de cada servicio (requiere VPS).
+	@python3 $(MANAGER) diagnostico
