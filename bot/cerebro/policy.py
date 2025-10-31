@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..sls_bot import ia_signal_engine
+try:
+    from ..sls_bot import ia_signal_engine
+except ImportError:  # pragma: no cover
+    from sls_bot import ia_signal_engine  # type: ignore
 
 
 @dataclass
