@@ -51,6 +51,12 @@
         "https://cointelegraph.com/rss"
       ],
       "min_confidence": 0.55,
+      "confidence_max": 0.7,
+      "confidence_min": 0.45,
+      "data_cache_ttl": 20,
+      "anomaly_z_threshold": 3.0,
+      "anomaly_min_points": 25,
+      "auto_train_interval": 200,
       "max_memory": 5000,
       "sl_atr_multiple": 1.5,
       "tp_atr_multiple": 2.0,

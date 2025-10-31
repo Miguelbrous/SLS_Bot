@@ -7,7 +7,10 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 ## Bitácora Codex 2025-10-31
 - `scripts/tools/infra_check.py` ahora valida tokens (`token@YYYY-MM-DD`), detecta contraseñas por defecto y admite `--ensure-dirs` para crear `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}`.
 - Nuevo `scripts/tools/healthcheck.py` centraliza los pings a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status`.
-- `Makefile` incluye `infra-check`, `setup-dirs`, `health` y `smoke` para simplificar las comprobaciones manuales.
+- Nuevo `scripts/tools/rotate_artifacts.py` archiva logs/modelos antiguos por modo y está conectado a `make rotate-artifacts`.
+- `Makefile` incluye `infra-check`, `setup-dirs`, `rotate-artifacts`, `health` y `smoke` para simplificar las comprobaciones manuales.
+- `scripts/manage_bot.py` incorpora reintentos configurables (`--retries/--retry-delay`) y registra cada intento en la salida JSON.
+- Cerebro IA integra ingestión en cola, detector de anomalías, umbral dinámico de confianza, evaluación A/B, versionado de modelos, pipelines de entrenamiento y reporter diario (ver `docs/cerebro.md`).
 - Se crearon los directorios `logs/real`, `excel/real`, `models/cerebro/real` y `models/cerebro/test`.
 
 ---
@@ -30,6 +33,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 | `logs/{mode}/` | Bridge logs, decisiones, PnL, estado de riesgo y datasets Cerebro segregados por modo. |
 | `excel/{mode}/` | Libros `26. Plan de inversión.xlsx` vinculados a operaciones/eventos del modo correspondiente. |
 | `models/cerebro/{mode}/` | Artefactos activos y candidatos del Cerebro IA segregados por modo. |
+| `logs/{mode}/metrics` / `logs/{mode}/reports` | Métricas A/B del Cerebro y reportes diarios por sesión. |
 | `scripts/` | Deploy (`scripts/deploy`), pruebas (`scripts/tests/e2e_smoke.py`), utilidades Python (`scripts/tools/*.py`) y el gestor `scripts/manage.sh`. |
 
 ---
@@ -40,9 +44,17 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `bot/sls_bot/config_loader.py`: Parser robusto (comentarios, comas) + motor de perfiles (`modes`). Usa `SLSBOT_MODE` y tokens `{mode}` para generar rutas.  
 - `bot/cerebro/service.py`: Servicio continuo del Cerebro. Guarda decisiones/experiencias en `logs/<mode>/cerebro_*.jsonl` y carga modelos desde `models/cerebro/<mode>/active_model.json`. Reporta el modo en `/cerebro/status`.  
 - `bot/cerebro/train.py`: Entrenamiento ligero (logistic regression). `--mode` autodetecta rutas de dataset/modelos según el modo. Añade campo `mode` al artefacto.  
+- `bot/cerebro/ingestion.py`: Gestor de colas y cache TTL para data sources de mercado/noticias.  
+- `bot/cerebro/anomaly.py` / `confidence.py`: Detector de anomalías mediante z-score y compuerta dinámica de confianza.  
+- `bot/cerebro/evaluation.py`: Métricas A/B entre heurística vs ML persistidas en `logs/<mode>/metrics`.  
+- `bot/cerebro/versioning.py` / `pipelines.py`: Registro de modelos, promoción/rollback y pipeline de entrenamiento offline/online.  
+- `bot/cerebro/reporting.py`: Reporter diario por sesión (`logs/<mode>/reports`).  
+- `bot/cerebro/simulator.py`: Simulaciones ligeras para validar la consistencia de las señales.  
 - `scripts/tools/promote_strategy.py`: Copia `active_model.json` desde el modo de prueba al real cuando las métricas superan los umbrales y opcionalmente archiva/reset el dataset de experiencias del modo prueba.  
 - `scripts/tools/infra_check.py`: Valida `.env` y `config.json`, comprueba tokens (`token@YYYY-MM-DD`), detecta contraseñas por defecto y con `--ensure-dirs` crea `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}`.  
 - `scripts/tools/healthcheck.py`: Lanza GET/POST a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status` y devuelve un resumen JSON del estado.
+- `scripts/tools/rotate_artifacts.py`: Archiva logs y modelos antiguos en `archive/` por modo; integrado con `make rotate-artifacts`.
+- `scripts/manage_bot.py`: Controla servicios systemd con validación opcional de `.env`, soporta reintentos (`--retries`) y exporta la traza de intentos.
 - `README.md`: Documentación general (instrucciones de entorno, pruebas, despliegue, explicación modos/prueba-real y comandos de entrenamiento/promoción).  
 - `docs/roadmap.md`: Estado detallado de los 10 objetivos del bot y los 10 objetivos del Cerebro IA con progreso por fases.
 - `.env.example`: Ejemplo de variables, incluye `SLSBOT_MODE`, credenciales panel y Bybit.  

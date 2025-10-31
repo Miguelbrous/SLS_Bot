@@ -26,7 +26,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `TRUST_PROXY_BASIC` / `PROXY_BASIC_HEADER`: activa (`1`) cuando Nginx ya protege `/control/*` con Basic Auth y reenvía el usuario en `X-Forwarded-User`.
    - `SLSBOT_MODE`: `test` o `real`. Define qu� perfil del `config.json` se aplica y habilita directorios independientes (`logs/{mode}`, `excel/{mode}`, `models/{mode}`...).
    - Variables Bybit (`BYBIT_*`) para el bot real y rutas (`SLSBOT_CONFIG`).
-   - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple`, un `min_confidence`, el horizonte de noticias (`news_ttl_minutes`) y al menos una entrada en `session_guards`. El bot usar? esas salidas para ajustar riesgo, leverage, stop-loss/take-profit y bloquear entradas cuando el guardia de sesi?n est? activo.
+   - Si activas el Cerebro (`cerebro.enabled=true`), define `cerebro.symbols/timeframes`, los multiplicadores `sl_atr_multiple` / `tp_atr_multiple`, la confianza mínima y sus límites (`min_confidence`, `confidence_min`, `confidence_max`), el TTL de cache (`data_cache_ttl`), los parámetros de anomalías (`anomaly_*`), el horizonte de noticias (`news_ttl_minutes`) y al menos una entrada en `session_guards`. El bot usará esas salidas para ajustar riesgo, leverage, stop-loss/take-profit y bloquear entradas cuando el guardia de sesión esté activo. Exporta `SLS_CEREBRO_AUTO_TRAIN=1` si quieres disparar entrenamientos automáticos cada `auto_train_interval` trades.
 2. Copia `panel/.env.example` como `panel/.env` (Terminal VS Code local) y define `NEXT_PUBLIC_PANEL_API_TOKEN` con el token activo. Ajusta `NEXT_PUBLIC_CONTROL_AUTH_MODE` a `browser` si desarrollarás sin Nginx (pide credenciales desde la UI) o `proxy` para delegar en el reverse proxy.
 3. Copia `config/config.sample.json` a `config/config.json`. El archivo ya trae un bloque `shared` y dos perfiles (`modes.test`/`modes.real`); personaliza tus llaves Bybit, rutas (`logs/{mode}`, `excel/{mode}`), `default_mode` y cualquier override por modo. Usa `SLSBOT_MODE` para alternar sin tocar el archivo (ideal para levantar simult�neamente el bot de pruebas y el real). Si trabajas en el VPS, mant�n la versi�n cifrada.
 4. Ajusta el bloque `risk` dentro de `shared` para valores comunes o sobrescribe `modes.*.risk` cuando quieras reglas distintas por modo:
@@ -159,8 +159,10 @@ npm run build
 - El bot escribe datos reales en `logs/decisions.jsonl`, `logs/bridge.log` y `logs/pnl.jsonl`, que el panel consume en vivo.
 - `make infra-check` valida `.env`/`config` y muestra rutas por modo (`make infra-check ENSURE_DIRS=1` también crea los directorios faltantes).
 - `make setup-dirs` fuerza la creación de `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}` según la configuración activa.
+- `make rotate-artifacts DAYS=14` archiva logs/modelos antiguos en `logs/*/archive` y `models/cerebro/*/archive`.
 - `make health PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` ejecuta un ping rápido a `/health`, `/status`, `/cerebro/status` y `/control/sls-bot/status`.
 - `make smoke PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` corre `scripts/tests/e2e_smoke.py` contra el despliegue activo.
+- `python3 scripts/manage_bot.py encender --retries 3 --retry-delay 10` reintenta acciones systemd automáticamente cuando fallan.
 
 ## Estructura
 ```
@@ -182,7 +184,3 @@ excel/ (ignorado)
 - Mantén `CONTROL_USER/CONTROL_PASSWORD`, `PANEL_API_TOKENS` y cualquier `.env` fuera del repo.
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.
-
-=======
-# SLS_Bot
->>>>>>> f91eea92f5d09a794832800818d920906f4be1be

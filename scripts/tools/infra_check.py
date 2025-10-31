@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -24,6 +25,7 @@ load_config = config_loader.load_config
 
 
 def _read_env_file(path: Path | None) -> Dict[str, str]:
+    """Lee un archivo .env plano (KEY=VALUE) ignorando comentarios."""
     if not path or not path.exists():
         return {}
     data: Dict[str, str] = {}
@@ -37,6 +39,7 @@ def _read_env_file(path: Path | None) -> Dict[str, str]:
 
 
 def _restore_mode(env_value: str | None) -> None:
+    """Restablece la variable de modo que hubiera antes del chequeo."""
     if env_value is None:
         os.environ.pop("SLSBOT_MODE", None)
     else:
@@ -44,6 +47,7 @@ def _restore_mode(env_value: str | None) -> None:
 
 
 def _resolve_path(raw: str | None) -> Path:
+    """Convierte rutas relativas o con `~` a Paths absolutos dentro del repositorio."""
     if not raw:
         return REPO_ROOT
     candidate = Path(raw).expanduser()
@@ -53,6 +57,7 @@ def _resolve_path(raw: str | None) -> Path:
 
 
 def _ensure_dir(path: Path, ensure: bool) -> Tuple[bool, bool]:
+    """Devuelve (existe, creado) y opcionalmente crea el directorio si faltaba."""
     exists = path.exists()
     created = False
     if not exists and ensure:
@@ -63,6 +68,7 @@ def _ensure_dir(path: Path, ensure: bool) -> Tuple[bool, bool]:
 
 
 def _token_is_valid(token: str) -> bool:
+    """Valida tokens del panel con formato `token` o `token@YYYY-MM-DD`."""
     value = token.strip()
     if not value:
         return False
@@ -76,6 +82,36 @@ def _token_is_valid(token: str) -> bool:
     except ValueError:
         return False
     return True
+
+
+@dataclass
+class ModeSummary:
+    """Agrupa la información consolidada de un modo (test/real)."""
+
+    name: str
+    logs_dir: Path
+    excel_dir: Path
+    models_dir: Path
+    metrics_dir: Path
+    reports_dir: Path
+    cerebro_enabled: bool
+    bybit_base_url: str | None
+    logs_dir_exists: bool
+    excel_dir_exists: bool
+    models_dir_exists: bool
+    metrics_dir_exists: bool
+    reports_dir_exists: bool
+    created_dirs: List[str] = field(default_factory=list)
+
+    def to_payload(self) -> Dict[str, object]:
+        """Transforma el dataclass en un diccionario serializable."""
+        payload = asdict(self)
+        payload["logs_dir"] = str(self.logs_dir)
+        payload["excel_dir"] = str(self.excel_dir)
+        payload["models_dir"] = str(self.models_dir)
+        payload["metrics_dir"] = str(self.metrics_dir)
+        payload["reports_dir"] = str(self.reports_dir)
+        return payload
 
 
 def main() -> None:
@@ -127,7 +163,7 @@ def main() -> None:
     available_modes = cfg.get("_available_modes") or (
         [cfg.get("_active_mode")] if cfg.get("_active_mode") else []
     )
-    mode_summaries: Dict[str, Dict[str, object]] = {}
+    mode_summaries: Dict[str, ModeSummary] = {}
 
     try:
         for mode in available_modes:
@@ -140,28 +176,44 @@ def main() -> None:
 
             cere_cfg = mode_cfg.get("cerebro") or {}
             models_dir = _resolve_path(cere_cfg.get("models_dir") or f"./models/cerebro/{mode}")
+            metrics_dir = logs_dir / "metrics"
+            reports_dir = logs_dir / "reports"
 
             logs_exists, logs_created = _ensure_dir(logs_dir, args.ensure_dirs)
             excel_exists, excel_created = _ensure_dir(excel_dir, args.ensure_dirs)
             models_exists, models_created = _ensure_dir(models_dir, args.ensure_dirs)
+            metrics_exists, metrics_created = _ensure_dir(metrics_dir, args.ensure_dirs)
+            reports_exists, reports_created = _ensure_dir(reports_dir, args.ensure_dirs)
 
+            created = []
             if logs_created:
-                created_dirs.append(str(logs_dir))
+                created.append(str(logs_dir))
             if excel_created:
-                created_dirs.append(str(excel_dir))
+                created.append(str(excel_dir))
             if models_created:
-                created_dirs.append(str(models_dir))
+                created.append(str(models_dir))
+            if metrics_created:
+                created.append(str(metrics_dir))
+            if reports_created:
+                created.append(str(reports_dir))
+            created_dirs.extend(created)
 
-            mode_summaries[mode] = {
-                "bybit_base_url": (mode_cfg.get("bybit") or {}).get("base_url"),
-                "logs_dir": str(logs_dir),
-                "logs_dir_exists": logs_exists,
-                "excel_dir": str(excel_dir),
-                "excel_dir_exists": excel_exists,
-                "models_dir": str(models_dir),
-                "models_dir_exists": models_exists,
-                "cerebro_enabled": bool(cere_cfg.get("enabled")),
-            }
+            mode_summaries[mode] = ModeSummary(
+                name=mode,
+                logs_dir=logs_dir,
+                excel_dir=excel_dir,
+                models_dir=models_dir,
+                metrics_dir=metrics_dir,
+                reports_dir=reports_dir,
+                cerebro_enabled=bool(cere_cfg.get("enabled")),
+                bybit_base_url=(mode_cfg.get("bybit") or {}).get("base_url"),
+                logs_dir_exists=logs_exists,
+                excel_dir_exists=excel_exists,
+                models_dir_exists=models_exists,
+                metrics_dir_exists=metrics_exists,
+                reports_dir_exists=reports_exists,
+                created_dirs=created,
+            )
     finally:
         _restore_mode(original_mode)
 
@@ -172,7 +224,7 @@ def main() -> None:
         "env_checked": args.env_file.name if args.env_file else None,
         "warnings": warnings,
         "directories_created": created_dirs,
-        "modes": mode_summaries,
+        "modes": {name: summary.to_payload() for name, summary in mode_summaries.items()},
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs health smoke
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -67,6 +67,9 @@ infra-check: ## Valida .env/config y rutas; usa --ensure-dirs=1 para crear direc
 
 setup-dirs: ## Crea directorios (logs/excel/modelos) según config activa.
 	@$(PYTHON_BIN) scripts/tools/infra_check.py $(if $(wildcard $(ENV_FILE)),--env-file $(ENV_FILE),) --ensure-dirs
+
+rotate-artifacts: ## Mueve artefactos antiguos a archive/ (usar DAYS=14 para personalizar).
+	@$(PYTHON_BIN) scripts/tools/rotate_artifacts.py $(if $(MODE),--mode $(MODE),) $(foreach inc,$(INCLUDE),--include $(inc)) $(if $(DAYS),--days $(DAYS),) $(if $(DRY_RUN),--dry-run,)
 
 health: ## Healthcheck HTTP rápido (pasa PANEL_TOKEN/CONTROL_* si corresponde).
 	@$(PYTHON_BIN) scripts/tools/healthcheck.py --base-url $${API_BASE:-http://127.0.0.1:8880} $(if $(PANEL_TOKEN),--panel-token $(PANEL_TOKEN),) $(if $(CONTROL_USER),--control-user $(CONTROL_USER),) $(if $(CONTROL_PASSWORD),--control-password $(CONTROL_PASSWORD),)

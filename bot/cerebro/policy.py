@@ -45,6 +45,9 @@ class PolicyEnsemble:
         memory_stats: dict | None = None,
         session_context: dict | None = None,
         news_meta: dict | None = None,
+        anomaly_score: float | None = None,
+        min_confidence_override: float | None = None,
+        normalized_features: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         decision = payload["decision"]
@@ -54,7 +57,8 @@ class PolicyEnsemble:
                 confidence = max(0.0, confidence + news_sentiment * 0.05)
             elif decision == "SHORT":
                 confidence = max(0.0, confidence - news_sentiment * 0.05)
-        if confidence < self.min_confidence:
+        threshold = min_confidence_override or self.min_confidence
+        if confidence < threshold:
             decision = "NO_TRADE"
 
         price = float(market_row.get("close") or 0.0)
@@ -74,6 +78,8 @@ class PolicyEnsemble:
         ]
         if news_sentiment is not None:
             reasons.append(f"Sentimiento noticias={news_sentiment:+.2f}")
+        if anomaly_score is not None:
+            reasons.append(f"Anomaly z-score={anomaly_score:.2f}")
 
         risk_pct = float(payload["riesgo_pct"])
         memory_stats = memory_stats or {}
@@ -125,11 +131,16 @@ class PolicyEnsemble:
             "memory_win_rate": float(memory_stats.get("win_rate") or 0.0),
             "session_guard_penalty": 1.0 if (session_context or {}).get("state") in {"pre_open", "news_wait"} else 0.0,
         }
+        if normalized_features:
+            ml_features.update({f"norm_{k}": v for k, v in normalized_features.items()})
+        if anomaly_score is not None:
+            ml_features["anomaly_score"] = anomaly_score
         ml_score = self._score_with_model(ml_features)
         if ml_score is not None and self._model_artifact:
             metadata["ml_score"] = ml_score
             metadata["model_version"] = self._model_artifact.get("version")
             metadata["model_metrics"] = self._model_artifact.get("metrics")
+            metadata["action_source"] = "ml"
             reasons.append(f"Modelo entrenado score={ml_score:.2f}")
             confidence = (confidence + ml_score) / 2.0
             if ml_score < 0.4:
@@ -138,6 +149,9 @@ class PolicyEnsemble:
             elif ml_score > 0.65:
                 risk_pct = min(risk_pct * 1.15, payload["riesgo_pct"] * 1.5)
                 reasons.append("Modelo permite subir riesgo por score alto")
+            metadata["ml_override"] = ml_score > 0.65 or ml_score < 0.4
+        else:
+            metadata["action_source"] = "heuristic"
 
         return PolicyDecision(
             symbol=symbol.upper(),

@@ -13,23 +13,26 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 
 ## Componentes
 
-- **DataSources**: conectores a Bybit (OHLC + ATR) y RSS (titulares). Cada `fetch()` entrega diccionarios
-  crudos que la politica puede consumir directamente, ahora con sentimiento NLP (`vaderSentiment`) en cada titular.
-- **FeatureStore**: buffer circular (max 500) que almacena las ultimas velas por simbolo/timeframe.
-- **ExperienceMemory**: cola de tamano configurable que guarda `features + pnl + decision`.
-- **PolicyEnsemble**: combina `ia_signal_engine` + heuristicas de riesgo + sentimiento de noticias y un modelo ligero entrenado con los trades reales (logística).
-- **MarketSessionGuard** (nuevo): detecta las ventanas de apertura (Asia/Europa/USA) y bloquea/reduce
-  operaciones segun el contexto de noticias mas reciente.
-- **API Router**: expone `/cerebro/status`, `/cerebro/decide`, `/cerebro/learn` y `/cerebro/decisions` dentro del FastAPI principal (este último sirve el historial que también se guarda en `logs/cerebro_decisions.jsonl`).
+- **DataIngestionManager**: mantiene una cola FIFO de tareas para `market` y `news`, con cache TTL configurable (`data_cache_ttl`). Evita golpear los endpoints si los datos siguen frescos.
+- **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
+- **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
+- **DynamicConfidenceGate**: ajusta el umbral mínimo de confianza según volatilidad, calidad del dataset y anomalías.
+- **ExperienceMemory**: cola de tamaño configurable que guarda `features + pnl + decision` para el aprendizaje.
+- **PolicyEnsemble**: combina `ia_signal_engine`, heurísticas y el modelo entrenado. Usa features normalizados, sentimiento, guardias y resultados del detector de anomalías.
+- **EvaluationTracker**: lleva métricas `ml_vs_heuristic` persistidas en `logs/<mode>/metrics/cerebro_evaluation.json`.
+- **ModelRegistry + TrainingPipeline**: registra cada artefacto (`registry.json`), permite `promote/rollback` y lanza entrenamientos offline con `python -m cerebro.train`. El pipeline online deja pistas para reentrenar en background.
+- **BacktestSimulator**: corre simulaciones ligeras sobre las últimas velas para estimar PnL promedio y exponerlo en metadata.
+- **ReportBuilder**: agrupa resultados por sesión (trades, wins, bloqueos) y genera `logs/<mode>/reports/cerebro_daily_report.json`.
+- **API Router**: expone `/cerebro/status`, `/cerebro/decide`, `/cerebro/learn` y `/cerebro/decisions` dentro del FastAPI principal.
 
 ## Flujo rapido
 
-1. `run_cycle()` descarga OHLC recientes y actualiza el FeatureStore.
-2. Lee los feeds RSS configurados, calcula un `NewsPulse` (sentimiento -1..1, noticia mas reciente y antiguedad).
-3. El guard de sesiones revisa si estamos dentro de la ventana de pre-apertura/post-apertura.
-4. PolicyEnsemble genera una decision (LONG/SHORT/NO_TRADE) con confianza, riesgo y SL/TP dinamicos.
-5. El bot real consume esa decision via `_maybe_apply_cerebro`. Si la accion es `NO_TRADE` la senal se descarta.
-6. Al cerrar una operacion se llama a `/cerebro/learn` para alimentar la memoria.
+1. Los data sources se encolan (`IngestionTask`) y el manager rellena cache para mercado/noticias.
+2. `FeatureStore` actualiza buffers y devuelve slices normalizados + stats por símbolo/timeframe.
+3. `AnomalyDetector` y `DynamicConfidenceGate` ajustan el umbral mínimo antes de pasar por `PolicyEnsemble`.
+4. La política genera la decisión, simula un micro backtest y anota metadata (anomalías, confianza dinámica, score ML).
+5. `EvaluationTracker` y `ReportBuilder` guardan métricas de desempeño y bloqueos por sesión.
+6. Cada trade real pasa a `ExperienceMemory`, se persiste en `logs/cerebro_experience.jsonl` y, si `SLS_CEREBRO_AUTO_TRAIN=1`, se lanza entrenamiento offline según el intervalo configurado.
 
 ## Proteccion ante aperturas
 
@@ -57,6 +60,12 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
     "https://cointelegraph.com/rss"
   ],
   "min_confidence": 0.55,
+  "confidence_max": 0.7,
+  "confidence_min": 0.45,
+  "data_cache_ttl": 20,
+  "anomaly_z_threshold": 3.0,
+  "anomaly_min_points": 25,
+  "auto_train_interval": 200,
   "max_memory": 5000,
   "sl_atr_multiple": 1.5,
   "tp_atr_multiple": 2.0,
@@ -97,9 +106,12 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 ```
 
 - `news_ttl_minutes`: cuanto tiempo sigue siendo util una noticia para tomar decisiones si no hay sesion abierta.
+- `data_cache_ttl`: segundos que se mantienen en cache las respuestas de mercado/noticias.
+- `anomaly_*`: parámetros del detector z-score (umbral y muestras mínimas).
+- `confidence_min` / `confidence_max`: límites inferior/superior para el umbral dinámico.
+- `auto_train_interval`: cada cuántos trades se lanza un entrenamiento offline cuando `SLS_CEREBRO_AUTO_TRAIN=1`.
 - `session_guards`: lista de ventanas por region. Puedes eliminar o ajustar horarios/tiempos segun la cobertura del bot.
-- `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una
-  noticia alineada.
+- `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una noticia alineada.
 
 ## Entrenamiento automático (`bot/cerebro/train.py`)
 
@@ -121,11 +133,18 @@ python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir 
 `PolicyEnsemble` carga automáticamente `active_model.json` (si existe) y mezcla su `ml_score` con la confianza del
 motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirlo hasta el máximo configurado.
 
+El registro de modelos (`models/cerebro/<mode>/registry.json`) guarda cada versión con métricas y etiqueta. Usa
+`scripts/tools/rotate_artifacts.py` para archivar artefactos antiguos y `ModelRegistry.promote()` para reactivar uno.
+Si defines `SLS_CEREBRO_AUTO_TRAIN=1`, el servicio ejecuta `python -m cerebro.train` cada `auto_train_interval` trades,
+registrando automáticamente el artefacto resultante.
+
 ## Logs e historial
 
 - `logs/cerebro_decisions.jsonl`: cada decision publicada para auditar en el panel.
 - `logs/cerebro_experience.jsonl`: dataset usado por el entrenamiento.
-- `/cerebro/status` ahora expone `history` (últimas ~60 decisiones) para graficar confianza en el panel.
+- `logs/<mode>/metrics/cerebro_evaluation.json`: métricas A/B entre heurístico y ML.
+- `logs/<mode>/reports/cerebro_daily_report.json`: resumen por sesión (trades, wins, bloqueos).
+- `/cerebro/status` ahora expone `history` (últimas ~200 decisiones), `evaluation` y `report` para graficar confianza y salud del modelo.
 
 ## Integracion con el panel
 
@@ -134,6 +153,7 @@ motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirl
 - Sentimiento de noticias y ultimo titular (si llega desde los feeds).
 - Estado de la Session Guard (badge amarillo/rojo segun `block_trade`).
 - Razones completas (`decision.reasons`) para auditar por que se bloqueo una senal.
+- Umbral de confianza dinámico (`metadata.confidence_gate`), score ML, anomalías y simulación rápida (`metadata.simulation`).
 - Filtros por símbolo/timeframe, botón **Forzar decisión** (POST `/cerebro/decide`) y el gráfico de confianza histórica.
 - Para auditoría o monitoreo externo puedes consultar `/cerebro/decisions?limit=50`, que lee directamente del log JSONL y siempre entrega las entradas más recientes.
 
