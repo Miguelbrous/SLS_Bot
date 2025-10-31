@@ -157,6 +157,10 @@ npm run build
 - `npm run lint` para validar el panel antes de publicar.
 - `venv\Scripts\python -m pip install -r bot/requirements-ia.txt` para habilitar el motor IA.
 - El bot escribe datos reales en `logs/decisions.jsonl`, `logs/bridge.log` y `logs/pnl.jsonl`, que el panel consume en vivo.
+- `make infra-check` valida `.env`/`config` y muestra rutas por modo (`make infra-check ENSURE_DIRS=1` también crea los directorios faltantes).
+- `make setup-dirs` fuerza la creación de `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}` según la configuración activa.
+- `make health PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` ejecuta un ping rápido a `/health`, `/status`, `/cerebro/status` y `/control/sls-bot/status`.
+- `make smoke PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` corre `scripts/tests/e2e_smoke.py` contra el despliegue activo.
 
 ## Estructura
 ```

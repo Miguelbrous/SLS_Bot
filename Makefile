@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs health smoke
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -61,3 +61,19 @@ reiniciar: ## Reinicia servicios y muestra diagnostico resumido (requiere VPS). 
 
 diagnostico: ## Obtiene estado y ultimos logs de cada servicio (requiere VPS).
 	@python3 $(MANAGER) diagnostico
+
+infra-check: ## Valida .env/config y rutas; usa --ensure-dirs=1 para crear directorios que falten.
+	@$(PYTHON_BIN) scripts/tools/infra_check.py $(if $(wildcard $(ENV_FILE)),--env-file $(ENV_FILE),) $(if $(ENSURE_DIRS),--ensure-dirs,)
+
+setup-dirs: ## Crea directorios (logs/excel/modelos) según config activa.
+	@$(PYTHON_BIN) scripts/tools/infra_check.py $(if $(wildcard $(ENV_FILE)),--env-file $(ENV_FILE),) --ensure-dirs
+
+health: ## Healthcheck HTTP rápido (pasa PANEL_TOKEN/CONTROL_* si corresponde).
+	@$(PYTHON_BIN) scripts/tools/healthcheck.py --base-url $${API_BASE:-http://127.0.0.1:8880} $(if $(PANEL_TOKEN),--panel-token $(PANEL_TOKEN),) $(if $(CONTROL_USER),--control-user $(CONTROL_USER),) $(if $(CONTROL_PASSWORD),--control-password $(CONTROL_PASSWORD),)
+
+smoke: ## Smoke test completo usando scripts/tests/e2e_smoke.py.
+	@SLS_API_BASE=$${API_BASE:-http://127.0.0.1:8880} \
+	 SLS_PANEL_TOKEN=$(PANEL_TOKEN) \
+	 SLS_CONTROL_USER=$(CONTROL_USER) \
+	 SLS_CONTROL_PASSWORD=$(CONTROL_PASSWORD) \
+	 $(PYTHON_BIN) scripts/tests/e2e_smoke.py
