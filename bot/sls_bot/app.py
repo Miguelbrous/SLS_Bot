@@ -799,8 +799,8 @@ def _close_position_reduce_only(symbol: str):
         return {"error": str(e)}
 
 # ----- WEBHOOK -----
-@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
-def webhook(sig: Signal):
+
+def _process_signal(sig: Signal):
     try:
         if sig.signal not in ("SLS_LONG_ENTRY", "SLS_SHORT_ENTRY", "SLS_EXIT", "SLS_UPDATE"):
             return {"status": "ignored", "reason": "unknown signal"}
@@ -1044,6 +1044,16 @@ def webhook(sig: Signal):
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
+def webhook(sig: Signal):
+    return _process_signal(sig)
+
+
+@app.post("/ia/signal")
+def ia_signal(sig: Signal):
+    return _process_signal(sig)
 
 # ====== RESUMEN DIARIO ======
 @app.get("/daily/summary")

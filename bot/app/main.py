@@ -218,10 +218,8 @@ def health():
 def get_status(_: None = Depends(require_panel_token)):
 
     sls_active, sls_detail = service_status("sls-bot")
-    ai_active, ai_detail = service_status("ai-bridge")
     services = {
-        "sls-bot": ServiceState(active=sls_active, detail=sls_detail),
-        "ai-bridge": ServiceState(active=ai_active, detail=ai_detail),
+        "sls-bot": ServiceState(active=sls_active, detail=sls_detail)
     }
     bybit_cfg = (BOT_CONFIG.get("bybit") if isinstance(BOT_CONFIG, dict) else {}) or {}
     risk_state_path = LOGS_DIR / "risk_state.json"
@@ -372,7 +370,6 @@ def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_pane
             )
         )
     return PnLDailyResponse(days=out)
-
 
 
 

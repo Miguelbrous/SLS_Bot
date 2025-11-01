@@ -262,7 +262,6 @@ export default function Page() {
   }, [availableTimeframes, timeframeFilter]);
 
   const slsActive = !!status?.services?.["sls-bot"]?.active;
-  const aiActive = !!status?.services?.["ai-bridge"]?.active;
   const riskDetails: RiskStateDetails | undefined =
     (status?.bot?.risk_state_details as RiskStateDetails | undefined) ||
     (status?.bot?.risk_state as RiskStateDetails | undefined);
@@ -291,10 +290,6 @@ export default function Page() {
             <div className="svc-head">API (sls-bot)</div>
             <Controls service="sls-bot" />
           </div>
-          <div className="svc-col">
-            <div className="svc-head">Auto (ai-bridge)</div>
-            <Controls service="ai-bridge" />
-          </div>
         </div>
       </Card>
 
@@ -304,9 +299,6 @@ export default function Page() {
           <div className="badges">
             <span className={`badge ${slsActive ? "ok" : "fail"}`}>
               sls-bot: {slsActive ? "activo" : "inactivo"}
-            </span>
-            <span className={`badge ${aiActive ? "ok" : "fail"}`}>
-              ai-bridge: {aiActive ? "activo" : "inactivo"}
             </span>
           </div>
 

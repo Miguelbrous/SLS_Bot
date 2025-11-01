@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 INFRA_CHECK = REPO_ROOT / "scripts" / "tools" / "infra_check.py"
 
 # Servicios principales; si alguno no existe en el VPS se ignora con un aviso.
-CORE_SERVICES: List[str] = ["sls-api", "sls-bot", "ai-bridge"]
+CORE_SERVICES: List[str] = ["sls-api", "sls-bot"]
 EXTRA_SERVICES: List[str] = ["sls-cerebro", "sls-panel"]
 
 
