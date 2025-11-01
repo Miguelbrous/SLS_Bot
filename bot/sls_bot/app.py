@@ -898,17 +898,79 @@ def _process_signal(sig: Signal):
         api_secret = cfg["bybit"]["api_secret"]
         url = f"{BASE_URL}/v5/order/create"
 
-        # helper para SL/TP válidos (>0)
-        def _add_tp_sl(payload: dict):
+        # helper para SL/TP válidos (>0) respetando el lado y el precio de referencia
+        def _add_tp_sl(payload: dict, side_ref: str, price_ref: float, symbol_ref: str):
+            tp_sl_assigned = False
+            price_ref = float(price_ref or 0)
+            price_guard_ok = price_ref > 0
+            if not price_guard_ok:
+                try:
+                    mark_ref = bb.get_mark_price(symbol_ref)
+                except Exception:
+                    mark_ref = None
+                if mark_ref and mark_ref > 0:
+                    price_ref = float(mark_ref)
+                    price_guard_ok = True
+            try:
+                _append_bridge_log(f"tp_guard_state {side_ref} {symbol_ref} guard={price_guard_ok} price={price_ref}")
+            except Exception:
+                pass
+            if not price_guard_ok:
+                try:
+                    _append_bridge_log(
+                        f"tp_guard_disabled {side_ref} {symbol_ref} raw_tp={sig.take_profit or sig.tp2 or sig.tp1} raw_sl={sig.stop_loss or sig.sl}"
+                    )
+                except Exception:
+                    pass
+
             sl_value = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
             if sl_value is not None and sl_value > 0:
-                payload["stopLoss"] = str(_quantize_price(sl_value, tick))
+                sl_value_q = _quantize_price(sl_value, tick)
+                if price_guard_ok:
+                    if side_ref == "LONG" and sl_value_q >= price_ref:
+                        try:
+                            _append_bridge_log(f"skip_stop_invalid {side_ref} {symbol_ref} sl={sl_value_q} ref={price_ref}")
+                        except Exception:
+                            pass
+                        sl_value_q = None
+                    elif side_ref == "SHORT" and sl_value_q <= price_ref:
+                        try:
+                            _append_bridge_log(f"skip_stop_invalid {side_ref} {symbol_ref} sl={sl_value_q} ref={price_ref}")
+                        except Exception:
+                            pass
+                        sl_value_q = None
+                else:
+                    sl_value_q = None
+                if sl_value_q is not None:
+                    payload["stopLoss"] = str(sl_value_q)
+                    tp_sl_assigned = True
+
             tp_value = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
             if tp_value is None:
                 tp_value = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
-            if tp_value is not None:
-                payload["takeProfit"] = str(_quantize_price(tp_value, tick))
-                payload["tpSlMode"]   = "Full"
+            if tp_value is not None and tp_value > 0:
+                tp_value_q = _quantize_price(tp_value, tick)
+                if price_guard_ok:
+                    if side_ref == "LONG" and tp_value_q <= price_ref:
+                        try:
+                            _append_bridge_log(f"skip_tp_invalid {side_ref} {symbol_ref} tp={tp_value_q} ref={price_ref}")
+                        except Exception:
+                            pass
+                        tp_value_q = None
+                    elif side_ref == "SHORT" and tp_value_q >= price_ref:
+                        try:
+                            _append_bridge_log(f"skip_tp_invalid {side_ref} {symbol_ref} tp={tp_value_q} ref={price_ref}")
+                        except Exception:
+                            pass
+                        tp_value_q = None
+                else:
+                    tp_value_q = None
+                if tp_value_q is not None:
+                    payload["takeProfit"] = str(tp_value_q)
+                    tp_sl_assigned = True
+
+            if tp_sl_assigned:
+                payload["tpSlMode"] = "Full"
 
         # LIMIT vs MARKET
         if sig.post_only and sig.price:
@@ -923,8 +985,9 @@ def _process_signal(sig: Signal):
                 "timeInForce": "PostOnly",
                 "isLeverage": 1
             }
-            _add_tp_sl(payload)
+            _add_tp_sl(payload, side, price_ref, symbol)
         else:
+            price_ref_market = sig.price if (sig.price and sig.price > 0) else price_live
             payload = {
                 "category": "linear",
                 "symbol": symbol,
@@ -933,7 +996,7 @@ def _process_signal(sig: Signal):
                 "qty": qty_str,
                 "isLeverage": 1
             }
-            _add_tp_sl(payload)
+            _add_tp_sl(payload, side, price_ref_market, symbol)
 
         # leverage tolerante
         try:
@@ -945,6 +1008,7 @@ def _process_signal(sig: Signal):
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         last_exc = None
         placed = None
+        tp_sl_trimmed = False
         for i in range(4):
             try:
                 ts, sign, recv_window = _sign_v5(api_key, api_secret, payload_str, "120000")
@@ -986,6 +1050,20 @@ def _process_signal(sig: Signal):
                     time.sleep(0.6 + i * 0.6)
                     continue
 
+                if (not tp_sl_trimmed) and ("takeprofit" in msg or "stoploss" in msg):
+                    payload = {k: v for k, v in payload.items() if k not in {"takeProfit", "stopLoss", "tpSlMode"}}
+                    payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+                    tp_sl_trimmed = True
+                    try:
+                        _append_bridge_log(f"order_retry_without_tpsl {side} {symbol}")
+                    except Exception:
+                        pass
+                    continue
+
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} ret={data}")
+                except Exception:
+                    pass
                 raise RuntimeError(data)
             except Exception as e:
                 last_exc = e
@@ -994,8 +1072,17 @@ def _process_signal(sig: Signal):
                     _sync_server_time()
                     time.sleep(0.6 + i * 0.6)
                     continue
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} exc={e}")
+                except Exception:
+                    pass
                 raise
         else:
+            if last_exc is not None:
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} final={last_exc}")
+                except Exception:
+                    pass
             raise last_exc
 
         # Guardar equity en la entrada
