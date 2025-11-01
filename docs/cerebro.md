@@ -138,6 +138,15 @@ El registro de modelos (`models/cerebro/<mode>/registry.json`) guarda cada versi
 Si defines `SLS_CEREBRO_AUTO_TRAIN=1`, el servicio ejecuta `python -m cerebro.train` cada `auto_train_interval` trades,
 registrando automáticamente el artefacto resultante.
 
+## Simulaciones y promoción controlada
+
+- `Cerebro.simulate_sequence()` genera decisiones hipotéticas sobre las últimas velas cargadas y calcula un PnL simulado
+  usando `BacktestSimulator`; está expuesto vía `POST /cerebro/simulate` (`symbol`, `timeframe`, `horizon`, `news_sentiment`).
+- `scripts/tools/generate_cerebro_dataset.py` crea datasets sintéticos (JSONL) para ejercitar entrenamientos sin depender
+  de fills reales.
+- `scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` escoge el modelo registrado con
+  mejor métrica y lo promueve a `active_model.json`, dejando trazabilidad en `models/cerebro/<mode>/registry.json`.
+
 ## Logs e historial
 
 - `logs/cerebro_decisions.jsonl`: cada decision publicada para auditar en el panel.

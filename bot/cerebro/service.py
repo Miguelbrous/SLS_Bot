@@ -267,6 +267,50 @@ class Cerebro:
                 if artifact:
                     log.info("Nuevo modelo registrado desde %s", artifact)
 
+    def simulate_sequence(
+        self,
+        *,
+        symbol: str,
+        timeframe: str,
+        horizon: int = 30,
+        news_sentiment: float = 0.0,
+    ) -> dict:
+        horizon = max(1, min(horizon, 120))
+        with self._lock:
+            window = self.feature_store.latest(symbol, timeframe, window=horizon)
+            if not window.data:
+                raise ValueError(f"No hay suficientes datos para {symbol} {timeframe}")
+            stats = self.memory.stats()
+        decisions: List[PolicyDecision] = []
+        actions: List[str] = []
+        session_context = None
+        for idx, row in enumerate(window.data):
+            normalized = window.normalized[idx] if idx < len(window.normalized) else None
+            decision = self.policy.decide(
+                symbol=symbol,
+                timeframe=timeframe,
+                market_row=row,
+                news_sentiment=news_sentiment,
+                memory_stats=stats,
+                session_context=session_context,
+                news_meta=None,
+                anomaly_score=0.0,
+                min_confidence_override=None,
+                normalized_features=normalized,
+            )
+            decisions.append(decision)
+            actions.append(decision.action)
+        simulation = self.simulator.simulate(ohlc=window.data, decisions=actions)
+        return {
+            "decisions": [asdict(decision) for decision in decisions],
+            "simulation": {
+                "trades": simulation.trades,
+                "pnl": simulation.pnl,
+                "avg_pnl": simulation.avg_pnl,
+                "details": simulation.details,
+            },
+        }
+
     def get_status(self) -> dict:
         with self._lock:
             decisions = {

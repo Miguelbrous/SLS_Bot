@@ -1,4 +1,4 @@
-﻿from fastapi import Depends, FastAPI, HTTPException, Query, status
+﻿from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
@@ -99,6 +99,8 @@ control_cfg = cfg.get("auth") or {}
 CONTROL_USER = os.getenv("CONTROL_USER") or control_cfg.get("control_user")
 CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD") or control_cfg.get("control_password")
 security = HTTPBasic()
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SHARED_SECRET")
+WEBHOOK_SIGNATURE_HEADER = os.getenv("WEBHOOK_SIGNATURE_HEADER", "x-webhook-signature")
 
 app.add_middleware(
     CORSMiddleware,
@@ -212,6 +214,17 @@ def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_in
         "order_id": order_info.get("orderId"),
     }
     _append_jsonl(DECISIONS_LOG, entry)
+
+
+def _verify_webhook_signature(request: Request, body: bytes) -> None:
+    if not WEBHOOK_SECRET:
+        return
+    header = request.headers.get(WEBHOOK_SIGNATURE_HEADER) or request.headers.get(WEBHOOK_SIGNATURE_HEADER.lower())
+    if not header:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook ausente")
+    expected = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    if not secrets.compare_digest(header, expected):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook inválida")
 
 # ----- UTILS BÁSICAS -----
 QTY_STEP = {"BTCUSDT": 0.001, "ETHUSDT": 0.01}
@@ -1108,12 +1121,18 @@ def _process_signal(sig: Signal):
 
 
 @app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
-def webhook(sig: Signal):
+async def webhook(sig: Signal, request: Request):
+    if WEBHOOK_SECRET:
+        body = await request.body()
+        _verify_webhook_signature(request, body)
     return _process_signal(sig)
 
 
 @app.post("/ia/signal")
-def ia_signal(sig: Signal):
+async def ia_signal(sig: Signal, request: Request):
+    if WEBHOOK_SECRET:
+        body = await request.body()
+        _verify_webhook_signature(request, body)
     return _process_signal(sig)
 
 # ====== RESUMEN DIARIO ======

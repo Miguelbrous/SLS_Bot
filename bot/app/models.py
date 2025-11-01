@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Health(BaseModel):
@@ -42,3 +42,16 @@ class PnLDailyItem(BaseModel):
 
 class PnLDailyResponse(BaseModel):
     days: List[PnLDailyItem]
+
+
+class AlertItem(BaseModel):
+    name: str
+    count: int
+    severity: str
+    hint: str
+    latest: Optional[str] = None
+
+
+class AlertsResponse(BaseModel):
+    alerts: List[AlertItem]
+    summary: Dict[str, Any]

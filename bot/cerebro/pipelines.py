@@ -52,9 +52,12 @@ class TrainingPipeline:
             summary = json.loads(result.stdout or "{}")
         except json.JSONDecodeError:
             return None
-        model_path = Path(summary.get("artifact_path", ""))
+        artifact_str = summary.get("artifact_path") or summary.get("artifact") or ""
+        if not artifact_str:
+            return None
+        model_path = Path(artifact_str)
         metrics = summary.get("metrics", {})
-        tag = summary.get("tag", model_path.stem)
+        tag = summary.get("tag") or summary.get("version") or model_path.stem
         if model_path.exists():
             self.registry.register(path=model_path, metrics=metrics, tag=tag)
             return str(model_path)

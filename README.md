@@ -158,6 +158,40 @@ npm run build
 - `venv\Scripts\python -m pip install -r bot/requirements-ia.txt` para habilitar el motor IA.
 - El bot escribe datos reales en `logs/decisions.jsonl`, `logs/bridge.log` y `logs/pnl.jsonl`, que el panel consume en vivo.
 - `make infra-check` valida `.env`/`config` y muestra rutas por modo (`make infra-check ENSURE_DIRS=1` también crea los directorios faltantes).
+- `python scripts/tools/generate_cerebro_dataset.py --mode test --rows 200 --overwrite` crea un dataset sintético para entrenar el Cerebro en local.
+- `python scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` promueve el mejor artefacto a `active_model.json`.
+- Panel `/alerts` resume `order_error`, bloqueos y heartbeats; requiere `X-Panel-Token`.
+
+## Webhook HTTPS y prueba en Bybit Testnet
+
+- **Dominio listo:** `api.slstudominio.com` apunta al VPS. Nginx (`/etc/nginx/sites-available/sls_api.conf`) proxyea `/webhook` y `/ia/signal` tanto por HTTP como por HTTPS (Certbot renueva automáticamente los certificados).
+- **Endpoint activo:** usa `https://api.slstudominio.com/webhook` para las alertas de TradingView. El bot valida/ajusta TP y SL antes de enviar la orden (verás `tp_sl_applied …` en `logs/test/bridge.log`).
+- **Prueba manual:**
+  ```bash
+  curl -X POST https://api.slstudominio.com/webhook \
+       -H 'Content-Type: application/json' \
+       -d '{
+             "signal": "SLS_LONG_ENTRY",
+             "symbol": "BTCUSDT",
+             "tf": "15m",
+             "risk_pct": 1,
+             "post_only": false,
+             "order_type": "LIMIT",
+             "time_in_force": "GTC",
+             "price": 1882071.6,
+             "take_profit": 1882071.6,
+             "stop_loss": 1808087.8
+           }'
+  ```
+  Usa un precio por encima del `markPrice` (por ejemplo `mark × 1.03`) para forzar la ejecución inmediata en testnet.
+- **Cierre reduce-only:**
+  ```bash
+  curl -X POST https://api.slstudominio.com/webhook \
+       -H 'Content-Type: application/json' \
+       -d '{"signal":"SLS_EXIT","symbol":"BTCUSDT","tf":"15m"}'
+  ```
+  El bot envía un market reduce-only; Bybit registra el PnL en “Órdenes completadas” / “P&L”.
+- **Diagnóstico rápido:** `tail -f logs/test/bridge.log` permite vigilar `tp_sl_applied`, `order`, `close` y cualquier `order_error` devuelto por Bybit.
 - `make setup-dirs` fuerza la creación de `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}` según la configuración activa.
 - `make rotate-artifacts DAYS=14` archiva logs/modelos antiguos en `logs/*/archive` y `models/cerebro/*/archive`.
 - `make health PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` ejecuta un ping rápido a `/health`, `/status`, `/cerebro/status` y `/control/sls-bot/status`.
@@ -183,4 +217,5 @@ excel/ (ignorado)
 - Nunca publiques `config/config.json`, `.env` ni `panel/.env`.
 - Mantén `CONTROL_USER/CONTROL_PASSWORD`, `PANEL_API_TOKENS` y cualquier `.env` fuera del repo.
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
+- Si defines `WEBHOOK_SHARED_SECRET`, el backend exigirá `X-Webhook-Signature` (HMAC-SHA256) en `/webhook` y `/ia/signal`.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.

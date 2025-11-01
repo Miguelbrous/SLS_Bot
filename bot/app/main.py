@@ -9,7 +9,9 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
+from .alerts import collect_alerts
 from .models import (
+    AlertsResponse,
     DecisionsResponse,
     Health,
     LogResponse,
@@ -299,6 +301,16 @@ def get_decisiones(limit: int = Query(20, ge=1, le=1000), _: None = Depends(requ
     return DecisionsResponse(rows=rows)
 
 
+@app.get("/alerts", response_model=AlertsResponse)
+def get_alerts(window_minutes: int = Query(60, ge=5, le=1440), _: None = Depends(require_panel_token)):
+    payload = collect_alerts(
+        bridge_log=BRIDGE_LOG,
+        decisions_log=DECISIONS_LOG,
+        window_minutes=window_minutes,
+    )
+    return AlertsResponse(**payload)
+
+
 @app.get("/pnl/diario", response_model=PnLDailyResponse)
 def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_panel_token)):
     entries = _load_pnl_history()
@@ -370,6 +382,5 @@ def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_pane
             )
         )
     return PnLDailyResponse(days=out)
-
 
 
