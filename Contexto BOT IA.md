@@ -39,6 +39,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 | `models/cerebro/{mode}/` | Artefactos activos y candidatos del Cerebro IA segregados por modo. |
 | `logs/{mode}/metrics` / `logs/{mode}/reports` | Métricas A/B del Cerebro y reportes diarios por sesión. |
 | `scripts/` | Deploy (`scripts/deploy`), pruebas (`scripts/tests/e2e_smoke.py`), utilidades Python (`scripts/tools/*.py`) y el gestor `scripts/manage.sh`. |
+| `docs/data_sources.md` | Catálogo de dashboards externos (Coinglass, CoinMarketCap, Coin360) con notas sobre APIs y uso manual. |
 
 ---
 
