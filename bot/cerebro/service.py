@@ -183,6 +183,9 @@ class Cerebro:
                                 anomaly_score=anomaly.score,
                             )
                         )
+                        exploration_mode = (stats.get("total", 0) < 60) or (dataset_quality < 0.35)
+                        if exploration_mode:
+                            confidence_threshold = max(self.confidence_gate.min, confidence_threshold - 0.1)
                         normalized_row = slice_window.normalized[-1] if slice_window.normalized else None
                         decision = self.policy.decide(
                             symbol=symbol,
@@ -195,6 +198,7 @@ class Cerebro:
                             anomaly_score=anomaly.score,
                             min_confidence_override=confidence_threshold,
                             normalized_features=normalized_row,
+                            exploration_mode=exploration_mode,
                         )
                         session_name = (session_meta or {}).get("session_name", "General")
                         decision.metadata.update(self.confidence_gate.to_metadata(confidence_threshold))

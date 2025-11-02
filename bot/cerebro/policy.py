@@ -51,8 +51,10 @@ class PolicyEnsemble:
         anomaly_score: float | None = None,
         min_confidence_override: float | None = None,
         normalized_features: dict | None = None,
+        exploration_mode: bool = False,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
+        risk_pct = float(payload["riesgo_pct"])
         decision = payload["decision"]
         confidence = payload["confianza_pct"] / 100.0
         if news_sentiment is not None:
@@ -61,8 +63,18 @@ class PolicyEnsemble:
             elif decision == "SHORT":
                 confidence = max(0.0, confidence - news_sentiment * 0.05)
         threshold = min_confidence_override or self.min_confidence
+        exploration_triggered = False
         if confidence < threshold:
-            decision = "NO_TRADE"
+            if exploration_mode:
+                long_score = evid_rules["rules"]["long"]
+                short_score = evid_rules["rules"]["short"]
+                fallback = "LONG" if long_score >= short_score else "SHORT"
+                decision = fallback
+                confidence = max(confidence, threshold * 0.85)
+                risk_pct = max(0.1, risk_pct * 0.5)
+                exploration_triggered = True
+            else:
+                decision = "NO_TRADE"
 
         price = float(market_row.get("close") or 0.0)
         atr = float(market_row.get("atr") or price * 0.005)
@@ -84,7 +96,6 @@ class PolicyEnsemble:
         if anomaly_score is not None:
             reasons.append(f"Anomaly z-score={anomaly_score:.2f}")
 
-        risk_pct = float(payload["riesgo_pct"])
         memory_stats = memory_stats or {}
         if memory_stats.get("total", 0) >= 20:
             win_rate = float(memory_stats.get("win_rate") or 0.0)
@@ -95,6 +106,8 @@ class PolicyEnsemble:
         metadata: Dict[str, Any] = {
             "news_sentiment": news_sentiment or 0.0,
             "memory_win_rate": float(memory_stats.get("win_rate") or 0.0),
+            "exploration_mode": exploration_mode,
+            "exploration_triggered": exploration_triggered,
         }
         if news_meta:
             metadata["news"] = news_meta
