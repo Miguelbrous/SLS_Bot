@@ -155,3 +155,59 @@ def test_webhook_signature_guard(bot_module_factory, monkeypatch: pytest.MonkeyP
         "/webhook", data=body, headers={"X-Webhook-Signature": "deadbeef", "Content-Type": "application/json"}
     )
     assert response_bad.status_code == 401
+
+
+def test_stop_limit_payload(bot_module_factory, monkeypatch: pytest.MonkeyPatch):
+    module = bot_module_factory()
+    captured: dict = {}
+
+    class DummyResponse:
+        def __init__(self, payload: dict):
+            self._payload = payload
+
+        def json(self) -> dict:
+            captured["payload"] = self._payload
+            return {"retCode": 0, "result": {"orderId": "STOP123", "orderType": self._payload.get("orderType")}}
+
+    def fake_post(url, headers=None, data=None, timeout=None):
+        payload = json.loads(data)
+        return DummyResponse(payload)
+
+    monkeypatch.setattr(module.requests, "post", fake_post)
+    client = TestClient(module.app)
+    payload = _default_payload()
+    payload.update({
+        "order_type": "STOP_LIMIT",
+        "trigger_price": payload["price"] + 20,
+        "price": payload["price"] + 10,
+        "post_only": False,
+    })
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 200
+    placed = captured["payload"]
+    assert placed["orderType"] == "Limit"
+    assert placed["orderFilter"] == "StopOrder"
+    assert float(placed["triggerPrice"]) > payload["price"]
+
+
+def test_low_capital_guard_adjusts_leverage(bot_module_factory, monkeypatch: pytest.MonkeyPatch):
+    module = bot_module_factory()
+    captured: dict = {"leverage": None}
+
+    def tiny_balance() -> float:
+        return 5.0
+
+    def record_leverage(symbol: str, buy: int, sell: int, category: str = "linear") -> dict:
+        captured["leverage"] = buy
+        return {"retCode": 0}
+
+    module.bb.get_balance = tiny_balance  # type: ignore[attr-defined]
+    module.bb.set_leverage = record_leverage  # type: ignore[attr-defined]
+
+    client = TestClient(module.app)
+    payload = _default_payload()
+    payload.update({"risk_pct": 1.0, "leverage": 10})
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 200
+    assert captured["leverage"] is not None
+    assert captured["leverage"] >= 10

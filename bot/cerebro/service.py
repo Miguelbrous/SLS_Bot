@@ -21,6 +21,7 @@ from .ingestion import DataIngestionManager, IngestionTask
 from .memory import Experience, ExperienceMemory
 from .pipelines import TrainingConfig, TrainingPipeline, detect_python_bin
 from .policy import PolicyDecision, PolicyEnsemble
+from .macro import summarize_macro
 from .reporting import ReportBuilder
 from .simulator import BacktestSimulator
 from .versioning import ModelRegistry
@@ -88,6 +89,7 @@ class Cerebro:
         self.ingestion = DataIngestionManager(
             news_feeds=self.config.news_feeds,
             cache_ttl=max(5, self.config.data_cache_ttl),
+            macro_config=self.config.macro_feeds,
         )
         self.ingestion.warmup(self.config.symbols, self.config.timeframes)
         self.memory = ExperienceMemory(maxlen=self.config.max_memory)
@@ -150,7 +152,10 @@ class Cerebro:
             for symbol in self.config.symbols:
                 for tf in self.config.timeframes:
                     self.ingestion.schedule(IngestionTask(source="market", symbol=symbol, timeframe=tf, limit=200))
-            self.ingestion.run_pending(max_tasks=len(self.config.symbols) * len(self.config.timeframes) + 1)
+                    self.ingestion.schedule(IngestionTask(source="macro", symbol=symbol, timeframe=tf, limit=50))
+            per_symbol_tasks = 2  # market + macro
+            total_tasks = len(self.config.symbols) * len(self.config.timeframes) * per_symbol_tasks + 1
+            self.ingestion.run_pending(max_tasks=total_tasks)
             news_items = self.ingestion.fetch_now("news", limit=10)
             news_pulse = summarize_news_items(news_items, now=now, ttl_minutes=self.config.news_ttl_minutes)
             news_sentiment = news_pulse.sentiment
@@ -172,6 +177,8 @@ class Cerebro:
                         slice_window = self.feature_store.latest(symbol, tf, window=120)
                         if not slice_window.data:
                             continue
+                        macro_rows = self.ingestion.fetch_now("macro", symbol=symbol, timeframe=tf, limit=50)
+                        macro_pulse = summarize_macro(macro_rows)
                         anomaly = self.anomaly_detector.score_series(slice_window.data, field="close")
                         means, variances = self.feature_store.describe(symbol, tf)
                         volatility = abs(variances.get("close", 1.0))
@@ -199,6 +206,7 @@ class Cerebro:
                             min_confidence_override=confidence_threshold,
                             normalized_features=normalized_row,
                             exploration_mode=exploration_mode,
+                            macro_context=macro_pulse.to_metadata(),
                         )
                         session_name = (session_meta or {}).get("session_name", "General")
                         decision.metadata.update(self.confidence_gate.to_metadata(confidence_threshold))
@@ -210,6 +218,7 @@ class Cerebro:
                         decision.metadata["feature_means"] = {k: v for k, v in means.items() if k in {"close", "atr", "volume"}}
                         decision.metadata["feature_vars"] = {k: v for k, v in variances.items() if k in {"close", "atr", "volume"}}
                         decision.metadata["dataset_quality"] = dataset_quality
+                        decision.metadata["macro_pulse"] = macro_pulse.to_metadata()
                         decision.metadata["volatility_estimate"] = volatility
                         if anomaly.is_anomalous and decision.action != "NO_TRADE":
                             decision.action = "NO_TRADE"

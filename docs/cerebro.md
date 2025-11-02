@@ -13,9 +13,10 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 
 ## Componentes
 
-- **DataIngestionManager**: mantiene una cola FIFO de tareas para `market` y `news`, con cache TTL configurable (`data_cache_ttl`). Evita golpear los endpoints si los datos siguen frescos.
+- **DataIngestionManager**: mantiene una cola FIFO de tareas para `market`, `news` y ahora `macro` (open interest/funding/whale flow), con cache TTL configurable (`data_cache_ttl`). Evita golpear los endpoints si los datos siguen frescos.
 - **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
 - **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
+- **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades).
 - **DynamicConfidenceGate**: ajusta el umbral mínimo de confianza según volatilidad, calidad del dataset y anomalías.
 - **ExperienceMemory**: cola de tamaño configurable que guarda `features + pnl + decision` para el aprendizaje.
 - **PolicyEnsemble**: combina `ia_signal_engine`, heurísticas y el modelo entrenado. Usa features normalizados, sentimiento, guardias y resultados del detector de anomalías.
@@ -59,6 +60,12 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
     "https://www.binance.com/blog/rss",
     "https://cointelegraph.com/rss"
   ],
+  "macro_feeds": {
+    "open_interest_url": "https://example.com/oi",
+    "funding_rate_url": "https://example.com/funding",
+    "whale_flow_url": "https://example.com/whales",
+    "cache_dir": "./tmp_logs/macro"
+  },
   "min_confidence": 0.55,
   "confidence_max": 0.7,
   "confidence_min": 0.45,
@@ -107,6 +114,7 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 
 - `news_ttl_minutes`: cuanto tiempo sigue siendo util una noticia para tomar decisiones si no hay sesion abierta.
 - `data_cache_ttl`: segundos que se mantienen en cache las respuestas de mercado/noticias.
+- `macro_feeds`: URLs opcionales para open interest / funding / whale flow; si están vacías se usan cache o payload sintético.
 - `anomaly_*`: parámetros del detector z-score (umbral y muestras mínimas).
 - `confidence_min` / `confidence_max`: límites inferior/superior para el umbral dinámico.
 - `auto_train_interval`: cada cuántos trades se lanza un entrenamiento offline cuando `SLS_CEREBRO_AUTO_TRAIN=1`.

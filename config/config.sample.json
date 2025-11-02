@@ -27,6 +27,12 @@
         "max_multiplier": 1.6,
         "equity_ceiling_pct": 8,
         "multiplier_above_ceiling": 1.2
+      },
+      "low_capital": {
+        "max_margin_pct": 0.35,
+        "max_risk_pct": 1.5,
+        "min_leverage": 5,
+        "max_leverage": 50
       }
     },
     "server": {
@@ -61,6 +67,12 @@
       "sl_atr_multiple": 1.5,
       "tp_atr_multiple": 2.0,
       "news_ttl_minutes": 45,
+      "macro_feeds": {
+        "open_interest_url": "",
+        "funding_rate_url": "",
+        "whale_flow_url": "",
+        "cache_dir": "./tmp_logs/macro"
+      },
       "session_guards": [
         {
           "name": "Asia (Tokyo)",

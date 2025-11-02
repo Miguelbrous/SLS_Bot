@@ -198,6 +198,15 @@ class Signal(BaseModel):
     confirmations: Optional[Confirmations] = None
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
+    order_type: Optional[str] = None
+    trigger_price: Optional[float] = None
+    trigger_direction: Optional[int] = None
+    order_filter: Optional[str] = None
+    reduce_only: Optional[bool] = False
+    strategy_id: Optional[str] = None
+    max_margin_pct: Optional[float] = None
+    max_risk_pct: Optional[float] = None
+    min_stop_distance_pct: Optional[float] = None
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -210,6 +219,7 @@ def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_in
         "leverage": sig.leverage,
         "tf": sig.tf,
         "session": sig.session,
+        "strategy_id": sig.strategy_id,
         "qty": qty,
         "price": price_used,
         "order_id": order_info.get("orderId"),
@@ -502,6 +512,68 @@ def _autopilot_tp1_and_be(symbol: str, opened_side: str,
             time.sleep(2.0)
     except Exception:
         return
+
+
+class LowCapitalError(Exception):
+    """Se lanza cuando el capital no alcanza para cumplir con las restricciones configuradas."""
+
+
+def _low_capital_config() -> dict:
+    return (cfg.get("risk", {}).get("low_capital") or {})
+
+
+def _apply_low_capital_constraints(sig: Signal, balance: float, price_live: float,
+                                   qty_num: float, filters: Dict[str, float]) -> float:
+    guard_cfg = _low_capital_config()
+    if not guard_cfg and sig.max_margin_pct is None and sig.max_risk_pct is None:
+        return qty_num
+
+    max_margin_pct = sig.max_margin_pct
+    if max_margin_pct is None:
+        max_margin_pct = guard_cfg.get("max_margin_pct")
+    max_margin_pct = float(max_margin_pct or 0.0)
+    if max_margin_pct <= 0:
+        return qty_num
+
+    max_risk_pct_cfg = guard_cfg.get("max_risk_pct")
+    if sig.max_risk_pct is not None:
+        max_risk_pct_cfg = sig.max_risk_pct
+    if max_risk_pct_cfg is not None and (sig.risk_pct or 0.0) > float(max_risk_pct_cfg):
+        sig.risk_pct = float(max_risk_pct_cfg)
+
+    min_leverage = int(guard_cfg.get("min_leverage") or max(1, sig.leverage or 1))
+    max_leverage = int(guard_cfg.get("max_leverage") or max(min_leverage, sig.leverage or min_leverage))
+    leverage = int(sig.leverage or min_leverage)
+    leverage = max(min_leverage, min(leverage, max_leverage))
+    sig.leverage = leverage
+
+    allowed_margin = max(0.0, balance * max_margin_pct)
+    if allowed_margin <= 0:
+        raise LowCapitalError("capital_guard_disabled")
+
+    def _margin(qty: float, lev: int) -> float:
+        if price_live <= 0 or lev <= 0:
+            return float("inf")
+        return price_live * qty / float(lev)
+
+    current_margin = _margin(qty_num, sig.leverage)
+    if current_margin <= allowed_margin:
+        return qty_num
+
+    required_leverage = int(math.ceil((price_live * qty_num) / max(allowed_margin, 1e-9)))
+    if required_leverage <= max_leverage:
+        sig.leverage = max(sig.leverage, max(required_leverage, 1))
+        current_margin = _margin(qty_num, sig.leverage)
+        if current_margin <= allowed_margin:
+            return qty_num
+
+    max_qty_allowed = allowed_margin * max_leverage / price_live if price_live > 0 else 0.0
+    max_qty_allowed = _floor_to(max_qty_allowed, filters.get("step", 0.001))
+    if max_qty_allowed < filters.get("min", 0.0) or max_qty_allowed <= 0:
+        raise LowCapitalError("capital_insufficient")
+
+    sig.leverage = max_leverage
+    return max_qty_allowed
 
 # ====== RISK STATE (cooldown + DD intradía) ======
 _STATE_FILE = LOGS_DIR / "risk_state.json"
@@ -906,6 +978,25 @@ def _process_signal(sig: Signal):
         _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
+        try:
+            adjusted_qty = _apply_low_capital_constraints(sig, balance, price_live, qty_num, filters)
+        except LowCapitalError as exc:
+            return {
+                "status": "blocked",
+                "reason": str(exc),
+                "balance": balance,
+                "leverage": sig.leverage,
+                "requested_qty": qty_num,
+            }
+        if abs(adjusted_qty - qty_num) > 1e-8:
+            qty_num, qty_str, filters = _quantize_qty(symbol, adjusted_qty)
+        if qty_num <= 0:
+            return {
+                "status": "blocked",
+                "reason": "qty_zero",
+                "balance": balance,
+                "leverage": sig.leverage,
+            }
         tick = filters["tick"]
 
         api_key = cfg["bybit"]["api_key"]
@@ -924,6 +1015,8 @@ def _process_signal(sig: Signal):
             filters = _get_instrument_filters(symbol_ref)
             tick_size = max(filters.get("tick", 0.1), 1e-6)
             min_pct = max(float(cfg.get("risk", {}).get("min_tp_sl_pct", 0.001)), 0.0005)
+            if sig.min_stop_distance_pct is not None:
+                min_pct = max(min_pct, float(sig.min_stop_distance_pct))
 
             def _ensure_valid(value: Optional[float], direction: str) -> Optional[float]:
                 if value is None or value <= 0:
@@ -971,31 +1064,39 @@ def _process_signal(sig: Signal):
                 except Exception:
                     pass
 
-        # LIMIT vs MARKET
-        if sig.post_only and sig.price:
-            price_ref = _quantize_price(sig.price, tick)
-            payload = {
-                "category": "linear",
-                "symbol": symbol,
-                "side": "Buy" if side == "LONG" else "Sell",
-                "orderType": "Limit",
-                "qty": qty_str,
-                "price": str(price_ref),
-                "timeInForce": "PostOnly",
-                "isLeverage": 1
-            }
-            _add_tp_sl(payload, side, price_ref, symbol)
+        order_kind = (sig.order_type or ("LIMIT" if (sig.post_only and sig.price) else "MARKET")).upper()
+        order_kind = order_kind.replace("-", "_")
+        payload = {
+            "category": "linear",
+            "symbol": symbol,
+            "side": "Buy" if side == "LONG" else "Sell",
+            "qty": qty_str,
+            "isLeverage": 1,
+        }
+
+        price_reference = sig.price if (sig.price and sig.price > 0) else price_live
+        limit_price = None
+        if order_kind in {"LIMIT", "STOP_LIMIT"}:
+            limit_price = _quantize_price(price_reference, tick)
+            payload["orderType"] = "Limit"
+            payload["price"] = str(limit_price)
+            payload["timeInForce"] = "PostOnly" if sig.post_only else payload.get("timeInForce", "GTC")
         else:
-            price_ref_market = sig.price if (sig.price and sig.price > 0) else price_live
-            payload = {
-                "category": "linear",
-                "symbol": symbol,
-                "side": "Buy" if side == "LONG" else "Sell",
-                "orderType": "Market",
-                "qty": qty_str,
-                "isLeverage": 1
-            }
-            _add_tp_sl(payload, side, price_ref_market, symbol)
+            payload["orderType"] = "Market"
+
+        if order_kind in {"STOP_MARKET", "STOP_LIMIT"}:
+            trigger_source = sig.trigger_price if (sig.trigger_price and sig.trigger_price > 0) else price_reference
+            trigger_price = _quantize_price(trigger_source, tick)
+            payload["triggerPrice"] = str(trigger_price)
+            payload["triggerDirection"] = int(sig.trigger_direction or (1 if side == "LONG" else 2))
+            payload["orderFilter"] = sig.order_filter or "StopOrder"
+            payload.setdefault("triggerBy", "LastPrice")
+
+        if sig.reduce_only:
+            payload["reduceOnly"] = True
+
+        tp_ref = limit_price if limit_price is not None else float(price_reference or price_live)
+        _add_tp_sl(payload, side, tp_ref, symbol)
 
         # leverage tolerante
         try:
@@ -1105,6 +1206,7 @@ def _process_signal(sig: Signal):
             "%cerrado TP1": sig.tp1_close_pct or 0,
             "RiskScore": sig.risk_score or 1,
             "Confirmaciones": str(sig.confirmations.dict() if sig.confirmations else {}),
+            "Estrategia": sig.strategy_id or "default",
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
         _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)

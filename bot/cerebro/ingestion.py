@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Deque, Dict, Iterable, List, Optional, Tuple
 
 from .datasources.market import MarketDataSource
+from .datasources.macro import MacroDataSource, MacroFeedConfig
 from .datasources.news import RSSNewsDataSource
 
 
@@ -21,9 +22,10 @@ class IngestionTask:
 class DataIngestionManager:
     """Administra los data sources con un buffer FIFO y caching básico."""
 
-    def __init__(self, *, news_feeds: Iterable[str], cache_ttl: int = 30):
+    def __init__(self, *, news_feeds: Iterable[str], cache_ttl: int = 30, macro_config: dict | None = None):
         self.market = MarketDataSource()
         self.news = RSSNewsDataSource(list(news_feeds))
+        self.macro = MacroDataSource(MacroFeedConfig.from_dict(macro_config))
         self.cache_ttl = cache_ttl
         self._queue: Deque[IngestionTask] = deque()
         self._cache: Dict[Tuple[str, str, str], Tuple[float, List[dict]]] = {}
@@ -66,6 +68,9 @@ class DataIngestionManager:
             return self._store_cache(key, rows)
         if source == "news":
             rows = self.news.fetch(limit=limit)
+            return self._store_cache(key, rows)
+        if source == "macro":
+            rows = self.macro.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
             return self._store_cache(key, rows)
         raise ValueError(f"Fuente desconocida: {source}")
 

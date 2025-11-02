@@ -5,6 +5,9 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 ---
 
 ## Bitácora Codex 2025-10-31
+- Se agregó ingesta `macro` (open interest / funding / whale flow) para el Cerebro, con cache configurable y scoring integrado al `PolicyEnsemble`.
+- Nuevo guardia `low_capital` limita margen y riesgo para cuentas pequeñas (≈5 €) y ajusta el leverage automáticamente.
+- Se añadió el módulo `bot/strategies/` con el runner CLI y la estrategia inicial `micro_scalp_v1` lista para operar en testnet.
 - `scripts/tools/infra_check.py` ahora valida tokens (`token@YYYY-MM-DD`), detecta contraseñas por defecto y admite `--ensure-dirs` para crear `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}`.
 - Nuevo `scripts/tools/healthcheck.py` centraliza los pings a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status`.
 - Nuevo `scripts/tools/rotate_artifacts.py` archiva logs/modelos antiguos por modo y está conectado a `make rotate-artifacts`.
@@ -28,6 +31,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 | --- | --- |
 | `bot/` | Backend FastAPI + webhook del bot (`sls_bot.app`), helpers de Excel, cliente Bybit y router de control (`app.main`). |
 | `bot/cerebro/` | Servicio “Cerebro IA” que observa el mercado, genera decisiones y mantiene memoria/experiencias. Usa modelos por modo (`models/cerebro/<mode>`). |
+| `bot/strategies/` | Estrategias autónomas (ej. `micro_scalp_v1`) y runner CLI para disparar señales firmadas al webhook. |
 | `panel/` | Panel Next.js 14 que consume la API (`/status`, `/cerebro/*`, `/pnl/diario`). Ejecutar `npm run dev/lint/build`. |
 | `config/` | `config.sample.json` con la estructura multi-modo. Copiar a `config.json` (no versionar). |
 | `logs/{mode}/` | Bridge logs, decisiones, PnL, estado de riesgo y datasets Cerebro segregados por modo. |

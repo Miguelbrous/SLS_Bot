@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import Dict, Sequence
 
 try:
     from ..sls_bot.config_loader import load_config
@@ -47,6 +47,7 @@ class CerebroConfig:
     news_feeds: Sequence[str] = field(default_factory=list)
     min_confidence: float = 0.55
     max_memory: int = 5000
+    macro_feeds: Dict[str, object] = field(default_factory=dict)
     sl_atr_multiple: float = 1.5
     tp_atr_multiple: float = 2.0
     news_ttl_minutes: int = 45
@@ -69,6 +70,7 @@ class CerebroConfig:
             timeframes=data.get("timeframes") or ["15m"],
             refresh_seconds=int(data.get("refresh_seconds") or 60),
             news_feeds=data.get("news_feeds") or [],
+            macro_feeds=data.get("macro_feeds") or {},
             min_confidence=float(data.get("min_confidence") or 0.55),
             max_memory=int(data.get("max_memory") or 5000),
             sl_atr_multiple=float(data.get("sl_atr_multiple") or 1.5),

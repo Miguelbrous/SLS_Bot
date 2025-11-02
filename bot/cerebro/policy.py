@@ -52,6 +52,7 @@ class PolicyEnsemble:
         min_confidence_override: float | None = None,
         normalized_features: dict | None = None,
         exploration_mode: bool = False,
+        macro_context: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         risk_pct = float(payload["riesgo_pct"])
@@ -111,6 +112,30 @@ class PolicyEnsemble:
         }
         if news_meta:
             metadata["news"] = news_meta
+        if macro_context:
+            metadata["macro"] = macro_context
+            macro_score = float(macro_context.get("score", 0.0))
+            macro_direction = str(macro_context.get("direction") or "neutral")
+            reasons.append(f"Macro score={macro_score:+.2f}")
+            if decision in {"LONG", "SHORT"} and macro_direction in {"bullish", "bearish"}:
+                conflict = (decision == "LONG" and macro_direction == "bearish") or (
+                    decision == "SHORT" and macro_direction == "bullish"
+                )
+                if conflict:
+                    decision = "NO_TRADE"
+                    reasons.append("Macro bloquea la operación")
+                else:
+                    if (decision == "LONG" and macro_direction == "bullish") or (
+                        decision == "SHORT" and macro_direction == "bearish"
+                    ):
+                        risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                        reasons.append("Macro acompaña al trade, riesgo ligeramente mayor")
+                    else:
+                        risk_pct = max(0.1, risk_pct * 0.85)
+                        reasons.append("Macro neutraliza parcialmente, riesgo reducido")
+            elif macro_direction == "bearish" and decision == "NO_TRADE" and macro_score < -0.4:
+                risk_pct = max(0.1, risk_pct * 0.8)
+                reasons.append("Macro reduce riesgo por sesgo bajista")
 
         if session_context:
             metadata["session_guard"] = session_context
