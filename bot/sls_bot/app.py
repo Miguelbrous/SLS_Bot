@@ -101,6 +101,7 @@ CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD") or control_cfg.get("control_pas
 security = HTTPBasic()
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SHARED_SECRET")
 WEBHOOK_SIGNATURE_HEADER = os.getenv("WEBHOOK_SIGNATURE_HEADER", "x-webhook-signature")
+SKIP_BACKGROUND_JOBS = os.getenv("SLS_BOT_SKIP_THREADS") == "1"
 
 app.add_middleware(
     CORSMiddleware,
@@ -1182,10 +1183,11 @@ def _daily_scheduler():
         except Exception:
             pass
 
-try:
-    threading.Thread(target=_daily_scheduler, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_daily_scheduler, daemon=True).start()
+    except Exception:
+        pass
 
 
 def _collect_closed_pnl_entries(start_ms: int, end_ms: int) -> list[dict]:
@@ -1269,10 +1271,11 @@ def _pnl_symbol_worker():
         time.sleep(interval)
 
 
-try:
-    threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
+    except Exception:
+        pass
 
 
 def _bridge_heartbeat():
@@ -1289,7 +1292,8 @@ def _bridge_heartbeat():
         time.sleep(interval)
 
 
-try:
-    threading.Thread(target=_bridge_heartbeat, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_bridge_heartbeat, daemon=True).start()
+    except Exception:
+        pass

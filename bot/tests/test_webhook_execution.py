@@ -15,6 +15,7 @@ def bot_module_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         )
         monkeypatch.setenv("SLSBOT_MODE", "test")
         monkeypatch.setenv("SLS_SKIP_TIME_SYNC", "1")
+        monkeypatch.setenv("SLS_BOT_SKIP_THREADS", "1")
 
         module = importlib.import_module("sls_bot.app")
         module = importlib.reload(module)
@@ -41,15 +42,24 @@ def bot_module_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         monkeypatch.setattr(module, "_load_symbol_pnl_cache", lambda: {})
         monkeypatch.setattr(module, "_save_symbol_pnl_cache", lambda payload: None)
         monkeypatch.setattr(module, "_autopilot_tp1_and_be", lambda *a, **k: None)
+        monkeypatch.setattr(
+            module,
+            "_create_order_signed",
+            lambda payload: {"retCode": 0, "result": {"orderId": "TEST123", "orderType": payload.get("orderType", "Market")}},
+        )
 
-        class DummyThread:
-            def __init__(self, *args, **kwargs):
-                pass
+        class DummyResponse:
+            def __init__(self, data: dict):
+                self._data = data
 
-            def start(self):
-                return None
+            def json(self) -> dict:
+                return self._data
 
-        monkeypatch.setattr(module.threading, "Thread", lambda *a, **k: DummyThread())
+        monkeypatch.setattr(
+            module.requests,
+            "post",
+            lambda *a, **k: DummyResponse({"retCode": 0, "result": {"orderId": "TEST123", "orderType": "Market"}}),
+        )
 
         class FakeSession:
             def __init__(self):

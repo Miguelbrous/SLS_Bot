@@ -255,7 +255,7 @@ class Cerebro:
         if os.getenv("SLS_CEREBRO_AUTO_TRAIN") == "1":
             stats = self.memory.stats()
             total = stats.get("total", 0)
-            interval = max(10, self.config.auto_train_interval)
+            interval = max(1, int(self.config.auto_train_interval or 1))
             if total and total % interval == 0:
                 cfg = TrainingConfig(
                     python_bin=self.python_bin,
