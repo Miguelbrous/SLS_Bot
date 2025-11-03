@@ -168,13 +168,26 @@ npm run build
   por alcanzar la meta actual (100 € iniciales +50 € por victoria). Ejecuta `PYTHONPATH=. python scripts/arena_bootstrap.py`
   para regenerar o ampliar el registro.
 - `bot/arena/league_manager.py` + `bot/arena/simulator.py` permiten correr “ticks” de simulación y actualizar
-  `bot/arena/ranking_latest.json` mediante `python -m bot.arena.league_manager` o scripts propios.
+  `bot/arena/ranking_latest.json` mediante `python -m bot.arena` o `scripts/run_arena_tick.sh`.
 - Endpoints nuevos del panel: `GET /arena/ranking` y `GET /arena/state` (requieren token del panel) leen esos
   archivos para mostrar el leaderboard y el estado de la meta actual.
 - `bot/strategies/scalp_rush.py` es la nueva estrategia agresiva para testnet (1m). Actívala exportando
-  `STRATEGY_ID=scalp_rush_v1 STRATEGY_INTERVAL=30` antes de `run SLS_Bot` o usando `scripts/manage.sh encender-estrategia`.
+  `STRATEGY_ID=scalp_rush_v1` y `STRATEGY_INTERVAL_SECONDS=30` en tu `.env` (el gestor los toma como default) o usando
+  `scripts/manage.sh encender-estrategia`.
 - `micro_scalp_v1` redujo los filtros (EMA ≥3 bps, RSI 40-60) para registrar experiencias más rápido en testnet
   mientras la Arena sigue aprendiendo en paralelo.
+
+### Tips operativos rápidos
+- Añade en `.env`:
+  ```
+  STRATEGY_ID=scalp_rush_v1
+  STRATEGY_INTERVAL_SECONDS=30
+  ```
+  para que el loop cargue el scalper tras cada `run SLS_Bot start`.
+- Programa `scripts/run_arena_tick.sh` (cron/systemd) para refrescar `bot/arena/cup_state.json` y `ranking_latest.json`,
+  que consumen los endpoints `/arena/state` y `/arena/ranking`.
+- Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; el archivo resultante en
+  `bot/arena/promoted/` sirve como blueprint para mover la lógica a modo real.
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 

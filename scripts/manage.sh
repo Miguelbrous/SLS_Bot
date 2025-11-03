@@ -146,8 +146,9 @@ start_strategy() {
   pythonpath_env
   local pid_file="${RUN_DIR}/strategy.pid"
   local log_file="${LOG_DIR}/strategy_loop.log"
-  local strategy_id="${STRATEGY_ID:-micro_scalp_v1}"
-  local interval="${STRATEGY_INTERVAL_SECONDS:-120}"
+  local default_strategy="${DEFAULT_STRATEGY_ID:-scalp_rush_v1}"
+  local strategy_id="${STRATEGY_ID:-${default_strategy}}"
+  local interval="${STRATEGY_INTERVAL_SECONDS:-${STRATEGY_INTERVAL:-30}}"
   local server_url="${STRATEGY_SERVER:-http://127.0.0.1:8080}"
   local leverage="${STRATEGY_LEVERAGE:-20}"
 
