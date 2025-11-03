@@ -42,6 +42,21 @@ type ChartTrade = {
   risk_pct?: number | null;
 };
 type ChartPayload = { candles: ChartCandle[]; trades: ChartTrade[] };
+type ArenaRankingEntry = {
+  id: string;
+  name: string;
+  category: string;
+  mode: string;
+  engine: string;
+  score: number;
+  balance?: number | null;
+  goal?: number | null;
+  wins?: number | null;
+  losses?: number | null;
+  drawdown_pct?: number | null;
+};
+type ArenaRankingResponse = { count: number; ranking: ArenaRankingEntry[] };
+type ArenaState = { current_goal?: number | null; goal_increment?: number | null; wins?: number | null };
 
 const SYMBOLS = ["BTCUSDT", "ETHUSDT"];
 const TIMEFRAMES = ["5m", "15m", "1h"];
@@ -53,6 +68,9 @@ export default function DashboardPage() {
   const [timeframe, setTimeframe] = useState<string>("15m");
   const [loadingSummary, setLoadingSummary] = useState<boolean>(false);
   const [loadingChart, setLoadingChart] = useState<boolean>(false);
+  const [arenaRanking, setArenaRanking] = useState<ArenaRankingEntry[]>([]);
+  const [arenaState, setArenaState] = useState<ArenaState | null>(null);
+  const [loadingArena, setLoadingArena] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
 
@@ -100,13 +118,34 @@ export default function DashboardPage() {
     }
   }, [fetchJSON]);
 
-  useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
+  const loadArena = useCallback(async () => {
+    try {
+      setLoadingArena(true);
+      const [rankingPayload, statePayload] = await Promise.all([
+        fetchJSON<ArenaRankingResponse>("/arena/ranking"),
+        fetchJSON<ArenaState>("/arena/state"),
+      ]);
+      setArenaRanking((rankingPayload.ranking || []).slice(0, 10));
+      setArenaState(statePayload);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error cargando arena";
+      setError(message);
+    } finally {
+      setLoadingArena(false);
+    }
+  }, [fetchJSON]);
 
-  useEffect(() => {
-    loadChart(symbol, timeframe);
-  }, [symbol, timeframe, loadChart]);
+useEffect(() => {
+  loadSummary();
+}, [loadSummary]);
+
+useEffect(() => {
+  loadChart(symbol, timeframe);
+}, [symbol, timeframe, loadChart]);
+
+useEffect(() => {
+  loadArena();
+}, [loadArena]);
 
   useEffect(() => {
     if (!chartData || !chartRef.current) return;
@@ -197,6 +236,41 @@ export default function DashboardPage() {
     }
   }, [summary?.updated_at]);
 
+  const renderArenaRanking = () => {
+    if (loadingArena) return <p>Cargando arena...</p>;
+    if (!arenaRanking.length) return <p>No hay datos de la arena todavía.</p>;
+    return (
+      <div className="arena-table-wrapper">
+        <table className="arena-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Estrategia</th>
+              <th>Cat.</th>
+              <th>Modo</th>
+              <th>Balance</th>
+              <th>Meta</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {arenaRanking.map((row, idx) => (
+              <tr key={row.id}>
+                <td>{idx + 1}</td>
+                <td>{row.name}</td>
+                <td>{row.category}</td>
+                <td>{row.mode}</td>
+                <td>{typeof row.balance === "number" ? row.balance.toFixed(2) : "-"}</td>
+                <td>{typeof row.goal === "number" ? row.goal.toFixed(2) : "-"}</td>
+                <td>{row.score.toFixed(3)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-head">
@@ -232,6 +306,20 @@ export default function DashboardPage() {
               </div>
             )) ?? <div className="empty small">Sin métricas disponibles</div>}
           </div>
+        </div>
+      </section>
+
+      <section className="dashboard-section">
+        <div className="card">
+          <div className="dashboard-title">
+            <h2>Arena de estrategias</h2>
+            {arenaState?.current_goal ? (
+              <span className="pill neutral">
+                Meta actual €{arenaState.current_goal?.toFixed(2)} · Victorias acumuladas {arenaState.wins ?? 0}
+              </span>
+            ) : null}
+          </div>
+          {renderArenaRanking()}
         </div>
       </section>
 

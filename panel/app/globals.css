@@ -153,3 +153,8 @@ button:hover { border-color: var(--accent); }
 
 .dashboard-table { overflow:auto; max-block-size:300px; }
 .error-banner { padding:10px 12px; border:1px solid #3e1b1b; background:#2a0e0e; color:#ffb6b6; border-radius:10px; font-size:12px; }
+
+.arena-table-wrapper { overflow:auto; }
+.arena-table { inline-size:100%; border-collapse:collapse; font-size:12px; }
+.arena-table th, .arena-table td { border-block-end:1px solid #1f1f1f; padding:6px 8px; text-align:start; }
+.arena-table th { background:#151515; color:var(--muted); position:sticky; inset-block-start:0; }
