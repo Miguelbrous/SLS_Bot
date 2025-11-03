@@ -47,20 +47,13 @@ class MicroScalpStrategy(Strategy):
 
         forced = False
         if direction is None or price <= 0 or atr <= 0:
-            self._idle_iterations += 1
-            if price > 0 and atr > 0 and self._idle_iterations >= self._force_after:
-                direction = "LONG" if ema_fast >= ema_slow else "SHORT"
-                atr = max(atr, price * 0.005)
-                forced = True
-                self._idle_iterations = 0
-            else:
-                return None
+            return None
         else:
             self._idle_iterations = 0
 
         risk_pct = max(0.35, min(0.8, context.balance * 0.12))
         if forced:
-            risk_pct = 0.35
+            risk_pct = 0.25
         leverage = max(5, min(context.leverage, 25))
         sl_distance = atr * 1.35
         tp_distance = atr * 2.1
