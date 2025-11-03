@@ -55,8 +55,8 @@ button:hover { border-color: var(--accent); }
 .tablewrap { overflow:auto; max-block-size: 320px; }
 .table { inline-size: 100%; border-collapse: collapse; font-size: 12px; }
 .table th, .table td { padding: 6px 8px; border-block-end: 1px solid #1f1f1f; }
-.table th { color: var(--muted); text-align: left; position: sticky; inset-block-start: 0; background: var(--card); }
-.table td.right, .table th.right { text-align: right; }
+.table th { color: var(--muted); text-align: start; position: sticky; inset-block-start: 0; background: var(--card); }
+.table td.right, .table th.right { text-align: end; }
 .pos { color:#89ffce; }
 .neg { color:#ffb6b6; }
 .pnl-day { display:flex; align-items:center; gap:8px; }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8880";
@@ -62,16 +62,16 @@ export default function DashboardPage() {
     return h;
   }, []);
 
-  async function fetchJSON<T>(path: string): Promise<T> {
+  const fetchJSON = useCallback(async <T,>(path: string): Promise<T> => {
     const resp = await fetch(`${API_BASE}${path}`, { headers });
     if (!resp.ok) {
       const body = await resp.text();
       throw new Error(body || resp.statusText);
     }
     return resp.json();
-  }
+  }, [headers]);
 
-  async function loadSummary() {
+  const loadSummary = useCallback(async () => {
     try {
       setLoadingSummary(true);
       const payload = await fetchJSON<DashboardSummary>("/dashboard/summary");
@@ -83,9 +83,9 @@ export default function DashboardPage() {
     } finally {
       setLoadingSummary(false);
     }
-  }
+  }, [fetchJSON]);
 
-  async function loadChart(activeSymbol: string, activeTimeframe: string) {
+  const loadChart = useCallback(async (activeSymbol: string, activeTimeframe: string) => {
     try {
       setLoadingChart(true);
       const payload = await fetchJSON<ChartPayload>(
@@ -98,15 +98,15 @@ export default function DashboardPage() {
     } finally {
       setLoadingChart(false);
     }
-  }
+  }, [fetchJSON]);
 
   useEffect(() => {
     loadSummary();
-  }, []);
+  }, [loadSummary]);
 
   useEffect(() => {
     loadChart(symbol, timeframe);
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, loadChart]);
 
   useEffect(() => {
     if (!chartData || !chartRef.current) return;
@@ -153,8 +153,9 @@ export default function DashboardPage() {
       }
       const resize = () => {
         if (!chartApi || !chartRef.current) return;
-        const { clientWidth } = chartRef.current;
-        chartApi.applyOptions({ width: clientWidth });
+        const rect = chartRef.current.getBoundingClientRect();
+        const chartWidth = Math.max(0, rect.width);
+        chartApi.applyOptions({ width: chartWidth });
       };
       resize();
       window.addEventListener("resize", resize);
