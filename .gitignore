@@ -25,6 +25,9 @@ logs/
 *.jsonl
 risk_state.json
 run/
+.runtime/
+tmp_logs/
+bot/tmp_logs/
 
 # --- Datos financieros ---
 excel/

@@ -14,14 +14,18 @@ Diseñada para cuentas pequeñas (≈5 €) y operar en Bybit Testnet las 24�
 
 ## Ejecución
 1. Activar backend (`uvicorn sls_bot.app:app`) y Cerebro (opcional).
-2. Ejecutar runner:
+2. Arranque rápido desde la raíz del repo:
    ```bash
-   SLSBOT_MODE=test \
-   WEBHOOK_SHARED_SECRET=... \
+   run SLS_Bot          # enciende API + bot + Cerebro + loop de estrategia
+   run SLS_Bot status   # muestra estado de procesos
+   run SLS_Bot logs     # sigue logs de la estrategia (tail -f)
+   ```
+3. Ejecución manual única (sin loop):
+   ```bash
+   SLSBOT_MODE=test WEBHOOK_SHARED_SECRET=... \
    python -m bot.strategies.runner micro_scalp_v1 --server http://127.0.0.1:8080 --verbose
    ```
-3. El runner consulta `/diag` para estimar balance testnet, genera la señal y la firma.
-4. El webhook aplica los guardias de capital, fija leverage y abre la orden con TP/SL + autopiloto BE.
+4. El loop consulta `/diag` para estimar balance testnet, genera la señal y la firma; el webhook aplica los guardias de capital, fija leverage y abre la orden con TP/SL + autopiloto BE.
 
 ## Métricas sugeridas
 - Ratio win/loss por sesión (logs `bridge.log`, Excel, `cerebro_experience.jsonl`).

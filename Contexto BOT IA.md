@@ -60,6 +60,8 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `scripts/tools/healthcheck.py`: Lanza GET/POST a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status` y devuelve un resumen JSON del estado.
 - `scripts/tools/rotate_artifacts.py`: Archiva logs y modelos antiguos en `archive/` por modo; integrado con `make rotate-artifacts`.
 - `scripts/manage_bot.py`: Controla servicios systemd con validación opcional de `.env`, soporta reintentos (`--retries`) y exporta la traza de intentos.
+- `scripts/manage.sh`: Ahora coordina API, bot, Cerebro y el loop de estrategia (`encender-*`, `apagar-*`, `estado`, `tail`).
+- `run`: wrapper en la raíz; con `run SLS_Bot [start|stop|status|logs]` se orquesta todo sin recordar comandos largos.
 - `README.md`: Documentación general (instrucciones de entorno, pruebas, despliegue, explicación modos/prueba-real y comandos de entrenamiento/promoción).  
 - `docs/roadmap.md`: Estado detallado de los 10 objetivos del bot y los 10 objetivos del Cerebro IA con progreso por fases.
 - `.env.example`: Ejemplo de variables, incluye `SLSBOT_MODE`, credenciales panel y Bybit.  

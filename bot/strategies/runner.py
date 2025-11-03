@@ -41,40 +41,63 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = _parse_args(argv or sys.argv[1:])
-    strategy = StrategyRegistry.get(args.strategy)
-    balance = _fetch_balance(args.server)
+def run_once(
+    *,
+    strategy_id: str,
+    mode: str,
+    server: str,
+    leverage: int,
+    signature_secret: str | None,
+    signature_header: str,
+    dry_run: bool = False,
+    verbose: bool = False,
+) -> int:
+    strategy = StrategyRegistry.get(strategy_id)
+    balance = _fetch_balance(server)
     context = StrategyContext(
         balance=balance or 5.0,
-        mode=args.mode,
+        mode=mode,
         symbol=strategy.symbol,
         timeframe=strategy.timeframe,
-        leverage=args.leverage,
+        leverage=leverage,
     )
     payload = strategy.build_signal(context)
     if payload is None:
-        if args.verbose:
+        if verbose:
             print("[runner] Estrategia no generó señal en esta iteración", file=sys.stderr)
         return 0
 
     body = json.dumps(payload).encode()
-    if args.dry_run:
+    if dry_run:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
 
     headers: Dict[str, str] = {"Content-Type": "application/json"}
-    if args.signature_secret:
-        headers.update(_sign_payload(body, args.signature_secret, args.signature_header))
+    if signature_secret:
+        headers.update(_sign_payload(body, signature_secret, signature_header))
     try:
-        resp = requests.post(f"{args.server}/webhook", data=body, headers=headers, timeout=10)
-        if args.verbose:
+        resp = requests.post(f"{server}/webhook", data=body, headers=headers, timeout=10)
+        if verbose:
             print(f"[runner] HTTP {resp.status_code}: {resp.text}")
         resp.raise_for_status()
     except Exception as exc:
         print(f"[runner] Error enviando señal: {exc}", file=sys.stderr)
         return 1
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv or sys.argv[1:])
+    return run_once(
+        strategy_id=args.strategy,
+        mode=args.mode,
+        server=args.server,
+        leverage=args.leverage,
+        signature_secret=args.signature_secret,
+        signature_header=args.signature_header,
+        dry_run=args.dry_run,
+        verbose=args.verbose,
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover
