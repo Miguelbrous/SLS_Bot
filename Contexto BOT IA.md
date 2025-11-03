@@ -2,6 +2,14 @@
 
 Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve como punto de partida cuando se abre un nuevo chat o cuando alguien más toma el relevo. Cada vez que modifiquemos archivos clave deberíamos regresar aquí y actualizar la sección correspondiente.
 
+## Bitácora Codex 2025-11-03 (tarde)
+- Se habilitó compatibilidad retro con `/ia/signal` para clientes legacy (`simbolo/marco`) volviendo a usar `ia_signal_engine` cuando no llega un `Signal` completo. Quedó un log explícito de quién envía payloads incompletos.
+- `micro_scalp_v1` ahora opera con filtros más laxos (EMA ≥3 bps, RSI 40-60) para producir más trades en testnet.
+- Nueva estrategia `scalp_rush_v1` (1m) añadida al runner; basta con `STRATEGY_ID=scalp_rush_v1` para encenderla en testnet y forzar prueba/error constante.
+- Nació la **Arena de estrategias** (`bot/arena/`): registro masivo de 5 000 estrategias, simulador compartido, league manager, ranking público y script `scripts/arena_bootstrap.py` para regenerar el roster.
+- Documentación añadida en `docs/arena.md` y README para explicar la “carrera” y el proceso de promoción a modo real.
+- FastAPI expone `/arena/ranking` y `/arena/state` (token panel) para que el dashboard consulte el leaderboard generado por `python -m bot.arena`.
+
 ---
 
 ## Bitácora Codex 2025-10-31

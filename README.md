@@ -7,6 +7,8 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `panel/` Next.js 14 (app router) que consume la API via `NEXT_PUBLIC_API_BASE` y `X-Panel-Token`.
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
+- `bot/arena/` concentra la **Arena de estrategias** con 5 000 perfiles simulados, registro, ranking y
+  orquestador para la “carrera” test → real.
 - `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
   genera features y aprende de los resultados para proponer mejoras. Act?valo
   habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondr?
@@ -160,6 +162,19 @@ npm run build
 - `python scripts/tools/generate_cerebro_dataset.py --mode test --rows 200 --overwrite` crea un dataset sintético para entrenar el Cerebro en local.
 - `python scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` promueve el mejor artefacto a `active_model.json`.
 - Panel `/alerts` resume `order_error`, bloqueos y heartbeats; requiere `X-Panel-Token`.
+
+## Arena de estrategias y scalper vivo
+- `bot/arena/registry.json` contiene 5 000 estrategias simuladas (scalp/intra/swing/macro/quant) que compiten
+  por alcanzar la meta actual (100 € iniciales +50 € por victoria). Ejecuta `PYTHONPATH=. python scripts/arena_bootstrap.py`
+  para regenerar o ampliar el registro.
+- `bot/arena/league_manager.py` + `bot/arena/simulator.py` permiten correr “ticks” de simulación y actualizar
+  `bot/arena/ranking_latest.json` mediante `python -m bot.arena.league_manager` o scripts propios.
+- Endpoints nuevos del panel: `GET /arena/ranking` y `GET /arena/state` (requieren token del panel) leen esos
+  archivos para mostrar el leaderboard y el estado de la meta actual.
+- `bot/strategies/scalp_rush.py` es la nueva estrategia agresiva para testnet (1m). Actívala exportando
+  `STRATEGY_ID=scalp_rush_v1 STRATEGY_INTERVAL=30` antes de `run SLS_Bot` o usando `scripts/manage.sh encender-estrategia`.
+- `micro_scalp_v1` redujo los filtros (EMA ≥3 bps, RSI 40-60) para registrar experiencias más rápido en testnet
+  mientras la Arena sigue aprendiendo en paralelo.
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 

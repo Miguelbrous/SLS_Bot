@@ -97,6 +97,9 @@ PNL_LOG = Path(os.getenv("PNL_LOG", LOGS_DIR / "pnl.jsonl"))
 PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", LOGS_DIR / "pnl_daily_symbols.json"))
 CEREBRO_DECISIONS_LOG = Path(os.getenv("CEREBRO_DECISIONS_LOG", LOGS_DIR / "cerebro_decisions.jsonl"))
 LOGS_ROOT = LOGS_DIR.parent
+ARENA_DIR = PROJECT_ROOT / "bot" / "arena"
+ARENA_RANKING = Path(os.getenv("ARENA_RANKING_PATH", ARENA_DIR / "ranking_latest.json"))
+ARENA_STATE = Path(os.getenv("ARENA_STATE_PATH", ARENA_DIR / "cup_state.json"))
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -208,6 +211,15 @@ def _load_jsonl(path: Path, limit: int = 200) -> List[dict]:
         except json.JSONDecodeError:
             continue
     return rows
+
+
+def _load_json_file(path: Path, fallback):
+    if not path.exists():
+        return fallback
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
 
 
 def _recent_pnl_entries(limit: int = 10) -> List[DashboardTrade]:
@@ -781,3 +793,15 @@ def dashboard_chart(
     candles.sort(key=lambda item: item.time)
     trade_markers.sort(key=lambda item: item.time)
     return DashboardChartResponse(candles=candles, trades=trade_markers)
+
+
+@app.get("/arena/ranking")
+def arena_ranking(_: None = Depends(require_panel_token)):
+    ranking = _load_json_file(ARENA_RANKING, [])
+    return {"count": len(ranking), "ranking": ranking}
+
+
+@app.get("/arena/state")
+def arena_state(_: None = Depends(require_panel_token)):
+    state = _load_json_file(ARENA_STATE, {"current_goal": None, "wins": 0})
+    return state

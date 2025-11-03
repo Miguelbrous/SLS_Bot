@@ -25,6 +25,11 @@ try:
 except Exception:
     get_cerebro = None  # type: ignore
 
+try:
+    from . import ia_signal_engine
+except Exception:  # pragma: no cover - legacy IA opcional
+    ia_signal_engine = None  # type: ignore
+
 # ==== CARGA CONFIG ====
 cfg = load_config()
 cerebro_cfg = cfg.get("cerebro") if isinstance(cfg, dict) else {}
@@ -1258,12 +1263,51 @@ async def webhook(sig: Signal, request: Request):
     return _process_signal(sig)
 
 
+class LegacyIASignal(BaseModel):
+    simbolo: str
+    marco: str
+    modo: Optional[str] = "asesor"
+    riesgo_pct: Optional[float] = None
+    leverage: Optional[int] = None
+
+
 @app.post("/ia/signal")
-async def ia_signal(sig: Signal, request: Request):
-    if WEBHOOK_SECRET:
-        body = await request.body()
-        _verify_webhook_signature(request, body)
-    return _process_signal(sig)
+async def ia_signal(request: Request):
+    body = await request.json()
+
+    if WEBHOOK_SECRET and "signal" in body and "symbol" in body:
+        _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
+    elif WEBHOOK_SECRET and {"simbolo", "marco"}.issubset(body.keys()):
+        # Peticiones legacy solo consultan decisiones; se permite firmar opcionalmente.
+        header = request.headers.get(WEBHOOK_SIGNATURE_HEADER)
+        if header:
+            _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
+        else:
+            log.warning("/ia/signal legacy sin firma detectado (cliente externo) - permitiendo acceso solo lectura")
+
+    if "signal" in body and "symbol" in body:
+        sig = Signal(**body)
+        return _process_signal(sig)
+
+    if {"simbolo", "marco"}.issubset(body.keys()) and ia_signal_engine:
+        legacy = LegacyIASignal(**body)
+        payload, evidence, meta = ia_signal_engine.decide(
+            symbol=legacy.simbolo,
+            marco=legacy.marco,
+            riesgo_pct_user=legacy.riesgo_pct,
+            leverage_user=legacy.leverage,
+        )
+        return {
+            "status": "ok",
+            "decision": payload,
+            "evidence": evidence,
+            "meta": meta,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Formato de solicitud IA inválido",
+    )
 
 # ====== RESUMEN DIARIO ======
 @app.get("/daily/summary")

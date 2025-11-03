@@ -1,0 +1,8 @@
+{
+  "starting_balance": 5.0,
+  "initial_goal": 100.0,
+  "goal_increment": 50.0,
+  "max_active_strategies": 200,
+  "cooldown_after_win_minutes": 30,
+  "drawdown_stop_pct": 20.0
+}

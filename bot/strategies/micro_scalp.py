@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -10,9 +9,9 @@ from .base import Strategy, StrategyContext
 
 @dataclass
 class Thresholds:
-    ema_diff_bps: float = 6.0
-    rsi_upper: float = 68.0
-    rsi_lower: float = 32.0
+    ema_diff_bps: float = 3.0
+    rsi_upper: float = 60.0
+    rsi_lower: float = 40.0
 
 
 class MicroScalpStrategy(Strategy):
@@ -24,8 +23,6 @@ class MicroScalpStrategy(Strategy):
 
     def __init__(self, thresholds: Thresholds | None = None):
         self.thresholds = thresholds or Thresholds()
-        self._idle_iterations = 0
-        self._force_after = int(os.getenv("MICRO_SCALP_FORCE_AFTER", "6"))
 
     def build_signal(self, context: StrategyContext) -> Optional[Dict[str, object]]:
         df, last = ia_utils.latest_slice(self.symbol, self.timeframe, limit=420)
@@ -45,15 +42,9 @@ class MicroScalpStrategy(Strategy):
         elif strong_trend and ema_fast < ema_mid < ema_slow and rsi > self.thresholds.rsi_lower:
             direction = "SHORT"
 
-        forced = False
         if direction is None or price <= 0 or atr <= 0:
             return None
-        else:
-            self._idle_iterations = 0
-
         risk_pct = max(0.35, min(0.8, context.balance * 0.12))
-        if forced:
-            risk_pct = 0.25
         leverage = max(5, min(context.leverage, 25))
         sl_distance = atr * 1.35
         tp_distance = atr * 2.1
@@ -85,6 +76,5 @@ class MicroScalpStrategy(Strategy):
                 "ema_trend_1h": "bull" if direction == "LONG" else "bear",
                 "rsi": rsi,
                 "atr": atr,
-                "forced": forced,
             },
         }
