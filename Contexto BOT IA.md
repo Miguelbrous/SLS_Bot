@@ -9,6 +9,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Nació la **Arena de estrategias** (`bot/arena/`): registro masivo de 5 000 estrategias, simulador compartido, league manager, ranking público y script `scripts/arena_bootstrap.py` para regenerar el roster.
 - Documentación añadida en `docs/arena.md` y README para explicar la “carrera” y el proceso de promoción a modo real.
 - FastAPI expone `/arena/ranking` y `/arena/state` (token panel) para que el dashboard consulte el leaderboard generado por `python -m bot.arena`.
+- Tips operativos: define en `.env` `STRATEGY_ID=scalp_rush_v1` y `STRATEGY_INTERVAL_SECONDS=30`, agenda `scripts/run_arena_tick.sh` y usa `python scripts/promote_arena_strategy.py <strategy_id>` al seleccionar estrategias para modo real.
 
 ---
 
