@@ -4,6 +4,13 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 
 ---
 
+## Bitácora Codex 2025-11-03
+- `bot/strategies/micro_scalp.py` fuerza un ATR sintético cuando Bybit devuelve 0 para garantizar que la estrategia genere señales y mantenga TP/SL válidos.
+- `bot/sls_bot/app.py` registra el cuerpo de las peticiones que disparan un 422 para depurar payloads inválidos en `/webhook` o `/ia/signal`.
+- `bot/cerebro/datasources/news.py` silencia los errores repetidos de RSS con un backoff de 5 minutos para evitar ruido cuando un feed como Binance Blog no responde con XML.
+
+---
+
 ## Bitácora Codex 2025-10-31
 - Se agregó ingesta `macro` (open interest / funding / whale flow) para el Cerebro, con cache configurable y scoring integrado al `PolicyEnsemble`.
 - Nuevo guardia `low_capital` limita margen y riesgo para cuentas pequeñas (≈5 €) y ajusta el leverage automáticamente.

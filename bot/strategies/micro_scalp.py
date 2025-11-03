@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -23,6 +24,8 @@ class MicroScalpStrategy(Strategy):
 
     def __init__(self, thresholds: Thresholds | None = None):
         self.thresholds = thresholds or Thresholds()
+        self._idle_iterations = 0
+        self._force_after = int(os.getenv("MICRO_SCALP_FORCE_AFTER", "6"))
 
     def build_signal(self, context: StrategyContext) -> Optional[Dict[str, object]]:
         df, last = ia_utils.latest_slice(self.symbol, self.timeframe, limit=420)
@@ -31,21 +34,33 @@ class MicroScalpStrategy(Strategy):
         ema_slow = float(last.get("ema_slow", 0.0))
         price = float(last.get("close", 0.0))
         rsi = float(last.get("rsi", 50.0))
-        atr = float(last.get("atr", price * 0.005))
+        atr_raw = float(last.get("atr", 0.0) or 0.0)
+        atr = atr_raw if atr_raw > 0 else max(price * 0.005, 1.0)
         ema_diff_bps = float(last.get("ema_diff_bps", 0.0))
 
         direction: Optional[str] = None
-        if abs(ema_diff_bps) < self.thresholds.ema_diff_bps:
-            return None
-        if ema_fast > ema_mid > ema_slow and rsi < self.thresholds.rsi_upper:
+        strong_trend = abs(ema_diff_bps) >= self.thresholds.ema_diff_bps
+        if strong_trend and ema_fast > ema_mid > ema_slow and rsi < self.thresholds.rsi_upper:
             direction = "LONG"
-        elif ema_fast < ema_mid < ema_slow and rsi > self.thresholds.rsi_lower:
+        elif strong_trend and ema_fast < ema_mid < ema_slow and rsi > self.thresholds.rsi_lower:
             direction = "SHORT"
 
+        forced = False
         if direction is None or price <= 0 or atr <= 0:
-            return None
+            self._idle_iterations += 1
+            if price > 0 and atr > 0 and self._idle_iterations >= self._force_after:
+                direction = "LONG" if ema_fast >= ema_slow else "SHORT"
+                atr = max(atr, price * 0.005)
+                forced = True
+                self._idle_iterations = 0
+            else:
+                return None
+        else:
+            self._idle_iterations = 0
 
         risk_pct = max(0.35, min(0.8, context.balance * 0.12))
+        if forced:
+            risk_pct = 0.35
         leverage = max(5, min(context.leverage, 25))
         sl_distance = atr * 1.35
         tp_distance = atr * 2.1
@@ -77,5 +92,6 @@ class MicroScalpStrategy(Strategy):
                 "ema_trend_1h": "bull" if direction == "LONG" else "bear",
                 "rsi": rsi,
                 "atr": atr,
+                "forced": forced,
             },
         }

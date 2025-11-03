@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ﻿# SLS_Bot
 
 Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. El repo tambien incluye stubs y utilidades IA para generar decisiones desde Bybit.

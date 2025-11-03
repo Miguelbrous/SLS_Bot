@@ -1,5 +1,7 @@
 ﻿from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
@@ -9,6 +11,7 @@ import os
 import secrets
 import time, hmac, hashlib, json, requests
 import threading, math
+import logging
 
 from .config_loader import load_config, CFG_PATH_IN_USE
 from .bybit import BybitClient
@@ -78,6 +81,30 @@ BASE_URL = cfg["bybit"]["base_url"].rstrip("/")
 
 # ==== FASTAPI ====
 app = FastAPI(title="SLS Bot Webhook")
+log = logging.getLogger("uvicorn.error")
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error_handler(request: Request, exc: RequestValidationError):
+    body_preview = ""
+    try:
+        body_bytes = await request.body()
+        if body_bytes:
+            body_preview = body_bytes.decode("utf-8", errors="replace")
+            if len(body_preview) > 1000:
+                body_preview = body_preview[:1000] + "...<truncated>"
+    except Exception:
+        body_preview = "<unavailable>"
+    log.warning(
+        "Request validation error en %s: %s payload=%s",
+        request.url.path,
+        exc.errors(),
+        body_preview,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
 
 
 def _parse_origins() -> list[str]:
