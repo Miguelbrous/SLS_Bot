@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Card from "./components/Card";
 import Controls from "./components/Controls";
 
@@ -283,6 +284,11 @@ export default function Page() {
   return (
     <>
       <h1>SLS Panel</h1>
+      <div className="badges" style={{ marginBottom: 12 }}>
+        <Link href="/dashboard" className="badge ok">
+          Abrir dashboard visual
+        </Link>
+      </div>
 
       <Card title="Servicios">
         <div className="svc-grid">

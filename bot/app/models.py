@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 
 class Health(BaseModel):
@@ -55,3 +55,63 @@ class AlertItem(BaseModel):
 class AlertsResponse(BaseModel):
     alerts: List[AlertItem]
     summary: Dict[str, Any]
+
+
+class DashboardIssue(BaseModel):
+    severity: Literal["info", "warning", "error"]
+    message: str
+
+
+class DashboardMetric(BaseModel):
+    name: str
+    value: float | None = None
+    formatted: str | None = None
+    delta: float | None = None
+    delta_formatted: str | None = None
+
+
+class DashboardTrade(BaseModel):
+    ts: str
+    symbol: str
+    timeframe: Optional[str] = None
+    side: Optional[str] = None
+    pnl: Optional[float] = None
+    confidence: Optional[float] = None
+    risk_pct: Optional[float] = None
+    reason: Optional[str] = None
+
+
+class DashboardSummaryResponse(BaseModel):
+    level: Literal["ok", "warning", "error"]
+    summary: str
+    mode: Optional[str] = None
+    updated_at: str
+    metrics: List[DashboardMetric] = Field(default_factory=list)
+    issues: List[DashboardIssue] = Field(default_factory=list)
+    alerts: List[AlertItem] = Field(default_factory=list)
+    recent_trades: List[DashboardTrade] = Field(default_factory=list)
+    recent_pnl: List[DashboardTrade] = Field(default_factory=list)
+
+
+class DashboardCandle(BaseModel):
+    time: int
+    open: float
+    high: float
+    low: float
+    close: float
+
+
+class DashboardTradeMarker(BaseModel):
+    time: int
+    symbol: str
+    timeframe: Optional[str] = None
+    side: Optional[str] = None
+    label: Optional[str] = None
+    reason: Optional[str] = None
+    confidence: Optional[float] = None
+    risk_pct: Optional[float] = None
+
+
+class DashboardChartResponse(BaseModel):
+    candles: List[DashboardCandle]
+    trades: List[DashboardTradeMarker]

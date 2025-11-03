@@ -3,7 +3,7 @@ import os
 import secrets
 from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from .alerts import collect_alerts
 from .models import (
     AlertsResponse,
+    AlertItem,
     DecisionsResponse,
     Health,
     LogResponse,
@@ -20,6 +21,13 @@ from .models import (
     ServiceState,
     StatusResponse,
     SymbolPnL,
+    DashboardSummaryResponse,
+    DashboardMetric,
+    DashboardIssue,
+    DashboardTrade,
+    DashboardChartResponse,
+    DashboardCandle,
+    DashboardTradeMarker,
 )
 from .services import service_action, service_status
 from .utils import tail_lines
@@ -87,6 +95,8 @@ BRIDGE_LOG = Path(os.getenv("BRIDGE_LOG", LOGS_DIR / "bridge.log"))
 DECISIONS_LOG = Path(os.getenv("DECISIONS_LOG", LOGS_DIR / "decisions.jsonl"))
 PNL_LOG = Path(os.getenv("PNL_LOG", LOGS_DIR / "pnl.jsonl"))
 PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", LOGS_DIR / "pnl_daily_symbols.json"))
+CEREBRO_DECISIONS_LOG = Path(os.getenv("CEREBRO_DECISIONS_LOG", LOGS_DIR / "cerebro_decisions.jsonl"))
+LOGS_ROOT = LOGS_DIR.parent
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -162,6 +172,203 @@ def _load_symbol_breakdowns() -> Dict[str, dict]:
         return json.loads(PNL_SYMBOLS_JSON.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def _load_risk_state_payload() -> tuple[Dict[str, Any], Dict[str, Any]]:
+    state_path = LOGS_DIR / "risk_state.json"
+    base: Dict[str, Any] = {}
+    details: Dict[str, Any] = {}
+    if state_path.exists():
+        try:
+            base = json.loads(state_path.read_text(encoding="utf-8"))
+            details = {
+                "consecutive_losses": base.get("consecutive_losses"),
+                "cooldown_until_ts": base.get("cooldown_until_ts"),
+                "active_cooldown_reason": base.get("active_cooldown_reason"),
+                "cooldown_history": base.get("cooldown_history", [])[-5:],
+                "recent_results": base.get("recent_results", [])[-20:],
+                "dynamic_risk": base.get("dynamic_risk"),
+                "start_equity": base.get("start_equity"),
+                "current_equity": base.get("last_entry_equity"),
+            }
+        except Exception:
+            base = {}
+            details = {}
+    return base, details
+
+
+def _load_jsonl(path: Path, limit: int = 200) -> List[dict]:
+    rows: List[dict] = []
+    for raw in tail_lines(path, limit):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            rows.append(json.loads(raw))
+        except json.JSONDecodeError:
+            continue
+    return rows
+
+
+def _recent_pnl_entries(limit: int = 10) -> List[DashboardTrade]:
+    entries: List[DashboardTrade] = []
+    if not PNL_LOG.exists():
+        return entries
+    for payload in reversed(_load_jsonl(PNL_LOG, limit * 3)):
+        if payload.get("type") not in {None, "close"}:
+            continue
+        ts = str(payload.get("ts") or payload.get("timestamp") or "")
+        symbol = str(payload.get("symbol") or payload.get("market") or "")
+        pnl = payload.get("pnl")
+        tf = payload.get("tf") or payload.get("timeframe")
+        try:
+            pnl_value = float(pnl) if pnl is not None else None
+        except Exception:
+            pnl_value = None
+        entries.append(
+            DashboardTrade(
+                ts=ts or "",
+                symbol=symbol,
+                timeframe=tf or None,
+                side=None,
+                pnl=pnl_value,
+            )
+        )
+        if len(entries) >= limit:
+            break
+    entries.reverse()
+    return entries
+
+
+def _explain_decision(metadata: Dict[str, Any] | None) -> str:
+    if not metadata:
+        return ""
+    parts: List[str] = []
+    macro = metadata.get("macro") or metadata.get("macro_pulse")
+    if isinstance(macro, dict):
+        direction = macro.get("direction")
+        score = macro.get("score")
+        if direction and direction != "neutral":
+            parts.append(f"Macro {direction}")
+        if isinstance(score, (int, float)):
+            parts.append(f"score {score:+.2f}")
+    news_sent = metadata.get("news_sentiment")
+    if isinstance(news_sent, (int, float)) and abs(news_sent) > 0.05:
+        parts.append(f"noticia {'alcista' if news_sent > 0 else 'bajista'} ({news_sent:+.2f})")
+    if metadata.get("exploration_triggered"):
+        parts.append("modo exploración")
+    anomaly = metadata.get("anomaly")
+    if isinstance(anomaly, dict) and anomaly.get("flag"):
+        parts.append("anomalía detectada")
+    session_guard = metadata.get("session_guard")
+    if isinstance(session_guard, dict):
+        reason = session_guard.get("reason")
+        state = session_guard.get("state")
+        if reason:
+            parts.append(reason)
+        elif state:
+            parts.append(f"guardia {state}")
+    ml_override = metadata.get("ml_override")
+    if ml_override:
+        parts.append("modelo ML sobre-escribió heurística")
+    if not parts:
+        return ""
+    return " · ".join(parts)
+
+
+def _recent_decisions(limit: int = 10, symbol: Optional[str] = None, timeframe: Optional[str] = None) -> List[DashboardTrade]:
+    rows: List[DashboardTrade] = []
+    if not CEREBRO_DECISIONS_LOG.exists():
+        return rows
+    for payload in reversed(_load_jsonl(CEREBRO_DECISIONS_LOG, limit * 5)):
+        action = payload.get("action")
+        if action in {None, "NO_TRADE"}:
+            continue
+        sym = str(payload.get("symbol") or "")
+        tf = str(payload.get("timeframe") or "")
+        if symbol and sym.upper() != symbol.upper():
+            continue
+        if timeframe and tf and tf != timeframe:
+            continue
+        meta = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        reason = _explain_decision(meta)
+        rows.append(
+            DashboardTrade(
+                ts=str(payload.get("ts") or ""),
+                symbol=sym,
+                timeframe=tf or None,
+                side=action,
+                confidence=float(payload.get("confidence") or 0.0) if payload.get("confidence") is not None else None,
+                risk_pct=float(payload.get("risk_pct") or 0.0) if payload.get("risk_pct") is not None else None,
+                reason=reason or None,
+            )
+        )
+        if len(rows) >= limit:
+            break
+    rows.reverse()
+    return rows
+
+
+def _format_currency(value: float | None) -> str:
+    if value is None:
+        return "0.00"
+    try:
+        return f"{value:+.2f}"
+    except Exception:
+        return str(value)
+
+
+def _iso_to_epoch_seconds(value: str | None) -> Optional[int]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
+
+
+def _pnl_metrics() -> tuple[List[DashboardMetric], Dict[str, float]]:
+    history = _load_pnl_history()
+    day_map: Dict[str, float] = {}
+    for entry in history:
+        day = entry.get("day")
+        if not day:
+            ts_raw = entry.get("ts") or entry.get("timestamp")
+            if isinstance(ts_raw, str) and len(ts_raw) >= 10:
+                day = ts_raw[:10]
+        if not day:
+            continue
+        try:
+            value = float(entry.get("pnl_eur") or entry.get("pnl") or 0.0)
+        except Exception:
+            value = 0.0
+        if entry.get("type") == "daily":
+            day_map[day] = value
+        else:
+            day_map[day] = day_map.get(day, 0.0) + value
+
+    today = datetime.now(timezone.utc).date()
+    pnl_today = day_map.get(str(today), 0.0)
+    pnl_week = 0.0
+    for offset in range(7):
+        key = str(today - timedelta(days=offset))
+        pnl_week += day_map.get(key, 0.0)
+    pnl_month = 0.0
+    for offset in range(30):
+        key = str(today - timedelta(days=offset))
+        pnl_month += day_map.get(key, 0.0)
+    pnl_total = sum(day_map.values())
+
+    metrics = [
+        DashboardMetric(name="PnL diario", value=pnl_today, formatted=_format_currency(pnl_today)),
+        DashboardMetric(name="PnL 7 días", value=pnl_week, formatted=_format_currency(pnl_week)),
+        DashboardMetric(name="PnL 30 días", value=pnl_month, formatted=_format_currency(pnl_month)),
+        DashboardMetric(name="PnL total", value=pnl_total, formatted=_format_currency(pnl_total)),
+    ]
+    return metrics, day_map
 
 app.add_middleware(
     CORSMiddleware,
@@ -384,3 +591,193 @@ def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_pane
     return PnLDailyResponse(days=out)
 
 
+@app.get("/dashboard/summary", response_model=DashboardSummaryResponse)
+def dashboard_summary(_: None = Depends(require_panel_token)):
+    mode = BOT_CONFIG.get("_active_mode")
+    services_state = {"sls-bot": service_status("sls-bot")}
+    alerts_raw = collect_alerts(bridge_log=BRIDGE_LOG, decisions_log=DECISIONS_LOG, window_minutes=120)
+    alerts: List[AlertItem] = [
+        AlertItem(
+            name=entry["name"],
+            count=int(entry["count"]),
+            severity=str(entry["severity"]),
+            hint=str(entry["hint"]),
+            latest=entry.get("latest"),
+        )
+        for entry in alerts_raw.get("alerts", [])
+    ]
+
+    metrics, day_map = _pnl_metrics()
+    risk_state, risk_details = _load_risk_state_payload()
+
+    recent_results = risk_details.get("recent_results") or []
+    wins = sum(1 for row in recent_results if row.get("win") == 1)
+    losses = sum(1 for row in recent_results if row.get("win") == -1)
+    total_trades = wins + losses
+    win_rate = (wins / total_trades) * 100 if total_trades else None
+    if win_rate is not None:
+        metrics.append(
+            DashboardMetric(name="Win rate (ventana)", value=win_rate, formatted=f"{win_rate:.1f}%")
+        )
+
+    current_equity = risk_details.get("current_equity")
+    if isinstance(current_equity, (int, float)):
+        metrics.append(
+            DashboardMetric(name="Equity estimada", value=current_equity, formatted=f"{current_equity:.2f}")
+        )
+
+    heartbeat_delay = alerts_raw.get("summary", {}).get("heartbeat_delay_seconds")
+    issues: List[DashboardIssue] = []
+    level: Literal["ok", "warning", "error"] = "ok"
+
+    svc_active, svc_detail = services_state["sls-bot"]
+    if not svc_active:
+        level = "error"
+        issues.append(
+            DashboardIssue(
+                severity="error",
+                message=f"Servicio sls-bot inactivo ({svc_detail or 'sin detalle'})",
+            )
+        )
+
+    critical_alert = next((a for a in alerts if a.severity == "critical"), None)
+    warning_alerts = [a for a in alerts if a.severity == "warning"]
+    if critical_alert:
+        level = "error"
+        issues.append(
+            DashboardIssue(
+                severity="error",
+                message=f"{critical_alert.name}: {critical_alert.hint} (x{critical_alert.count})",
+            )
+        )
+    elif warning_alerts:
+        if level != "error":
+            level = "warning"
+        for warn in warning_alerts:
+            issues.append(
+                DashboardIssue(
+                    severity="warning",
+                    message=f"{warn.name}: {warn.hint} (x{warn.count})",
+                )
+            )
+
+    if heartbeat_delay and heartbeat_delay > 180:
+        if level != "error":
+            level = "warning"
+        issues.append(
+            DashboardIssue(
+                severity="warning",
+                message=f"No hay heartbeat reciente (>{int(heartbeat_delay)}s)",
+            )
+        )
+
+    cooldown_until = risk_details.get("cooldown_until_ts")
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if isinstance(cooldown_until, (int, float)) and cooldown_until > now_ts:
+        if level != "error":
+            level = "warning"
+        remaining = int(cooldown_until - now_ts)
+        issues.append(
+            DashboardIssue(
+                severity="warning",
+                message=f"Cooldown activo ({remaining // 60} min restantes)",
+            )
+        )
+
+    # Detectar fallos de feeds RSS
+    cerebro_log = LOGS_ROOT / "cerebro_service.log"
+    for raw in tail_lines(cerebro_log, 200):
+        if "RSS fetch failed" in raw:
+            issues.append(
+                DashboardIssue(
+                    severity="warning",
+                    message="Fallo al leer RSS (Binance); revisar conectividad o feed.",
+                )
+            )
+            if level != "error":
+                level = "warning"
+            break
+
+    summary_text = "Bot operativo"
+    if level == "error":
+        summary_text = "Bot en estado crítico"
+    elif level == "warning":
+        summary_text = "Bot con advertencias"
+    if mode:
+        summary_text += f" · modo {mode}"
+
+    recent_trades = _recent_decisions(limit=12)
+    recent_pnl = _recent_pnl_entries(limit=12)
+
+    return DashboardSummaryResponse(
+        level=level,
+        summary=summary_text,
+        mode=str(mode) if mode else None,
+        updated_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        metrics=metrics,
+        issues=issues,
+        alerts=alerts,
+        recent_trades=recent_trades,
+        recent_pnl=recent_pnl,
+    )
+
+
+@app.get("/dashboard/chart", response_model=DashboardChartResponse)
+def dashboard_chart(
+    symbol: str = Query(..., min_length=2, max_length=30),
+    timeframe: str = Query("15m", min_length=1, max_length=10),
+    limit: int = Query(200, ge=50, le=1000),
+    _: None = Depends(require_panel_token),
+):
+    try:
+        from bot.sls_bot import ia_utils
+    except Exception as exc:  # pragma: no cover - fallback para instalaciones parciales
+        raise HTTPException(status_code=500, detail=f"ia_utils no disponible: {exc}") from exc
+
+    try:
+        df = ia_utils.fetch_ohlc(symbol, timeframe, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Error obteniendo velas: {exc}") from exc
+
+    candles: List[DashboardCandle] = []
+    if df is not None and not df.empty:
+        for _, row in df.iterrows():
+            try:
+                ts_ms = float(row.get("ts") or row.get("start"))
+                ts = int(ts_ms / 1000)
+            except Exception:
+                continue
+            try:
+                candles.append(
+                    DashboardCandle(
+                        time=ts,
+                        open=float(row["open"]),
+                        high=float(row["high"]),
+                        low=float(row["low"]),
+                        close=float(row["close"]),
+                    )
+                )
+            except Exception:
+                continue
+
+    trade_markers: List[DashboardTradeMarker] = []
+    for trade in _recent_decisions(limit=50, symbol=symbol, timeframe=timeframe):
+        ts = _iso_to_epoch_seconds(trade.ts)
+        if ts is None:
+            continue
+        trade_markers.append(
+            DashboardTradeMarker(
+                time=ts,
+                symbol=trade.symbol,
+                timeframe=trade.timeframe,
+                side=trade.side,
+                label=trade.side,
+                reason=trade.reason,
+                confidence=trade.confidence,
+                risk_pct=trade.risk_pct,
+            )
+        )
+
+    candles.sort(key=lambda item: item.time)
+    trade_markers.sort(key=lambda item: item.time)
+    return DashboardChartResponse(candles=candles, trades=trade_markers)
