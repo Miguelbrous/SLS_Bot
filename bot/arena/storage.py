@@ -100,3 +100,19 @@ class ArenaStorage:
                 (limit,),
             ).fetchall()
             return [dict(row) for row in rows]
+
+    def ledger_for(self, strategy_id: str, limit: int = 50) -> List[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT strategy_id, ts, pnl, balance_after, reason
+                FROM ledger
+                WHERE strategy_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (strategy_id, limit),
+            ).fetchall()
+            data = [dict(row) for row in rows]
+            data.reverse()
+            return data

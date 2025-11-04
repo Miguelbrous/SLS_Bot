@@ -30,8 +30,8 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
   Su carpeta en `bot/arena/strategies/<id>/` puede contener código personalizado y seguirá aprendiendo aun
   después de ser promovida.
 - Para exportar una estrategia ganadora y promoverla fuera de la arena usa
-  `python scripts/promote_arena_strategy.py <strategy_id>`; el JSON generado en `bot/arena/promoted/` incluye
-  los metadatos a replicar en el modo real.
+  `python scripts/promote_arena_strategy.py <strategy_id>`; se genera `bot/arena/promoted/<id>/`
+  con `profile.json`, `ledger_tail.json` y `SUMMARY.md` para facilitar el traspaso a modo real.
 
 ## Próximos pasos
 1. Automatizar `LeagueManager` como servicio (`python scripts/ops.py arena run` o `python -m bot.arena`).

@@ -189,8 +189,8 @@ npm run build
   para que el loop cargue el scalper tras cada `run SLS_Bot start`.
 - Programa `scripts/run_arena_tick.sh` (cron/systemd) para refrescar `bot/arena/cup_state.json` y `ranking_latest.json`,
   que consumen los endpoints `/arena/state` y `/arena/ranking`.
-- Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; el archivo resultante en
-  `bot/arena/promoted/` sirve como blueprint para mover la lógica a modo real.
+- Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; se genera la carpeta
+  `bot/arena/promoted/<id>/` con `profile.json`, `ledger_tail.json` y `SUMMARY.md` (blueprint para mover a real).
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 
