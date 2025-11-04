@@ -11,6 +11,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - FastAPI expone `/arena/ranking` y `/arena/state` (token panel) para que el dashboard consulte el leaderboard generado por `python -m bot.arena`.
 - Tips operativos: define en `.env` `STRATEGY_ID=scalp_rush_v1` y `STRATEGY_INTERVAL_SECONDS=30`, agenda `scripts/run_arena_tick.sh` y usa `python scripts/promote_arena_strategy.py <strategy_id>` al seleccionar estrategias para modo real.
 - Nuevo CLI `python scripts/ops.py` centraliza `up/down/status/logs`, healthcheck y acciones de arena para no depender de múltiples scripts.
+- El CLI ahora incluye `ops infra` y `ops cerebro dataset/promote` para validar infraestructura y operar el Cerebro sin buscar scripts; añadimos pruebas automatizadas para el propio CLI y para los endpoints `/arena/*`.
 - `bot/core/settings.py` unifica la lectura de `.env` mediante Pydantic, así loop y CLI comparten los mismos defaults (estrategia, intervalos, firma, modo).
 - `bot/arena/service.py` introduce `ArenaService`, un loop embebido que puedes levantar con `python scripts/ops.py arena run` para mantener ranking/state sin depender de cron.
 - `bot/arena/storage.py` agrega `arena.db` (SQLite) para registrar ledger e inspeccionar ranking desde el CLI sin depender sólo de JSON.

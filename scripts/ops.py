@@ -20,6 +20,9 @@ ARENA_PROMOTE = ROOT / "scripts" / "promote_arena_strategy.py"
 ARENA_RANKING = ROOT / "bot" / "arena" / "ranking_latest.json"
 ARENA_STATE = ROOT / "bot" / "arena" / "cup_state.json"
 HEALTH_SCRIPT = ROOT / "scripts" / "tools" / "healthcheck.py"
+INFRA_CHECK = ROOT / "scripts" / "tools" / "infra_check.py"
+GENERATE_DATASET = ROOT / "scripts" / "tools" / "generate_cerebro_dataset.py"
+PROMOTE_MODEL = ROOT / "scripts" / "tools" / "promote_best_cerebro_model.py"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -107,6 +110,45 @@ def cmd_arena_state(args: argparse.Namespace) -> None:
     print(json.dumps(data, indent=2))
 
 
+def cmd_infra(args: argparse.Namespace) -> None:
+    extra: List[str] = []
+    if args.env_file:
+        extra.extend(["--env-file", args.env_file])
+    if args.ensure_dirs:
+        extra.append("--ensure-dirs")
+    _run([_python_exec(), str(INFRA_CHECK), *extra])
+
+
+def cmd_cerebro_dataset(args: argparse.Namespace) -> None:
+    cmd = [
+        _python_exec(),
+        str(GENERATE_DATASET),
+        "--mode",
+        args.mode,
+        "--rows",
+        str(args.rows),
+    ]
+    if args.bias is not None:
+        cmd.extend(["--bias", str(args.bias)])
+    if args.overwrite:
+        cmd.append("--overwrite")
+    _run(cmd)
+
+
+def cmd_cerebro_promote(args: argparse.Namespace) -> None:
+    cmd = [
+        _python_exec(),
+        str(PROMOTE_MODEL),
+        "--mode",
+        args.mode,
+        "--metric",
+        args.metric,
+    ]
+    if args.min_value is not None:
+        cmd.extend(["--min-value", str(args.min_value)])
+    _run(cmd)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="CLI operativo para SLS_Bot")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -135,6 +177,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub_qa.add_argument("--skip-panel", action="store_true", help="Omitir npm run lint para el panel")
     sub_qa.set_defaults(func=cmd_qa)
 
+    sub_infra = sub.add_parser("infra", help="Valida config/env aprovechando infra_check.py")
+    sub_infra.add_argument("--env-file", dest="env_file", help="Ruta a .env opcional")
+    sub_infra.add_argument("--ensure-dirs", action="store_true", help="Crear directorios faltantes")
+    sub_infra.set_defaults(func=cmd_infra)
+
     arena = sub.add_parser("arena", help="Operaciones relacionadas a la arena")
     arena_sub = arena.add_subparsers(dest="arena_cmd", required=True)
 
@@ -155,6 +202,27 @@ def build_parser() -> argparse.ArgumentParser:
 
     arena_state = arena_sub.add_parser("state", help="Muestra el estado actual de la copa")
     arena_state.set_defaults(func=cmd_arena_state)
+
+    cerebro = sub.add_parser("cerebro", help="Flujos relacionados con el Cerebro IA")
+    cerebro_sub = cerebro.add_subparsers(dest="cerebro_cmd", required=True)
+
+    cerebro_dataset = cerebro_sub.add_parser("dataset", help="Genera un dataset sintético")
+    cerebro_dataset.add_argument("--mode", default="test", help="Modo objetivo (test, real, etc.)")
+    cerebro_dataset.add_argument("--rows", type=int, default=200, help="Número de filas a generar (>=50)")
+    cerebro_dataset.add_argument("--bias", type=float, default=0.0, help="Sesgo adicional para pnl")
+    cerebro_dataset.add_argument("--overwrite", action="store_true", help="Sobrescribir dataset existente")
+    cerebro_dataset.set_defaults(func=cmd_cerebro_dataset)
+
+    cerebro_promote = cerebro_sub.add_parser("promote", help="Promueve el mejor modelo registrado")
+    cerebro_promote.add_argument("--mode", default="test", help="Modo objetivo (test, real, etc.)")
+    cerebro_promote.add_argument("--metric", default="auc", help="Métrica a optimizar en el registry")
+    cerebro_promote.add_argument(
+        "--min-value",
+        type=float,
+        default=None,
+        help="Mínimo requerido para la métrica seleccionada",
+    )
+    cerebro_promote.set_defaults(func=cmd_cerebro_promote)
 
     return parser
 

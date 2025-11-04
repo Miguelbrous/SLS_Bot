@@ -33,6 +33,18 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
   `python scripts/promote_arena_strategy.py <strategy_id>` (o el endpoint correspondiente); se genera `bot/arena/promoted/<id>/`
   con `profile.json`, `ledger_tail.json` y `SUMMARY.md` para facilitar el traspaso a modo real.
 
+## CLI recomendado
+- `python scripts/ops.py arena tick` corre un ciclo puntual (lo mismo que `run_arena_tick.sh`).
+- `python scripts/ops.py arena run --interval 120` levanta el servicio embebido con `ArenaService` y actualiza ranking/ledger en loop.
+- `python scripts/ops.py arena promote <id>` empaqueta una estrategia campeona con sus metadatos.
+- `python scripts/ops.py arena ranking --limit 20` y `state` permiten auditar el top actual o la copa sin abrir archivos.
+
+Todos estos comandos comparten la misma configuración (`bot/core/settings.py`), así que el CLI respeta tus `.env` y rutas.
+
+## Pruebas
+- `bot/tests/test_arena_routes.py` valida que los endpoints `/arena/*` respetan autenticación (`X-Panel-Token`) y delegan en `ArenaService`, `ArenaStorage` y `export_strategy` según corresponda.
+- Al ejecutar `python scripts/ops.py qa` se corre `pytest` (incluyendo las pruebas anteriores) y el lint del panel para detectar regresiones antes de publicar.
+
 ## Próximos pasos
 1. Automatizar `LeagueManager` como servicio (`python scripts/ops.py arena run` o `python -m bot.arena`).
 2. Extender el simulador con diferentes motores (martingale, mean reversion, news driven) para alimentar

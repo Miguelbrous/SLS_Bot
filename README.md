@@ -156,6 +156,9 @@ npm run build
 ## Comandos utiles
 - `python scripts/ops.py up` enciende API, bot, Cerebro y la estrategia (`down`, `status`, `logs`, `arena tick/run/promote/ranking/state/ledger`, `qa` funcionan igual). El CLI usa los mismos scripts internos, pero unifica el flujo operativo.
 - `python scripts/ops.py qa` corre pytest y `npm run lint` (agrega `--skip-panel` si no quieres correr el lint del panel).
+- `python scripts/ops.py infra --env-file .env.local --ensure-dirs` corre `infra_check.py`, valida tokens/credenciales y opcionalmente crea los directorios faltantes por modo.
+- `python scripts/ops.py cerebro dataset --mode test --rows 300 --overwrite` genera datasets sintéticos para reentrenar el Cerebro sin depender de fills reales; `--bias` ajusta el sesgo de PnL.
+- `python scripts/ops.py cerebro promote --mode real --metric auc --min-value 0.65` promueve el mejor modelo registrado a `active_model.json` sin buscar el script manualmente.
 - `/metrics` expone métricas Prometheus de la API (instrumentadas con `prometheus-fastapi-instrumentator`).
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.

@@ -150,10 +150,8 @@ registrando automáticamente el artefacto resultante.
 
 - `Cerebro.simulate_sequence()` genera decisiones hipotéticas sobre las últimas velas cargadas y calcula un PnL simulado
   usando `BacktestSimulator`; está expuesto vía `POST /cerebro/simulate` (`symbol`, `timeframe`, `horizon`, `news_sentiment`).
-- `scripts/tools/generate_cerebro_dataset.py` crea datasets sintéticos (JSONL) para ejercitar entrenamientos sin depender
-  de fills reales.
-- `scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` escoge el modelo registrado con
-  mejor métrica y lo promueve a `active_model.json`, dejando trazabilidad en `models/cerebro/<mode>/registry.json`.
+- `scripts/tools/generate_cerebro_dataset.py` (o `python scripts/ops.py cerebro dataset --mode test --rows 300 --overwrite`) crea datasets sintéticos (JSONL) para ejercitar entrenamientos sin depender de fills reales.
+- `scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` (o `python scripts/ops.py cerebro promote ...`) escoge el modelo registrado con mejor métrica y lo promueve a `active_model.json`, dejando trazabilidad en `models/cerebro/<mode>/registry.json`.
 
 ## Logs e historial
 
