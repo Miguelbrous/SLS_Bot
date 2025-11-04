@@ -73,6 +73,14 @@
         "whale_flow_url": "",
         "cache_dir": "./tmp_logs/macro"
       },
+      "orderflow_feeds": {
+        "enabled": false,
+        "base_url": "https://api.bybit.com",
+        "category": "linear",
+        "depth": 50,
+        "cache_ttl": 8,
+        "retry_attempts": 2
+      },
       "session_guards": [
         {
           "name": "Asia (Tokyo)",

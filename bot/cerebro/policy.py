@@ -53,6 +53,7 @@ class PolicyEnsemble:
         normalized_features: dict | None = None,
         exploration_mode: bool = False,
         macro_context: dict | None = None,
+        orderflow_context: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         risk_pct = float(payload["riesgo_pct"])
@@ -137,6 +138,36 @@ class PolicyEnsemble:
                 risk_pct = max(0.1, risk_pct * 0.8)
                 reasons.append("Macro reduce riesgo por sesgo bajista")
 
+        if orderflow_context:
+            metadata["orderflow"] = orderflow_context
+            imbalance = float(orderflow_context.get("liquidity_imbalance") or 0.0)
+            spread = float(orderflow_context.get("spread") or 0.0)
+            best_bid = float(orderflow_context.get("best_bid") or 0.0)
+            best_ask = float(orderflow_context.get("best_ask") or 0.0)
+            if decision in {"LONG", "SHORT"} and imbalance:
+                if imbalance > 0.25:
+                    if decision == "LONG":
+                        confidence = min(1.0, confidence + 0.05)
+                        risk_pct = min(risk_pct * 1.05, payload["riesgo_pct"] * 1.5)
+                        reasons.append("Orderflow acompaña (imbalance +)")
+                    else:
+                        confidence = max(0.0, confidence - 0.05)
+                        risk_pct = max(0.1, risk_pct * 0.8)
+                        reasons.append("Orderflow contradice SHORT (imbalance +)")
+                elif imbalance < -0.25:
+                    if decision == "SHORT":
+                        confidence = min(1.0, confidence + 0.05)
+                        risk_pct = min(risk_pct * 1.05, payload["riesgo_pct"] * 1.5)
+                        reasons.append("Orderflow acompaña (imbalance -)")
+                    else:
+                        confidence = max(0.0, confidence - 0.05)
+                        risk_pct = max(0.1, risk_pct * 0.8)
+                        reasons.append("Orderflow contradice LONG (imbalance -)")
+            if spread and best_bid and best_ask:
+                spread_pct = spread / max((best_bid + best_ask) / 2.0, 1e-9)
+                if spread_pct > 0.001:  # 0.1%
+                    risk_pct = max(0.1, risk_pct * 0.9)
+                    reasons.append(f"Spread amplio ({spread_pct*100:.2f}%) reduce riesgo")
         if session_context:
             metadata["session_guard"] = session_context
             guard_state = session_context.get("state")

@@ -17,6 +17,18 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 - **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
 - **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
 - **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades). Ahora cachea respuestas HTTP (`cache_ttl`) y reintenta automáticamente para no golpear APIs externas en exceso; también persiste fallback en disco para operar aun sin conectividad.
+- **OrderflowDataSource** (opcional): consulta `/v5/market/orderbook` de Bybit, agrega liquidez bid/ask y calcula imbalance/spread. Se activa definiendo `cerebro.orderflow_feeds.enabled=true` en `config/config.json`. Campos soportados:
+  ```jsonc
+  "orderflow_feeds": {
+    "enabled": true,
+    "base_url": "https://api.bybit.com",
+    "category": "linear",
+    "depth": 50,
+    "cache_ttl": 8,
+    "retry_attempts": 2
+  }
+  ```
+  Cuando está habilitado, el Cerebro ajusta riesgo/confianza según el imbalance y penaliza spreads amplios.
 - **DynamicConfidenceGate**: ajusta el umbral mínimo de confianza según volatilidad, calidad del dataset y anomalías.
 - **ExperienceMemory**: cola de tamaño configurable que guarda `features + pnl + decision` para el aprendizaje.
 - **PolicyEnsemble**: combina `ia_signal_engine`, heurísticas y el modelo entrenado. Usa features normalizados, sentimiento, guardias y resultados del detector de anomalías.

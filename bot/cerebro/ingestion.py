@@ -8,6 +8,7 @@ from typing import Deque, Dict, Iterable, List, Optional, Tuple
 from .datasources.market import MarketDataSource
 from .datasources.macro import MacroDataSource, MacroFeedConfig
 from .datasources.news import RSSNewsDataSource
+from .datasources.orderflow import OrderflowDataSource, OrderflowConfig
 
 
 @dataclass
@@ -22,10 +23,18 @@ class IngestionTask:
 class DataIngestionManager:
     """Administra los data sources con un buffer FIFO y caching básico."""
 
-    def __init__(self, *, news_feeds: Iterable[str], cache_ttl: int = 30, macro_config: dict | None = None):
+    def __init__(
+        self,
+        *,
+        news_feeds: Iterable[str],
+        cache_ttl: int = 30,
+        macro_config: dict | None = None,
+        orderflow_config: dict | None = None,
+    ):
         self.market = MarketDataSource()
         self.news = RSSNewsDataSource(list(news_feeds))
         self.macro = MacroDataSource(MacroFeedConfig.from_dict(macro_config))
+        self.orderflow = OrderflowDataSource(OrderflowConfig.from_dict(orderflow_config))
         self.cache_ttl = cache_ttl
         self._queue: Deque[IngestionTask] = deque()
         self._cache: Dict[Tuple[str, str, str], Tuple[float, List[dict]]] = {}
@@ -71,6 +80,9 @@ class DataIngestionManager:
             return self._store_cache(key, rows)
         if source == "macro":
             rows = self.macro.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
+            return self._store_cache(key, rows)
+        if source == "orderflow":
+            rows = self.orderflow.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
             return self._store_cache(key, rows)
         raise ValueError(f"Fuente desconocida: {source}")
 

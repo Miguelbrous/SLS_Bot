@@ -25,8 +25,9 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `python scripts/ops.py arena notes add/list` y los endpoints `/arena/notes` registran bitácoras para cada estrategia directamente en `arena.db`, útil antes de moverlas a real.
 - `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`, ideales para cron/CI y dashboards Grafana.
 - Nuevos scripts: `scripts/run_testnet_session.sh` (sesión controlada testnet), `scripts/cron/cerebro_train.sh` (hook cron) y `scripts/tools/arena_candidate_report.py` (selección de campeones); CI con `.github/workflows/ci.yml` y guía `docs/observability.md` para Prometheus/Grafana.
-- Panel `/dashboard` ahora consume `/observability/summary` para mostrar meta de la arena, drawdown actual del bot y decisiones/minuto del Cerebro en tiempo real.\n*** End Patch
+- Panel `/dashboard` ahora consume `/observability/summary` para mostrar meta de la arena, drawdown actual del bot y decisiones/minuto del Cerebro en tiempo real.
 - `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.
+- `config/config.sample.json` ahora incluye `orderflow_feeds` (OFF por defecto) y la doc (`README.md`, `docs/cerebro.md`) explica cómo habilitar el nuevo `OrderflowDataSource` con los parámetros recomendados.
 
 ---
 
