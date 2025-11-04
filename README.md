@@ -209,7 +209,7 @@ npm run build
 ## Frentes débiles actuales
 - **Panel / Observabilidad:** aunque ya contamos con `ANALYZE=true npm run build` y métricas adicionales en la vista de arena, el panel todavía no expone las métricas Prometheus del bot/Cerebro ni utiliza cargas diferidas para componentes pesados como `lightweight-charts`. Falta revisar los reportes generados por el bundle analyzer y diseñar visualizaciones/alertas adicionales desde la UI.
 - **Cerebro IA / Ingestas:** el Cerebro sigue limitado a los feeds existentes (market/news/macro). Deberíamos integrar nuevas fuentes (funding detallado, order book profundo, datos on-chain o de riesgo) y automatizar entrenamientos (`ops cerebro train`) desde CI/cron con datasets validados antes de promover modelos.
-- **Observabilidad / CI:** pese al CLI unificado y las métricas nuevas, falta un pipeline formal (GitHub Actions/Jenkins) que ejecute `ops qa`, `ops monitor check` y entrenamientos `--dry-run` tras cada cambio. También se requiere instrumentar dashboards externos (Grafana/Alertmanager) para consumir `sls_arena_*`, `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`.
+- **Observabilidad / CI:** ya existe `.github/workflows/ci.yml` con `pytest`, `npm run lint` y `python scripts/ops.py monitor check --dry-run`, pero sigue pendiente integrar dashboards Prometheus/Grafana y alarmas externas que consuman las métricas (`sls_arena_*`, `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`) para monitoreo continuo.
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 

@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop, codex/** ]
+  pull_request:
+    branches: [ main, master, develop, codex/** ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install backend deps
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r bot/requirements-dev.txt
+
+      - name: Run pytest
+        run: |
+          source venv/bin/activate
+          pytest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: panel/package-lock.json
+
+      - name: Install panel deps
+        working-directory: panel
+        run: npm install
+
+      - name: Lint panel
+        working-directory: panel
+        env:
+          NEXT_PUBLIC_API_BASE: http://127.0.0.1:8880
+        run: npm run lint
+
+      - name: Monitor check (dry-run)
+        run: |
+          source venv/bin/activate
+          python scripts/ops.py monitor check --dry-run --panel-token dummy || true
+
