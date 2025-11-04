@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Dict, List
+import heapq
 
 from .models import StrategyProfile
 from .registry import ArenaRegistry
@@ -52,8 +53,7 @@ def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
             "trades": trades,
         }
         items.append(row)
-    items.sort(key=lambda x: x["score"], reverse=True)
-
+    top_items = heapq.nlargest(200, items, key=lambda x: x["score"])
     destination = target or RANKING_PATH
-    destination.write_text(json.dumps(items[:200], indent=2), encoding="utf-8")
-    return items
+    destination.write_text(json.dumps(top_items, indent=2), encoding="utf-8")
+    return top_items

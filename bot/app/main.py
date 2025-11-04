@@ -4,6 +4,7 @@ import secrets
 from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional, Literal
+import copy
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +47,7 @@ except Exception:  # pragma: no cover - optional dependency
 APP_DIR = Path(__file__).resolve().parent
 BOT_DIR = APP_DIR.parent
 PROJECT_ROOT = BOT_DIR.parent
+_JSON_CACHE: Dict[str, tuple[float, Any]] = {}
 
 CONTROL_USER = os.getenv("CONTROL_USER")
 CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD")
@@ -257,7 +259,14 @@ def _load_json_file(path: Path, fallback):
     if not path.exists():
         return fallback
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        cache_key = str(path.resolve())
+        mtime = path.stat().st_mtime
+        cached = _JSON_CACHE.get(cache_key)
+        if cached and cached[0] == mtime:
+            return copy.deepcopy(cached[1])
+        data = json.loads(path.read_text(encoding="utf-8"))
+        _JSON_CACHE[cache_key] = (mtime, data)
+        return copy.deepcopy(data)
     except Exception:
         return fallback
 

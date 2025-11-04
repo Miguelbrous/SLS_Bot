@@ -39,6 +39,9 @@ class ArenaStorage:
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_ledger_strategy ON ledger(strategy_id)")
             conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ledger_strategy_id ON ledger(strategy_id, id DESC)"
+            )
+            conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS state (
                     key TEXT PRIMARY KEY,
@@ -119,16 +122,18 @@ class ArenaStorage:
             rows = conn.execute(
                 """
                 SELECT strategy_id, ts, pnl, balance_after, reason
-                FROM ledger
-                WHERE strategy_id = ?
-                ORDER BY id DESC
-                LIMIT ?
+                FROM (
+                    SELECT strategy_id, ts, pnl, balance_after, reason
+                    FROM ledger
+                    WHERE strategy_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                )
+                ORDER BY ts ASC
                 """,
                 (strategy_id, limit),
             ).fetchall()
-            data = [dict(row) for row in rows]
-            data.reverse()
-            return data
+            return [dict(row) for row in rows]
 
     def add_note(self, strategy_id: str, note: str, author: str | None = None) -> dict:
         ts = datetime.now(timezone.utc).isoformat()
