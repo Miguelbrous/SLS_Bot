@@ -17,12 +17,18 @@ interface RankingRow {
   score: number;
   wins?: number | null;
   losses?: number | null;
+  drawdown_pct?: number | null;
+  max_drawdown_pct?: number | null;
+  sharpe_ratio?: number | null;
+  trades?: number | null;
 }
 
 interface ArenaState {
   current_goal?: number | null;
   goal_increment?: number | null;
   wins?: number | null;
+  last_tick_ts?: string | null;
+  ticks_since_win?: number | null;
 }
 
 interface LedgerEntry {
@@ -30,6 +36,13 @@ interface LedgerEntry {
   pnl: number;
   balance_after: number;
   reason?: string | null;
+}
+
+interface ArenaNote {
+  strategy_id: string;
+  note: string;
+  author?: string | null;
+  ts: string;
 }
 
 async function fetchJSON<T>(path: string): Promise<T> {
@@ -64,6 +77,13 @@ export default function ArenaPage() {
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [notes, setNotes] = useState<ArenaNote[]>([]);
+  const [noteMessage, setNoteMessage] = useState("");
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [minTrades, setMinTrades] = useState(60);
+  const [minSharpe, setMinSharpe] = useState(0.35);
+  const [maxDrawdown, setMaxDrawdown] = useState(30);
+  const [forcePromotion, setForcePromotion] = useState(false);
 
   const loadData = async () => {
     try {
@@ -85,8 +105,12 @@ export default function ArenaPage() {
   const loadLedger = async (strategyId: string) => {
     try {
       setLoadingLedger(true);
-      const payload = await fetchJSON<{ entries: LedgerEntry[] }>(`/arena/ledger?strategy_id=${encodeURIComponent(strategyId)}`);
-      setLedger(payload.entries || []);
+      const [ledgerResp, notesResp] = await Promise.all([
+        fetchJSON<{ entries: LedgerEntry[] }>(`/arena/ledger?strategy_id=${encodeURIComponent(strategyId)}`),
+        fetchJSON<{ notes: ArenaNote[] }>(`/arena/notes?strategy_id=${encodeURIComponent(strategyId)}`),
+      ]);
+      setLedger(ledgerResp.entries || []);
+      setNotes(notesResp.notes || []);
       setSelected(strategyId);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error cargando ledger";
@@ -114,7 +138,14 @@ export default function ArenaPage() {
     if (!selected) return;
     try {
       setActionMessage("Generando paquete de promoción...");
-      await postJSON(`/arena/promote?strategy_id=${encodeURIComponent(selected)}`);
+      const params = new URLSearchParams({
+        strategy_id: selected,
+        min_trades: String(minTrades),
+        min_sharpe: String(minSharpe),
+        max_drawdown: String(maxDrawdown),
+      });
+      if (forcePromotion) params.set("force", "true");
+      await postJSON(`/arena/promote?${params.toString()}`);
       setActionMessage(`Estrategia ${selected} exportada (bot/arena/promoted/${selected}).`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error exportando estrategia";
@@ -163,6 +194,24 @@ export default function ArenaPage() {
         </div>
       </header>
 
+      <div className="toolbar" style={{ marginBottom: 16 }}>
+        <label>
+          Min trades
+          <input type="number" value={minTrades} onChange={(e) => setMinTrades(Number(e.target.value) || 0)} min={10} />
+        </label>
+        <label>
+          Min Sharpe
+          <input type="number" step="0.05" value={minSharpe} onChange={(e) => setMinSharpe(Number(e.target.value) || 0)} />
+        </label>
+        <label>
+          Max DD (%)
+          <input type="number" value={maxDrawdown} onChange={(e) => setMaxDrawdown(Number(e.target.value) || 0)} min={5} />
+        </label>
+        <label className="checkbox-inline">
+          <input type="checkbox" checked={forcePromotion} onChange={(e) => setForcePromotion(e.target.checked)} /> Forzar exportación
+        </label>
+      </div>
+
       {error ? <div className="error-banner">{error}</div> : null}
       {actionMessage ? <div className="badge muted">{actionMessage}</div> : null}
 
@@ -198,12 +247,15 @@ export default function ArenaPage() {
                   <th>Meta</th>
                   <th>Score</th>
                   <th>Wins</th>
+                  <th>Sharpe</th>
+                  <th>Max DD%</th>
+                  <th>Trades</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRanking.map((row, idx) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className={selected === row.id ? "active" : undefined}>
                     <td>{idx + 1}</td>
                     <td>{row.name}</td>
                     <td>{row.category}</td>
@@ -212,6 +264,9 @@ export default function ArenaPage() {
                     <td>{typeof row.goal === "number" ? row.goal.toFixed(2) : "-"}</td>
                     <td>{row.score.toFixed(3)}</td>
                     <td>{row.wins ?? 0}</td>
+                    <td>{typeof row.sharpe_ratio === "number" ? row.sharpe_ratio.toFixed(2) : "-"}</td>
+                    <td>{typeof row.max_drawdown_pct === "number" ? row.max_drawdown_pct.toFixed(1) : "-"}</td>
+                    <td>{row.trades ?? "-"}</td>
                     <td>
                       <button onClick={() => loadLedger(row.id)} disabled={loadingLedger && selected === row.id}>
                         Ver ledger
@@ -232,27 +287,78 @@ export default function ArenaPage() {
             {currentSelection ? <span className="pill neutral">{currentSelection.name}</span> : null}
           </div>
           {selected && ledger.length ? (
-            <div className="arena-table-wrapper">
-              <table className="arena-table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>PNL</th>
-                    <th>Balance</th>
-                    <th>Motivo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ledger.map((entry) => (
-                    <tr key={`${entry.ts}-${entry.balance_after}`}>
-                      <td>{new Date(entry.ts).toLocaleString()}</td>
-                      <td className={entry.pnl >= 0 ? "pos" : "neg"}>{entry.pnl.toFixed(4)}</td>
-                      <td>{entry.balance_after.toFixed(4)}</td>
-                      <td>{entry.reason ?? "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="arena-details">
+              <div>
+                <div className="arena-table-wrapper">
+                  <table className="arena-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>PNL</th>
+                        <th>Balance</th>
+                        <th>Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledger.map((entry) => (
+                        <tr key={`${entry.ts}-${entry.balance_after}`}>
+                          <td>{new Date(entry.ts).toLocaleString()}</td>
+                          <td className={entry.pnl >= 0 ? "pos" : "neg"}>{entry.pnl.toFixed(4)}</td>
+                          <td>{entry.balance_after.toFixed(4)}</td>
+                          <td>{entry.reason ?? "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="metric-grid" style={{ marginTop: 12 }}>
+                  <div className="metric-card">
+                    <span>Sharpe</span>
+                    <strong>{typeof currentSelection?.sharpe_ratio === "number" ? currentSelection.sharpe_ratio.toFixed(2) : "-"}</strong>
+                    <small>Mayor es mejor</small>
+                  </div>
+                  <div className="metric-card">
+                    <span>Max DD %</span>
+                    <strong>{typeof currentSelection?.max_drawdown_pct === "number" ? currentSelection.max_drawdown_pct.toFixed(1) : "-"}</strong>
+                    <small>Último ciclo</small>
+                  </div>
+                  <div className="metric-card">
+                    <span>Trades</span>
+                    <strong>{currentSelection?.trades ?? "-"}</strong>
+                    <small>Wins/Losses {currentSelection?.wins ?? 0}/{currentSelection?.losses ?? 0}</small>
+                  </div>
+                  <div className="metric-card">
+                    <span>Score</span>
+                    <strong>{currentSelection?.score.toFixed(3)}</strong>
+                    <small>Balance vs meta</small>
+                  </div>
+                </div>
+              </div>
+              <div className="notes-card">
+                <h3>Notas</h3>
+                {notes.length ? (
+                  <ul className="note-list">
+                    {notes.map((note) => (
+                      <li key={`${note.ts}-${note.note}`}>
+                        <div>
+                          <span>{note.note}</span>
+                        </div>
+                        <small>
+                          {new Date(note.ts).toLocaleString()} · {note.author || "anon"}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="empty small">Sin notas aún.</div>
+                )}
+                <div className="note-form">
+                  <textarea value={noteMessage} onChange={(e) => setNoteMessage(e.target.value)} placeholder="Agregar nota (ej. ajustes pendientes, riesgos, etc.)" />
+                  <button onClick={handleAddNote} disabled={!noteMessage.trim() || noteLoading}>
+                    {noteLoading ? "Guardando..." : "Guardar nota"}
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="empty">Selecciona una estrategia del ranking para ver su ledger.</div>
@@ -262,3 +368,22 @@ export default function ArenaPage() {
     </div>
   );
 }
+  const handleAddNote = async () => {
+    if (!selected || !noteMessage.trim()) return;
+    try {
+      setNoteLoading(true);
+      await postJSON("/arena/notes", {
+        strategy_id: selected,
+        note: noteMessage.trim(),
+        author: "panel",
+      });
+      setNoteMessage("");
+      const notesResp = await fetchJSON<{ notes: ArenaNote[] }>(`/arena/notes?strategy_id=${encodeURIComponent(selected)}`);
+      setNotes(notesResp.notes || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error guardando nota";
+      setError(message);
+    } finally {
+      setNoteLoading(false);
+    }
+  };

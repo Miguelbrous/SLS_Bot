@@ -150,6 +150,16 @@ button:hover { border-color: var(--accent); }
 .toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
 .toolbar label { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:4px; }
 .toolbar select { background:#0f0f0f; border:1px solid #222; color:var(--fg); padding:4px 6px; border-radius:6px; }
+.toolbar input[type="number"],
+.toolbar input[type="text"] {
+  background:#0f0f0f;
+  border:1px solid #222;
+  color:var(--fg);
+  padding:4px 6px;
+  border-radius:6px;
+}
+.checkbox-inline { flex-direction:row !important; gap:8px !important; align-items:center; }
+.checkbox-inline input { margin:0; }
 .top-nav { display:flex; gap:12px; margin-block-end:16px; }
 .top-nav a { color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; padding:4px 6px; }
 .top-nav a:hover { border-color:var(--accent); color:var(--accent); }
@@ -161,3 +171,14 @@ button:hover { border-color: var(--accent); }
 .arena-table { inline-size:100%; border-collapse:collapse; font-size:12px; }
 .arena-table th, .arena-table td { border-block-end:1px solid #1f1f1f; padding:6px 8px; text-align:start; }
 .arena-table th { background:#151515; color:var(--muted); position:sticky; inset-block-start:0; }
+.arena-table tr.active { background:#0f0f0f; }
+
+.arena-details { display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap:16px; }
+@media (max-width: 900px) { .arena-details { grid-template-columns:1fr; } }
+.notes-card { border:1px solid #1f1f1f; border-radius:12px; padding:12px; background:#0f0f0f; display:flex; flex-direction:column; gap:10px; }
+.notes-card h3 { margin:0; font-size:14px; color:var(--muted); }
+.note-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; max-block-size:260px; overflow:auto; }
+.note-list li { border:1px solid #1f1f1f; border-radius:8px; padding:8px; font-size:12px; background:#141414; }
+.note-list li small { display:block; margin-top:4px; color:var(--muted); font-size:11px; }
+.note-form { display:flex; flex-direction:column; gap:8px; }
+.note-form textarea { min-block-size:80px; border:1px solid #222; border-radius:8px; background:#0f0f0f; color:var(--fg); padding:8px; font-family:inherit; resize:vertical; }
