@@ -43,6 +43,17 @@ async function fetchJSON<T>(path: string): Promise<T> {
   return resp.json();
 }
 
+async function postJSON<T>(path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (PANEL_TOKEN) headers["X-Panel-Token"] = PANEL_TOKEN;
+  const resp = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: body ? JSON.stringify(body) : undefined });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(text || resp.statusText);
+  }
+  return resp.json();
+}
+
 export default function ArenaPage() {
   const [ranking, setRanking] = useState<RankingRow[]>([]);
   const [state, setState] = useState<ArenaState | null>(null);
@@ -52,6 +63,7 @@ export default function ArenaPage() {
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -84,6 +96,34 @@ export default function ArenaPage() {
     }
   };
 
+  const forceTick = async () => {
+    try {
+      setActionMessage("Ejecutando tick...");
+      await postJSON("/arena/tick");
+      await loadData();
+      setActionMessage("Tick ejecutado correctamente.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error ejecutando tick";
+      setError(message);
+    } finally {
+      setTimeout(() => setActionMessage(null), 4000);
+    }
+  };
+
+  const promoteSelected = async () => {
+    if (!selected) return;
+    try {
+      setActionMessage("Generando paquete de promoción...");
+      await postJSON(`/arena/promote?strategy_id=${encodeURIComponent(selected)}`);
+      setActionMessage(`Estrategia ${selected} exportada (bot/arena/promoted/${selected}).`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error exportando estrategia";
+      setError(message);
+    } finally {
+      setTimeout(() => setActionMessage(null), 4000);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -111,6 +151,12 @@ export default function ArenaPage() {
           <Link href="/dashboard" className="badge ok">
             Volver al dashboard
           </Link>
+          <button onClick={forceTick} disabled={loading}>
+            Forzar tick
+          </button>
+          <button onClick={promoteSelected} disabled={!selected}>
+            Exportar paquete
+          </button>
           <button onClick={loadData} disabled={loading}>
             {loading ? "Actualizando..." : "Refrescar"}
           </button>
@@ -118,6 +164,7 @@ export default function ArenaPage() {
       </header>
 
       {error ? <div className="error-banner">{error}</div> : null}
+      {actionMessage ? <div className="badge muted">{actionMessage}</div> : null}
 
       <section className="dashboard-section">
         <div className="card">

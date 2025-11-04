@@ -66,6 +66,15 @@ def cmd_health(args: argparse.Namespace) -> None:
     _run([_python_exec(), str(HEALTH_SCRIPT), *extra])
 
 
+def cmd_qa(args: argparse.Namespace) -> None:
+    print("[qa] Ejecutando pytest…")
+    _run([_python_exec(), "-m", "pytest"])
+    if not args.skip_panel:
+        print("[qa] Ejecutando npm run lint…")
+        _run(["npm", "run", "lint"], cwd=ROOT / "panel")
+    print("[qa] QA completado")
+
+
 def cmd_arena_tick(args: argparse.Namespace) -> None:
     _run([str(ARENA_TICK)])
 
@@ -121,6 +130,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub_health.add_argument("--control-user", dest="control_user")
     sub_health.add_argument("--control-password", dest="control_password")
     sub_health.set_defaults(func=cmd_health)
+
+    sub_qa = sub.add_parser("qa", help="Ejecuta suite rápida de validaciones")
+    sub_qa.add_argument("--skip-panel", action="store_true", help="Omitir npm run lint para el panel")
+    sub_qa.set_defaults(func=cmd_qa)
 
     arena = sub.add_parser("arena", help="Operaciones relacionadas a la arena")
     arena_sub = arena.add_subparsers(dest="arena_cmd", required=True)

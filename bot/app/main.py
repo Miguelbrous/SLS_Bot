@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple, Optional, Literal
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .alerts import collect_alerts
 from .models import (
@@ -103,6 +104,7 @@ ARENA_STATE = Path(os.getenv("ARENA_STATE_PATH", ARENA_DIR / "cup_state.json"))
 ARENA_DB = Path(os.getenv("ARENA_DB_PATH", ARENA_DIR / "arena.db"))
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 try:
     from cerebro.router import cerebro_router  # type: ignore
@@ -819,3 +821,20 @@ def arena_ledger(
     storage = ArenaStorage(ARENA_DB)
     data = storage.ledger_for(strategy_id, limit=limit)
     return {"id": strategy_id, "entries": data}
+
+
+@app.post("/arena/tick")
+def arena_tick(_: None = Depends(require_panel_token)):
+    from bot.arena.service import ArenaService
+
+    service = ArenaService()
+    service.tick()
+    return {"status": "ok"}
+
+
+@app.post("/arena/promote")
+def arena_promote(strategy_id: str = Query(..., min_length=2, max_length=64), _: None = Depends(require_panel_token)):
+    from bot.arena.promote import export_strategy
+
+    pkg_dir = export_strategy(strategy_id)
+    return {"status": "ok", "path": str(pkg_dir)}

@@ -23,14 +23,14 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
 ```
 
 ## Integración
-- FastAPI ya expone `/arena/ranking` y `/arena/state` (requieren token del panel). Ambos leen
-  `bot/arena/ranking_latest.json` y `bot/arena/cup_state.json`, por lo que basta ejecutar periódicamente
-  `python -m bot.arena`, `scripts/run_arena_tick.sh` o `python scripts/ops.py arena run` para mantener los datos frescos.
+- FastAPI expone `/arena/ranking`, `/arena/state`, `/arena/ledger`, `POST /arena/tick` y `POST /arena/promote`
+  (requieren token del panel). Puedes forzar un tick, obtener paquetes listos para promoción o inspeccionar ledger sin
+  dejar la UI.
 - Cuando una estrategia alcanza la meta vigente pasa a `champion` y se marca como candidata para modo real.
   Su carpeta en `bot/arena/strategies/<id>/` puede contener código personalizado y seguirá aprendiendo aun
   después de ser promovida.
 - Para exportar una estrategia ganadora y promoverla fuera de la arena usa
-  `python scripts/promote_arena_strategy.py <strategy_id>`; se genera `bot/arena/promoted/<id>/`
+  `python scripts/promote_arena_strategy.py <strategy_id>` (o el endpoint correspondiente); se genera `bot/arena/promoted/<id>/`
   con `profile.json`, `ledger_tail.json` y `SUMMARY.md` para facilitar el traspaso a modo real.
 
 ## Próximos pasos

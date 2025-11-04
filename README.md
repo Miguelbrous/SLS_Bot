@@ -154,7 +154,9 @@ npm run build
 `docker-compose.yml` levanta solo el panel en modo host. Ajusta el archivo si quieres incluir la API/control.
 
 ## Comandos utiles
-- `python scripts/ops.py up` enciende API, bot, Cerebro y la estrategia (`down`, `status`, `logs`, `arena tick` y `arena promote` funcionan igual). El CLI usa los mismos scripts internos, pero unifica el flujo operativo.
+- `python scripts/ops.py up` enciende API, bot, Cerebro y la estrategia (`down`, `status`, `logs`, `arena tick/run/promote/ranking/state/ledger`, `qa` funcionan igual). El CLI usa los mismos scripts internos, pero unifica el flujo operativo.
+- `python scripts/ops.py qa` corre pytest y `npm run lint` (agrega `--skip-panel` si no quieres correr el lint del panel).
+- `/metrics` expone métricas Prometheus de la API (instrumentadas con `prometheus-fastapi-instrumentator`).
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.
 - `npm run lint` para validar el panel antes de publicar.
@@ -191,7 +193,7 @@ npm run build
   que consumen los endpoints `/arena/state` y `/arena/ranking`.
 - Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; se genera la carpeta
   `bot/arena/promoted/<id>/` con `profile.json`, `ledger_tail.json` y `SUMMARY.md` (blueprint para mover a real).
-- Panel `/arena` muestra el ranking completo, filtros por categoría y ledger reciente usando los endpoints `/arena/ranking`, `/arena/state` y `/arena/ledger`.
+- Panel `/arena` muestra ranking completo, filtros, ledger y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 

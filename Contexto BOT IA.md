@@ -15,6 +15,9 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `bot/arena/service.py` introduce `ArenaService`, un loop embebido que puedes levantar con `python scripts/ops.py arena run` para mantener ranking/state sin depender de cron.
 - `bot/arena/storage.py` agrega `arena.db` (SQLite) para registrar ledger e inspeccionar ranking desde el CLI sin depender sólo de JSON.
 - `scripts/promote_arena_strategy.py` ahora genera carpetas completas (`profile.json`, `ledger_tail.json`, `SUMMARY.md`) para facilitar la revisión/promoción de estrategias ganadoras.
+- API expone `/arena/ledger` y el panel cuenta con `/arena` para consumir ranking + ledger con filtros directamente desde la UI.
+- Nuevos endpoints `POST /arena/tick` y `POST /arena/promote` permiten operar la arena (forzar tick/exportar) desde el panel vía botones dedicados.
+- `/metrics` ahora expone métricas (Prometheus) gracias a `prometheus-fastapi-instrumentator`, útil para observabilidad externa.
 
 ---
 
