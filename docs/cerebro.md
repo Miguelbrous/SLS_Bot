@@ -16,7 +16,7 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 - **DataIngestionManager**: mantiene una cola FIFO de tareas para `market`, `news` y ahora `macro` (open interest/funding/whale flow), con cache TTL configurable (`data_cache_ttl`). Evita golpear los endpoints si los datos siguen frescos.
 - **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
 - **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
-- **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades).
+- **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades). Ahora cachea respuestas HTTP (`cache_ttl`) y reintenta automáticamente para no golpear APIs externas en exceso; también persiste fallback en disco para operar aun sin conectividad.
 - **DynamicConfidenceGate**: ajusta el umbral mínimo de confianza según volatilidad, calidad del dataset y anomalías.
 - **ExperienceMemory**: cola de tamaño configurable que guarda `features + pnl + decision` para el aprendizaje.
 - **PolicyEnsemble**: combina `ia_signal_engine`, heurísticas y el modelo entrenado. Usa features normalizados, sentimiento, guardias y resultados del detector de anomalías.

@@ -6,7 +6,11 @@ import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+import copy
+import logging
+
+logger = logging.getLogger(__name__)
 
 import requests
 
@@ -20,6 +24,8 @@ class MacroFeedConfig:
     whale_flow_url: Optional[str] = None
     cache_dir: Optional[str] = None
     timeout: float = 5.0
+    cache_ttl: float = 300.0
+    retry_attempts: int = 2
 
     @classmethod
     def from_dict(cls, data: Dict[str, object] | None) -> "MacroFeedConfig":
@@ -30,6 +36,8 @@ class MacroFeedConfig:
             whale_flow_url=str(data.get("whale_flow_url", "") or "") or None,
             cache_dir=str(data.get("cache_dir", "") or "") or None,
             timeout=float(data.get("timeout", 5.0) or 5.0),
+            cache_ttl=float(data.get("cache_ttl", 300.0) or 300.0),
+            retry_attempts=int(data.get("retry_attempts", 2) or 2),
         )
 
 
@@ -40,6 +48,7 @@ class MacroDataSource(DataSource):
 
     def __init__(self, config: MacroFeedConfig | None = None):
         self.config = config or MacroFeedConfig()
+        self._http_cache: Dict[str, Tuple[float, List[dict]]] = {}
 
     def _load_cached(self, cache_file: str) -> List[dict]:
         if not cache_file:
@@ -53,7 +62,7 @@ class MacroDataSource(DataSource):
             raw = path.read_text(encoding="utf-8")
             payload = json.loads(raw)
             if isinstance(payload, list):
-                return payload
+                return copy.deepcopy(payload)
         except Exception:
             return []
         return []
@@ -61,16 +70,29 @@ class MacroDataSource(DataSource):
     def _http_fetch(self, url: Optional[str]) -> List[dict]:
         if not url:
             return []
-        try:
-            resp = requests.get(url, timeout=self.config.timeout)
-            resp.raise_for_status()
-            payload = resp.json()
-            if isinstance(payload, list):
-                return payload
-            if isinstance(payload, dict):
-                return [payload]
-        except Exception:
-            return []
+        cache_entry = self._http_cache.get(url)
+        now = time.time()
+        if cache_entry and (now - cache_entry[0]) < self.config.cache_ttl:
+            return copy.deepcopy(cache_entry[1])
+        attempts = max(1, self.config.retry_attempts)
+        last_error: Optional[Exception] = None
+        for attempt in range(attempts):
+            try:
+                resp = requests.get(url, timeout=self.config.timeout)
+                resp.raise_for_status()
+                payload = resp.json()
+                if isinstance(payload, list):
+                    self._http_cache[url] = (now, payload)
+                    return copy.deepcopy(payload)
+                if isinstance(payload, dict):
+                    data = [payload]
+                    self._http_cache[url] = (now, data)
+                    return copy.deepcopy(data)
+            except Exception as exc:
+                last_error = exc
+                time.sleep(0.2 * (attempt + 1))
+        if last_error:
+            logger.debug("MacroDataSource: fallo al consultar %s: %s", url, last_error)
         return []
 
     def _fallback_payload(self) -> List[dict]:
