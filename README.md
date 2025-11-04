@@ -8,7 +8,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
 - `bot/arena/` concentra la **Arena de estrategias** con 5 000 perfiles simulados, registro, ranking y
-  orquestador para la “carrera” test → real.
+  orquestador para la “carrera” test → real (usa `bot/arena/arena.db` para ledger/state además de los JSON históricos).
 - `bot/core/settings.py` centraliza la lectura de `.env`/config para compartir defaults entre CLI, loop y servicios.
 - `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
   genera features y aprende de los resultados para proponer mejoras. Act?valo

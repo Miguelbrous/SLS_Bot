@@ -13,6 +13,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Nuevo CLI `python scripts/ops.py` centraliza `up/down/status/logs`, healthcheck y acciones de arena para no depender de múltiples scripts.
 - `bot/core/settings.py` unifica la lectura de `.env` mediante Pydantic, así loop y CLI comparten los mismos defaults (estrategia, intervalos, firma, modo).
 - `bot/arena/service.py` introduce `ArenaService`, un loop embebido que puedes levantar con `python scripts/ops.py arena run` para mantener ranking/state sin depender de cron.
+- `bot/arena/storage.py` agrega `arena.db` (SQLite) para registrar ledger e inspeccionar ranking desde el CLI sin depender sólo de JSON.
 
 ---
 

@@ -7,6 +7,7 @@ from typing import Dict, List
 from .models import StrategyProfile
 from .registry import ArenaRegistry
 from .config import ARENA_DIR
+from .storage import ArenaStorage
 
 RANKING_PATH = ARENA_DIR / "ranking_latest.json"
 
@@ -22,9 +23,13 @@ def _score(profile: StrategyProfile) -> float:
 
 def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
     registry = ArenaRegistry()
+    storage = ArenaStorage()
+    latest_balances = {row["strategy_id"]: row for row in storage.top_balances(limit=500)}
     items = []
     for profile in registry.all():
         stats = profile.stats
+        latest = latest_balances.get(profile.id)
+        balance_override = latest["balance_after"] if latest else None
         row = {
             "id": profile.id,
             "name": profile.name,
@@ -32,7 +37,7 @@ def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
             "mode": profile.mode,
             "engine": profile.engine,
             "score": _score(profile),
-            "balance": stats.balance if stats else None,
+            "balance": balance_override if balance_override is not None else (stats.balance if stats else None),
             "goal": stats.goal if stats else None,
             "wins": stats.wins if stats else 0,
             "losses": stats.losses if stats else 0,

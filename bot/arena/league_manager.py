@@ -9,6 +9,7 @@ from .config import load_cup_config, ARENA_DIR
 from .models import StrategyProfile, StrategyStats
 from .registry import ArenaRegistry, LEDGER_PATH
 from .simulator import MarketSimulator
+from .storage import ArenaStorage
 
 
 class LeagueManager:
@@ -16,6 +17,7 @@ class LeagueManager:
         self.registry = registry or ArenaRegistry()
         self.cfg = load_cup_config()
         self.simulator = MarketSimulator()
+        self.storage = ArenaStorage()
 
     def select_contenders(self) -> list[StrategyProfile]:
         contenders: list[StrategyProfile] = []
@@ -43,6 +45,7 @@ class LeagueManager:
         with LEDGER_PATH.open("a", encoding="utf-8") as fh:
             for entry in entries:
                 fh.write(json.dumps(asdict(entry)) + "\n")
+        self.storage.append_ledger(entries)
 
     def promote_winners(self) -> list[StrategyProfile]:
         promoted: list[StrategyProfile] = []
@@ -55,6 +58,9 @@ class LeagueManager:
                 profile.mode = "champion"
                 promoted.append(profile)
         if promoted:
-            self.registry.update_goal_after_win()
+            new_goal = self.registry.update_goal_after_win()
+            state = self.registry.ensure_state()
+            state["current_goal"] = new_goal
+            self.storage.save_state(state)
             self.registry.save()
         return promoted

@@ -12,12 +12,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.659851+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.464938+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -34,12 +34,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 18.7358,
+      "balance": 23.7358,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 91.2642,
-      "last_updated": "2025-11-04T00:02:43.659919+00:00"
+      "last_updated": "2025-11-04T01:30:53.465018+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -56,12 +56,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.659961+00:00"
+      "last_updated": "2025-11-04T01:30:53.465049+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -78,12 +78,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.659986+00:00"
+      "last_updated": "2025-11-04T01:30:53.465075+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -100,12 +100,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.660009+00:00"
+      "last_updated": "2025-11-04T01:30:53.465098+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -122,12 +122,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660030+00:00"
+      "last_updated": "2025-11-04T01:30:53.465119+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -144,12 +144,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 21.9293,
+      "balance": 16.9293,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 93.0707,
-      "last_updated": "2025-11-04T00:02:43.660063+00:00"
+      "last_updated": "2025-11-04T01:30:53.465139+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -166,12 +166,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660094+00:00"
+      "last_updated": "2025-11-04T01:30:53.465169+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -188,12 +188,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.660115+00:00"
+      "last_updated": "2025-11-04T01:30:53.465202+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -210,12 +210,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660134+00:00"
+      "last_updated": "2025-11-04T01:30:53.465233+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -232,12 +232,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660156+00:00"
+      "last_updated": "2025-11-04T01:30:53.465264+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -254,12 +254,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660203+00:00"
+      "last_updated": "2025-11-04T01:30:53.465298+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -276,12 +276,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660223+00:00"
+      "last_updated": "2025-11-04T01:30:53.465329+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -298,12 +298,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660245+00:00"
+      "last_updated": "2025-11-04T01:30:53.465362+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -320,12 +320,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660272+00:00"
+      "last_updated": "2025-11-04T01:30:53.465395+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -342,12 +342,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660290+00:00"
+      "last_updated": "2025-11-04T01:30:53.465428+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -364,12 +364,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -0.7784,
+      "balance": -5.7784,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660309+00:00"
+      "last_updated": "2025-11-04T01:30:53.465462+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -386,12 +386,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.660334+00:00"
+      "last_updated": "2025-11-04T01:30:53.465530+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -408,12 +408,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -5.0,
       "goal": 100.0,
-      "wins": 1,
+      "wins": 2,
       "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660364+00:00"
+      "last_updated": "2025-11-04T01:30:53.465565+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -430,12 +430,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660389+00:00"
+      "last_updated": "2025-11-04T01:30:53.465594+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -452,12 +452,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660407+00:00"
+      "last_updated": "2025-11-04T01:30:53.465613+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -474,12 +474,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 7.9039,
+      "balance": 2.9039,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 97.0961,
-      "last_updated": "2025-11-04T00:02:43.660426+00:00"
+      "last_updated": "2025-11-04T01:30:53.465631+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -496,12 +496,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.660445+00:00"
+      "last_updated": "2025-11-04T01:30:53.465650+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -518,12 +518,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.660474+00:00"
+      "last_updated": "2025-11-04T01:30:53.465668+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -540,12 +540,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.660529+00:00"
+      "last_updated": "2025-11-04T01:30:53.465686+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -562,12 +562,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660559+00:00"
+      "last_updated": "2025-11-04T01:30:53.465704+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -584,12 +584,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 17.5875,
+      "balance": 12.5875,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.660589+00:00"
+      "last_updated": "2025-11-04T01:30:53.465724+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -606,12 +606,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660608+00:00"
+      "last_updated": "2025-11-04T01:30:53.465743+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -628,12 +628,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660626+00:00"
+      "last_updated": "2025-11-04T01:30:53.465761+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -650,12 +650,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660654+00:00"
+      "last_updated": "2025-11-04T01:30:53.465778+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -672,12 +672,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -9.6933,
+      "balance": -14.6933,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660683+00:00"
+      "last_updated": "2025-11-04T01:30:53.465795+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -694,12 +694,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660700+00:00"
+      "last_updated": "2025-11-04T01:30:53.465813+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -716,12 +716,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660718+00:00"
+      "last_updated": "2025-11-04T01:30:53.465829+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -738,12 +738,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660736+00:00"
+      "last_updated": "2025-11-04T01:30:53.465847+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -760,12 +760,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660754+00:00"
+      "last_updated": "2025-11-04T01:30:53.465864+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -782,12 +782,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.660775+00:00"
+      "last_updated": "2025-11-04T01:30:53.465882+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -804,12 +804,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660792+00:00"
+      "last_updated": "2025-11-04T01:30:53.465899+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -826,12 +826,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660810+00:00"
+      "last_updated": "2025-11-04T01:30:53.465916+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -848,12 +848,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660828+00:00"
+      "last_updated": "2025-11-04T01:30:53.465940+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -870,12 +870,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660846+00:00"
+      "last_updated": "2025-11-04T01:30:53.465971+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -892,12 +892,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.660864+00:00"
+      "last_updated": "2025-11-04T01:30:53.466020+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -914,12 +914,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660882+00:00"
+      "last_updated": "2025-11-04T01:30:53.466053+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -936,12 +936,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -5.0,
       "goal": 100.0,
-      "wins": 1,
+      "wins": 2,
       "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660900+00:00"
+      "last_updated": "2025-11-04T01:30:53.466086+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -958,12 +958,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660917+00:00"
+      "last_updated": "2025-11-04T01:30:53.466117+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -980,12 +980,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660934+00:00"
+      "last_updated": "2025-11-04T01:30:53.466149+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1002,12 +1002,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -5.0,
       "goal": 100.0,
-      "wins": 1,
+      "wins": 2,
       "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660951+00:00"
+      "last_updated": "2025-11-04T01:30:53.466180+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1024,12 +1024,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660968+00:00"
+      "last_updated": "2025-11-04T01:30:53.466210+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1046,12 +1046,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.660985+00:00"
+      "last_updated": "2025-11-04T01:30:53.466242+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1068,12 +1068,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661002+00:00"
+      "last_updated": "2025-11-04T01:30:53.466273+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1090,12 +1090,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661019+00:00"
+      "last_updated": "2025-11-04T01:30:53.466301+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1112,12 +1112,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661036+00:00"
+      "last_updated": "2025-11-04T01:30:53.466319+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1134,12 +1134,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661053+00:00"
+      "last_updated": "2025-11-04T01:30:53.466336+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1156,12 +1156,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661070+00:00"
+      "last_updated": "2025-11-04T01:30:53.466353+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1178,12 +1178,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661094+00:00"
+      "last_updated": "2025-11-04T01:30:53.466371+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1200,12 +1200,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661118+00:00"
+      "last_updated": "2025-11-04T01:30:53.466388+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1222,12 +1222,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661135+00:00"
+      "last_updated": "2025-11-04T01:30:53.466405+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1244,12 +1244,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -5.0,
       "goal": 100.0,
-      "wins": 1,
+      "wins": 2,
       "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661153+00:00"
+      "last_updated": "2025-11-04T01:30:53.466422+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1266,12 +1266,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661171+00:00"
+      "last_updated": "2025-11-04T01:30:53.466442+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1288,12 +1288,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661207+00:00"
+      "last_updated": "2025-11-04T01:30:53.466469+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1310,12 +1310,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661224+00:00"
+      "last_updated": "2025-11-04T01:30:53.466537+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1332,12 +1332,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661241+00:00"
+      "last_updated": "2025-11-04T01:30:53.466573+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1354,12 +1354,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 30.0,
+      "balance": 25.0,
       "goal": 100.0,
       "wins": 5,
-      "losses": 0,
+      "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661260+00:00"
+      "last_updated": "2025-11-04T01:30:53.466605+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1376,12 +1376,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 22.6494,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.661288+00:00"
+      "last_updated": "2025-11-04T01:30:53.466669+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1398,12 +1398,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661308+00:00"
+      "last_updated": "2025-11-04T01:30:53.466690+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1420,12 +1420,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661326+00:00"
+      "last_updated": "2025-11-04T01:30:53.466708+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1442,12 +1442,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661344+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.466727+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1464,12 +1464,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 9.3691,
+      "balance": 14.3691,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.6309,
-      "last_updated": "2025-11-04T00:02:43.661361+00:00"
+      "last_updated": "2025-11-04T01:30:53.466745+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1486,12 +1486,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661379+00:00"
+      "last_updated": "2025-11-04T01:30:53.466770+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1508,12 +1508,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.661397+00:00"
+      "last_updated": "2025-11-04T01:30:53.466800+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1530,12 +1530,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661425+00:00"
+      "last_updated": "2025-11-04T01:30:53.466830+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1552,12 +1552,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661449+00:00"
+      "last_updated": "2025-11-04T01:30:53.466860+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1574,12 +1574,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661467+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.466890+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1596,12 +1596,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.661484+00:00"
+      "last_updated": "2025-11-04T01:30:53.466909+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1618,12 +1618,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 30.0,
+      "balance": 35.0,
       "goal": 100.0,
-      "wins": 5,
+      "wins": 6,
       "losses": 0,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661526+00:00"
+      "last_updated": "2025-11-04T01:30:53.466926+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1640,12 +1640,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661544+00:00"
+      "last_updated": "2025-11-04T01:30:53.466943+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1662,12 +1662,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661561+00:00"
+      "last_updated": "2025-11-04T01:30:53.466960+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1684,12 +1684,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661578+00:00"
+      "last_updated": "2025-11-04T01:30:53.466977+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1706,12 +1706,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661600+00:00"
+      "last_updated": "2025-11-04T01:30:53.467011+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1728,12 +1728,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661618+00:00"
+      "last_updated": "2025-11-04T01:30:53.467030+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1750,12 +1750,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661636+00:00"
+      "last_updated": "2025-11-04T01:30:53.467047+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1772,12 +1772,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661653+00:00"
+      "last_updated": "2025-11-04T01:30:53.467077+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1794,12 +1794,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661670+00:00"
+      "last_updated": "2025-11-04T01:30:53.467108+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1816,12 +1816,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661688+00:00"
+      "last_updated": "2025-11-04T01:30:53.467141+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1838,12 +1838,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661705+00:00"
+      "last_updated": "2025-11-04T01:30:53.467171+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1860,12 +1860,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661722+00:00"
+      "last_updated": "2025-11-04T01:30:53.467189+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1882,12 +1882,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661739+00:00"
+      "last_updated": "2025-11-04T01:30:53.467206+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -1904,12 +1904,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -9.2549,
+      "balance": -4.2549,
       "goal": 100.0,
-      "wins": 1,
+      "wins": 2,
       "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661756+00:00"
+      "last_updated": "2025-11-04T01:30:53.467224+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -1926,12 +1926,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.661774+00:00"
+      "last_updated": "2025-11-04T01:30:53.467242+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -1948,12 +1948,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661792+00:00"
+      "last_updated": "2025-11-04T01:30:53.467259+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -1970,12 +1970,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661809+00:00"
+      "last_updated": "2025-11-04T01:30:53.467276+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -1992,12 +1992,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661826+00:00"
+      "last_updated": "2025-11-04T01:30:53.467293+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2014,12 +2014,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -7.9169,
+      "balance": -12.9169,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661844+00:00"
+      "last_updated": "2025-11-04T01:30:53.467311+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2036,12 +2036,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661861+00:00"
+      "last_updated": "2025-11-04T01:30:53.467328+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2058,12 +2058,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661879+00:00"
+      "last_updated": "2025-11-04T01:30:53.467347+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2080,12 +2080,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661896+00:00"
+      "last_updated": "2025-11-04T01:30:53.467364+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2102,12 +2102,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661913+00:00"
+      "last_updated": "2025-11-04T01:30:53.467383+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2124,12 +2124,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.661931+00:00"
+      "last_updated": "2025-11-04T01:30:53.467413+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2146,12 +2146,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661948+00:00"
+      "last_updated": "2025-11-04T01:30:53.467444+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2168,12 +2168,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661965+00:00"
+      "last_updated": "2025-11-04T01:30:53.467475+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2190,12 +2190,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.661982+00:00"
+      "last_updated": "2025-11-04T01:30:53.467539+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2212,12 +2212,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.661999+00:00"
+      "last_updated": "2025-11-04T01:30:53.467563+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2234,12 +2234,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662017+00:00"
+      "last_updated": "2025-11-04T01:30:53.467581+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2256,12 +2256,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 15.6817,
+      "balance": 10.6817,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.662079+00:00"
+      "last_updated": "2025-11-04T01:30:53.467599+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2278,12 +2278,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662102+00:00"
+      "last_updated": "2025-11-04T01:30:53.467616+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2300,12 +2300,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662120+00:00"
+      "last_updated": "2025-11-04T01:30:53.467636+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2322,12 +2322,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -1.337,
+      "balance": 3.663,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662138+00:00"
+      "last_updated": "2025-11-04T01:30:53.467654+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2344,12 +2344,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662155+00:00"
+      "last_updated": "2025-11-04T01:30:53.467671+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2366,12 +2366,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662203+00:00"
+      "last_updated": "2025-11-04T01:30:53.467689+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2388,12 +2388,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662228+00:00"
+      "last_updated": "2025-11-04T01:30:53.467705+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2410,12 +2410,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662247+00:00"
+      "last_updated": "2025-11-04T01:30:53.467724+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2432,12 +2432,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662265+00:00"
+      "last_updated": "2025-11-04T01:30:53.467752+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2454,12 +2454,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662283+00:00"
+      "last_updated": "2025-11-04T01:30:53.467784+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2476,12 +2476,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662300+00:00"
+      "last_updated": "2025-11-04T01:30:53.467815+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2498,12 +2498,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662318+00:00"
+      "last_updated": "2025-11-04T01:30:53.467845+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2520,12 +2520,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662338+00:00"
+      "last_updated": "2025-11-04T01:30:53.467865+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2542,12 +2542,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662366+00:00"
+      "last_updated": "2025-11-04T01:30:53.467882+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2564,12 +2564,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662396+00:00"
+      "last_updated": "2025-11-04T01:30:53.467899+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2586,12 +2586,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662419+00:00"
+      "last_updated": "2025-11-04T01:30:53.467916+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2608,12 +2608,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662436+00:00"
+      "last_updated": "2025-11-04T01:30:53.467933+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2630,12 +2630,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 5.0233,
+      "balance": 10.0233,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662473+00:00"
+      "last_updated": "2025-11-04T01:30:53.467950+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2652,12 +2652,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662521+00:00"
+      "last_updated": "2025-11-04T01:30:53.467970+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2674,12 +2674,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662540+00:00"
+      "last_updated": "2025-11-04T01:30:53.468005+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2696,12 +2696,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662560+00:00"
+      "last_updated": "2025-11-04T01:30:53.468026+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2718,12 +2718,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -7.2039,
+      "balance": -12.2039,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662583+00:00"
+      "last_updated": "2025-11-04T01:30:53.468057+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2740,12 +2740,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662605+00:00"
+      "last_updated": "2025-11-04T01:30:53.468088+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2762,12 +2762,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662635+00:00"
+      "last_updated": "2025-11-04T01:30:53.468121+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2784,12 +2784,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662666+00:00"
+      "last_updated": "2025-11-04T01:30:53.468152+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2806,12 +2806,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -20.0,
+      "balance": -15.0,
       "goal": 100.0,
-      "wins": 0,
+      "wins": 1,
       "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662690+00:00"
+      "last_updated": "2025-11-04T01:30:53.468182+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2828,12 +2828,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662708+00:00"
+      "last_updated": "2025-11-04T01:30:53.468200+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2850,12 +2850,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662736+00:00"
+      "last_updated": "2025-11-04T01:30:53.468218+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2872,12 +2872,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 2.3526,
+      "balance": -2.6474,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
-      "drawdown_pct": 97.6474,
-      "last_updated": "2025-11-04T00:02:43.662767+00:00"
+      "losses": 4,
+      "drawdown_pct": 100.0,
+      "last_updated": "2025-11-04T01:30:53.468236+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -2894,12 +2894,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662797+00:00"
+      "last_updated": "2025-11-04T01:30:53.468253+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -2916,12 +2916,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662825+00:00"
+      "last_updated": "2025-11-04T01:30:53.468270+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -2938,12 +2938,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662855+00:00"
+      "last_updated": "2025-11-04T01:30:53.468288+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -2960,12 +2960,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662885+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.468305+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -2982,12 +2982,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 30.0,
+      "balance": 35.0,
       "goal": 100.0,
-      "wins": 5,
+      "wins": 6,
       "losses": 0,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.662914+00:00"
+      "last_updated": "2025-11-04T01:30:53.468322+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3004,12 +3004,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.662944+00:00"
+      "last_updated": "2025-11-04T01:30:53.468340+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3026,12 +3026,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.662973+00:00"
+      "last_updated": "2025-11-04T01:30:53.468357+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3048,12 +3048,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663001+00:00"
+      "last_updated": "2025-11-04T01:30:53.468374+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3070,12 +3070,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663029+00:00"
+      "last_updated": "2025-11-04T01:30:53.468390+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3092,12 +3092,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663059+00:00"
+      "last_updated": "2025-11-04T01:30:53.468408+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3114,12 +3114,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663087+00:00"
+      "last_updated": "2025-11-04T01:30:53.468425+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3136,12 +3136,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663115+00:00"
+      "last_updated": "2025-11-04T01:30:53.468442+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3158,12 +3158,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663147+00:00"
+      "last_updated": "2025-11-04T01:30:53.468458+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3180,12 +3180,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663177+00:00"
+      "last_updated": "2025-11-04T01:30:53.468475+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3202,12 +3202,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663225+00:00"
+      "last_updated": "2025-11-04T01:30:53.468492+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3224,12 +3224,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663254+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.468538+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3246,12 +3246,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663283+00:00"
+      "last_updated": "2025-11-04T01:30:53.468555+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3268,12 +3268,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663313+00:00"
+      "last_updated": "2025-11-04T01:30:53.468572+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3290,12 +3290,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.2029,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663343+00:00"
+      "last_updated": "2025-11-04T01:30:53.468620+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3312,12 +3312,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663372+00:00"
+      "last_updated": "2025-11-04T01:30:53.468638+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3334,12 +3334,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663401+00:00"
+      "last_updated": "2025-11-04T01:30:53.468655+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3356,12 +3356,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663431+00:00"
+      "last_updated": "2025-11-04T01:30:53.468672+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3378,12 +3378,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -20.0,
+      "balance": -25.0,
       "goal": 100.0,
       "wins": 0,
-      "losses": 5,
+      "losses": 6,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663461+00:00"
+      "last_updated": "2025-11-04T01:30:53.468689+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3400,12 +3400,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663490+00:00"
+      "last_updated": "2025-11-04T01:30:53.468706+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3422,12 +3422,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 14.5915,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663555+00:00"
+      "last_updated": "2025-11-04T01:30:53.468733+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3444,12 +3444,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663585+00:00"
+      "last_updated": "2025-11-04T01:30:53.468750+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3466,12 +3466,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663617+00:00"
+      "last_updated": "2025-11-04T01:30:53.468767+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3488,12 +3488,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663646+00:00"
+      "last_updated": "2025-11-04T01:30:53.468785+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3510,12 +3510,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 30.0,
+      "balance": 35.0,
       "goal": 100.0,
-      "wins": 5,
+      "wins": 6,
       "losses": 0,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663674+00:00"
+      "last_updated": "2025-11-04T01:30:53.468803+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3532,12 +3532,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663703+00:00"
+      "last_updated": "2025-11-04T01:30:53.468820+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3554,12 +3554,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663732+00:00"
+      "last_updated": "2025-11-04T01:30:53.468836+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3576,12 +3576,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663762+00:00"
+      "last_updated": "2025-11-04T01:30:53.468853+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3598,12 +3598,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 30.0,
+      "balance": 35.0,
       "goal": 100.0,
-      "wins": 5,
+      "wins": 6,
       "losses": 0,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663792+00:00"
+      "last_updated": "2025-11-04T01:30:53.468869+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3620,12 +3620,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663821+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.468886+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3642,12 +3642,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663848+00:00"
+      "last_updated": "2025-11-04T01:30:53.468903+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3664,12 +3664,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663875+00:00"
+      "last_updated": "2025-11-04T01:30:53.468920+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3686,12 +3686,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.663905+00:00"
+      "last_updated": "2025-11-04T01:30:53.468938+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3708,12 +3708,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.663925+00:00"
+      "last_updated": "2025-11-04T01:30:53.468954+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3730,12 +3730,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663942+00:00"
+      "last_updated": "2025-11-04T01:30:53.468971+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3752,12 +3752,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663959+00:00"
+      "last_updated": "2025-11-04T01:30:53.469005+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3774,12 +3774,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.663985+00:00"
+      "last_updated": "2025-11-04T01:30:53.469022+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3796,12 +3796,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664010+00:00"
+      "last_updated": "2025-11-04T01:30:53.469039+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3818,12 +3818,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664028+00:00"
+      "last_updated": "2025-11-04T01:30:53.469056+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3840,12 +3840,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -5.0,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664045+00:00"
+      "last_updated": "2025-11-04T01:30:53.469073+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3862,12 +3862,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664062+00:00"
+      "last_updated": "2025-11-04T01:30:53.469089+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3884,12 +3884,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.664079+00:00"
+      "last_updated": "2025-11-04T01:30:53.469106+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -3906,12 +3906,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664106+00:00"
+      "last_updated": "2025-11-04T01:30:53.469122+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -3928,12 +3928,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664133+00:00"
+      "last_updated": "2025-11-04T01:30:53.469139+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -3950,12 +3950,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
-      "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664150+00:00"
+      "losses": 3,
+      "drawdown_pct": 95.0,
+      "last_updated": "2025-11-04T01:30:53.469158+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -3972,12 +3972,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664167+00:00"
+      "last_updated": "2025-11-04T01:30:53.469175+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -3994,12 +3994,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664200+00:00"
+      "last_updated": "2025-11-04T01:30:53.469192+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -4016,12 +4016,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664217+00:00"
+      "last_updated": "2025-11-04T01:30:53.469209+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -4038,12 +4038,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664235+00:00"
+      "last_updated": "2025-11-04T01:30:53.469225+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -4060,12 +4060,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664252+00:00"
+      "last_updated": "2025-11-04T01:30:53.469242+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -4082,12 +4082,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664270+00:00"
+      "last_updated": "2025-11-04T01:30:53.469259+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -4104,12 +4104,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -10.0,
+      "balance": -15.0,
       "goal": 100.0,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664288+00:00"
+      "last_updated": "2025-11-04T01:30:53.469276+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -4126,12 +4126,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664305+00:00"
+      "last_updated": "2025-11-04T01:30:53.469293+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -4148,12 +4148,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664322+00:00"
+      "last_updated": "2025-11-04T01:30:53.469310+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -4170,12 +4170,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664339+00:00"
+      "last_updated": "2025-11-04T01:30:53.469327+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -4192,12 +4192,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 5.0,
       "goal": 100.0,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664366+00:00"
+      "last_updated": "2025-11-04T01:30:53.469344+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -4214,12 +4214,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664391+00:00"
+      "last_updated": "2025-11-04T01:30:53.469360+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -4236,12 +4236,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.664409+00:00"
+      "last_updated": "2025-11-04T01:30:53.469377+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -4258,12 +4258,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": -1.8418,
       "goal": 100.0,
       "wins": 2,
-      "losses": 3,
+      "losses": 4,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664426+00:00"
+      "last_updated": "2025-11-04T01:30:53.469404+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -4280,12 +4280,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 25.0,
       "goal": 100.0,
-      "wins": 4,
+      "wins": 5,
       "losses": 1,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664443+00:00"
+      "last_updated": "2025-11-04T01:30:53.469422+00:00"
     },
     "notes": "Auto generado para quant"
   },
@@ -4302,12 +4302,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 10.0,
+      "balance": 15.0,
       "goal": 100.0,
-      "wins": 3,
+      "wins": 4,
       "losses": 2,
       "drawdown_pct": 95.0,
-      "last_updated": "2025-11-04T00:02:43.664468+00:00"
+      "last_updated": "2025-11-04T01:30:53.469438+00:00"
     },
     "notes": "Auto generado para scalp"
   },
@@ -4324,12 +4324,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -20.0,
+      "balance": -25.0,
       "goal": 100.0,
       "wins": 0,
-      "losses": 5,
+      "losses": 6,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664523+00:00"
+      "last_updated": "2025-11-04T01:30:53.469455+00:00"
     },
     "notes": "Auto generado para intra"
   },
@@ -4346,12 +4346,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": -20.0,
+      "balance": -15.0,
       "goal": 100.0,
-      "wins": 0,
+      "wins": 1,
       "losses": 5,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664541+00:00"
+      "last_updated": "2025-11-04T01:30:53.469472+00:00"
     },
     "notes": "Auto generado para swing"
   },
@@ -4368,12 +4368,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 20.0,
+      "balance": 15.0,
       "goal": 100.0,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "drawdown_pct": 90.0,
-      "last_updated": "2025-11-04T00:02:43.664559+00:00"
+      "last_updated": "2025-11-04T01:30:53.469490+00:00"
     },
     "notes": "Auto generado para macro"
   },
@@ -4390,12 +4390,12 @@
     "mode": "training",
     "engine": "sim",
     "stats": {
-      "balance": 0.0,
+      "balance": 5.0,
       "goal": 100.0,
-      "wins": 2,
+      "wins": 3,
       "losses": 3,
       "drawdown_pct": 100.0,
-      "last_updated": "2025-11-04T00:02:43.664576+00:00"
+      "last_updated": "2025-11-04T01:30:53.469529+00:00"
     },
     "notes": "Auto generado para quant"
   },

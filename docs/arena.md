@@ -11,7 +11,8 @@ estrategia recibe el mismo stream de velas pero opera en un espacio aislado con 
 - `bot/arena/simulator.py`: simulador ligero que reutiliza `ia_utils.latest_slice` para compartir velas y
   calcular PnL virtual por estrategia.
 - `bot/arena/league_manager.py`: orquestador que selecciona estrategias activas (`training`/`race`), corre el
-  simulador y promueve campeones cuando superan la meta global. El objetivo aumenta en +50 € tras cada victoria.
+  simulador y promueve campeones cuando superan la meta global. El objetivo aumenta en +50 € tras cada victoria
+  y persiste el ledger/estado en `arena.db` mediante `bot/arena/storage.py`.
 - `bot/arena/ranking.py`: genera `bot/arena/ranking_latest.json` con el top de estrategias ordenado por progreso.
 
 ## Generar estrategias
