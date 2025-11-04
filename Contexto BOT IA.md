@@ -21,6 +21,16 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 
 ---
 
+## Guía para nuevos chats
+- **Visión del proyecto**: Bot de trading de futuros Bybit 24/7 con TP/SL obligatorios, autopiloto (SL→BE tras TP1), guardias de riesgo y Cerebro IA que aprende de cada operación. La arena (5 000 estrategias) corre en paralelo y promueve ganadoras a modo real.
+- **Qué SÍ tocar**: backend FastAPI (`bot/`), Cerebro (`bot/cerebro/`), arena (`bot/arena/`), panel (`panel/`), scripts (`scripts/ops.py`, `scripts/run_arena_tick.sh`), estrategias (`bot/strategies/`). Cada cambio funcional debe reflejarse en `README.md`, `Contexto BOT IA.md` y en la doc específica (`docs/arena.md`, `docs/cerebro.md`, etc.).
+- **Qué NO tocar**: credenciales reales (`.env`, `config/config.json`), autopiloto y lógica crítica de riesgo sin pruebas/migraciones claras, directorios generados (`logs/`, `excel/`, `models/`, `tmp_*`), modelos en producción (`models/cerebro/real/`). Nunca publicar tokens/urls privadas.
+- **Comandos clave**: `python scripts/ops.py up/down/status/logs/qa`, `python scripts/ops.py arena run/tick/promote`, `python scripts/promote_arena_strategy.py <id>`, `./run SLS_Bot start`. El panel ofrece `/dashboard` y `/arena`; la API expone `/metrics`, `/arena/*`, `/dashboard/*`.
+- **Documentación**: responder siempre en español; al modificar flujos actualizar `README.md`, `Contexto BOT IA.md` y los docs específicos (ej. `docs/arena.md`). Mantener sección Bitácora sincronizada.
+- **Estado reciente**: CLI unificado (`scripts/ops.py`), settings centralizados (`bot/core/settings.py`), arena con servicio embebido + SQLite (`arena.db`), panel Arena completo, endpoints `/arena/tick`, `/arena/promote`, `/arena/ledger`, métricas Prometheus (`/metrics`). Cualquier evolución debe respetar esta arquitectura.
+
+---
+
 ## Bitácora Codex 2025-10-31
 - Se agregó ingesta `macro` (open interest / funding / whale flow) para el Cerebro, con cache configurable y scoring integrado al `PolicyEnsemble`.
 - Nuevo guardia `low_capital` limita margen y riesgo para cuentas pequeñas (≈5 €) y ajusta el leverage automáticamente.
