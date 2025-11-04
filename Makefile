@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke
+.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -80,3 +80,14 @@ smoke: ## Smoke test completo usando scripts/tests/e2e_smoke.py.
 	 SLS_CONTROL_USER=$(CONTROL_USER) \
 	 SLS_CONTROL_PASSWORD=$(CONTROL_PASSWORD) \
 	 $(PYTHON_BIN) scripts/tests/e2e_smoke.py
+
+monitor-check: ## Ejecuta el monitor de arena (/arena/state + /metrics). Pensado para cron/CI.
+	@$(PYTHON_BIN) scripts/ops.py monitor check \
+		--api-base $${API_BASE:-http://127.0.0.1:8880} \
+		$(if $(PANEL_TOKEN),--panel-token $(PANEL_TOKEN),) \
+		$(if $(SLACK_WEBHOOK),--slack-webhook $(SLACK_WEBHOOK),) \
+		$(if $(and $(TELEGRAM_TOKEN),$(TELEGRAM_CHAT_ID)),--telegram-token $(TELEGRAM_TOKEN) --telegram-chat-id $(TELEGRAM_CHAT_ID),) \
+		$(if $(MAX_ARENA_LAG),--max-arena-lag $(MAX_ARENA_LAG),) \
+		$(if $(MAX_DRAWDOWN),--max-drawdown $(MAX_DRAWDOWN),) \
+		$(if $(MAX_TICKS),--max-ticks-since-win $(MAX_TICKS),) \
+		$(if $(DRY_RUN),--dry-run,)

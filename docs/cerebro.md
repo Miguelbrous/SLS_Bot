@@ -160,6 +160,7 @@ registrando automáticamente el artefacto resultante.
 - `logs/<mode>/metrics/cerebro_evaluation.json`: métricas A/B entre heurístico y ML.
 - `logs/<mode>/reports/cerebro_daily_report.json`: resumen por sesión (trades, wins, bloqueos).
 - `/cerebro/status` ahora expone `history` (últimas ~200 decisiones), `evaluation` y `report` para graficar confianza y salud del modelo.
+- `/metrics` publica `sls_cerebro_decisions_per_min`, calculado sobre los últimos 15 minutos del log `cerebro_decisions.jsonl`; úsalo para alertar cuando la producción de señales cae.
 
 ## Integracion con el panel
 

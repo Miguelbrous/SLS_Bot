@@ -116,6 +116,16 @@ def _get_or_create_gauge(name: str, description: str) -> Gauge:
     return Gauge(name, description)
 
 
+def _bind_gauge_function(gauge: Gauge, func) -> None:
+    if getattr(gauge, "_sls_fn_bound", False):
+        return
+    try:
+        gauge.set_function(func)
+    except ValueError:
+        return
+    gauge._sls_fn_bound = True  # type: ignore[attr-defined]
+
+
 ARENA_GOAL_GAUGE = _get_or_create_gauge("sls_arena_current_goal_eur", "Meta activa en la arena (EUR)")
 ARENA_WINS_GAUGE = _get_or_create_gauge("sls_arena_total_wins", "Victorias acumuladas en la arena")
 ARENA_STATE_AGE_GAUGE = _get_or_create_gauge(
@@ -124,6 +134,10 @@ ARENA_STATE_AGE_GAUGE = _get_or_create_gauge(
 ARENA_DRAWDOWN_GAUGE = _get_or_create_gauge("sls_arena_goal_drawdown_pct", "Drawdown vs meta de la arena (%)")
 ARENA_TICKS_SINCE_WIN_GAUGE = _get_or_create_gauge(
     "sls_arena_ticks_since_win", "Ticks desde la última promoción"
+)
+BOT_DRAWDOWN_GAUGE = _get_or_create_gauge("sls_bot_drawdown_pct", "Drawdown actual del bot (%)")
+CEREBRO_DECISIONS_RATE_GAUGE = _get_or_create_gauge(
+    "sls_cerebro_decisions_per_min", "Decisiones validadas por minuto (últimos 15m)"
 )
 
 try:
@@ -274,6 +288,49 @@ def _update_arena_metrics(state: Dict[str, Any]) -> None:
         ARENA_STATE_AGE_GAUGE.set(age)
     else:
         ARENA_STATE_AGE_GAUGE.set(float("nan"))
+
+
+def _safe_float(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _bot_drawdown_metric() -> float:
+    base, _ = _load_risk_state_payload()
+    start = _safe_float(
+        base.get("start_equity")
+        or base.get("start_balance")
+        or base.get("starting_equity")
+        or base.get("starting_balance")
+    )
+    current = _safe_float(base.get("last_entry_equity") or base.get("current_equity"))
+    if start and current is not None and start > 0:
+        return max(0.0, (start - current) / start * 100.0)
+    return 0.0
+
+
+def _cerebro_decisions_rate_metric() -> float:
+    if not CEREBRO_DECISIONS_LOG.exists():
+        return 0.0
+    rows = _load_jsonl(CEREBRO_DECISIONS_LOG, limit=600)
+    if not rows:
+        return 0.0
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    count = 0
+    for payload in rows:
+        ts = _parse_iso_datetime(str(payload.get("ts") or payload.get("timestamp")))
+        if not ts or ts < cutoff:
+            continue
+        if payload.get("action") in {None, "NO_TRADE"}:
+            continue
+        count += 1
+    return count / 15.0 if count else 0.0
+
+
+_bind_gauge_function(BOT_DRAWDOWN_GAUGE, _bot_drawdown_metric)
+_bind_gauge_function(CEREBRO_DECISIONS_RATE_GAUGE, _cerebro_decisions_rate_metric)
 
 
 def _recent_pnl_entries(limit: int = 10) -> List[DashboardTrade]:

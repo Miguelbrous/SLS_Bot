@@ -162,6 +162,7 @@ npm run build
 - `python scripts/ops.py deploy bootstrap --install-systemd` corre `scripts/deploy/bootstrap.sh` con las variables apropiadas (`APP_ROOT`, `SVC_USER`) y recompila backend + panel en un solo paso.
 - `python scripts/ops.py deploy rollout --restart --services sls-api.service sls-bot.service` reinicia las unidades systemd clave (opcionalmente con `--daemon-reload`).
 - `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook https://hooks.slack...` ejecuta el monitor que valida `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando hay drawdown o ticks pegados.
+- `make monitor-check PANEL_TOKEN=token SLACK_WEBHOOK=...` sirve como wrapper listo para cron/CI; reutiliza `python scripts/ops.py monitor check` respetando los umbrales (`MAX_ARENA_LAG`, `MAX_DRAWDOWN`, `MAX_TICKS`).
 - `/metrics` expone métricas Prometheus de la API (instrumentadas con `prometheus-fastapi-instrumentator`).
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.
@@ -187,7 +188,7 @@ npm run build
 - `micro_scalp_v1` redujo los filtros (EMA ≥3 bps, RSI 40-60) para registrar experiencias más rápido en testnet
   mientras la Arena sigue aprendiendo en paralelo.
 - `python scripts/ops.py arena run --interval 300` ejecuta el servicio de arena embebido en loop (ya no dependes de cron) y actualiza `ranking_latest.json` tras cada tick.
-- `cup_state.json` guarda ahora `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y alimenta métricas Prometheus (`sls_arena_*`). Úsalas en Grafana o con `python scripts/ops.py monitor check ... --slack-webhook …` para disparar alertas cuando la arena se queda pegada o el drawdown supera el umbral.
+- `cup_state.json` guarda ahora `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y alimenta las métricas `sls_arena_*`, `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`, útiles para Grafana o para el monitor (`make monitor-check`).
 
 ### Tips operativos rápidos
 - Añade en `.env`:

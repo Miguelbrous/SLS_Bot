@@ -47,9 +47,9 @@ Todos estos comandos comparten la misma configuración (`bot/core/settings.py`),
 - `bot/tests/test_arena_routes.py` valida que los endpoints `/arena/*` respetan autenticación (`X-Panel-Token`) y delegan en `ArenaService`, `ArenaStorage` y `export_strategy` según corresponda.
 - Al ejecutar `python scripts/ops.py qa` se corre `pytest` (incluyendo las pruebas anteriores) y el lint del panel para detectar regresiones antes de publicar.
 
-## Métricas y monitoreo
-- FastAPI expone métricas Prometheus adicionales (`sls_arena_current_goal_eur`, `sls_arena_goal_drawdown_pct`, `sls_arena_state_age_seconds`, `sls_arena_ticks_since_win`, `sls_arena_total_wins`). Se actualizan cada vez que consultas `/arena/state`.
-- `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook ...` ejecuta `scripts/tools/monitor_guard.py`, revisa `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando el drawdown o el lag superan los umbrales. Ideal para cron o pipelines de despliegue.
+- ## Métricas y monitoreo
+- FastAPI expone métricas Prometheus adicionales (`sls_arena_current_goal_eur`, `sls_arena_goal_drawdown_pct`, `sls_arena_state_age_seconds`, `sls_arena_ticks_since_win`, `sls_arena_total_wins`, `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`). Se actualizan automáticamente al consultar `/arena/state` o durante el scrape de `/metrics`.
+- `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook ...` ejecuta `scripts/tools/monitor_guard.py`, revisa `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando el drawdown o el lag superan los umbrales. Para integrarlo a cron/CI usa `make monitor-check PANEL_TOKEN=... SLACK_WEBHOOK=...`.
 
 ## Próximos pasos
 1. Automatizar `LeagueManager` como servicio (`python scripts/ops.py arena run` o `python -m bot.arena`).
