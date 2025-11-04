@@ -21,6 +21,8 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `/metrics` ahora expone métricas (Prometheus) gracias a `prometheus-fastapi-instrumentator`, útil para observabilidad externa.
 - `scripts/ops.py` ahora incluye comandos `deploy bootstrap/rollout` y `monitor check` para orquestar systemd + enviar alertas Slack/Telegram cuando la arena se estanca o supera el drawdown configurado (ver `scripts/tools/monitor_guard.py`).
 - `cup_state.json` registra `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y los endpoints `/arena/state` actualizan métricas `sls_arena_*` que se consumen vía `/metrics`.
+- Promover una estrategia ahora ejecuta validaciones (mínimo de trades, Sharpe y drawdown); el CLI/endpoint aceptan `--force`/`force=true` y generan `validation.json` con los métricos utilizados.
+- `python scripts/ops.py arena notes add/list` y los endpoints `/arena/notes` registran bitácoras para cada estrategia directamente en `arena.db`, útil antes de moverlas a real.
 - `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`, ideales para cron/CI y dashboards Grafana.
 
 ---

@@ -110,3 +110,38 @@ def test_monitor_check_command(stub_run):
         "token",
         "--dry-run",
     ]
+
+
+def test_arena_promote_command_builds_thresholds(stub_run):
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "arena",
+            "promote",
+            "strat_x",
+            "--output-dir",
+            "/tmp/pkg",
+            "--min-trades",
+            "80",
+            "--min-sharpe",
+            "0.4",
+            "--max-drawdown",
+            "20",
+            "--force",
+        ]
+    )
+    args.func(args)
+    assert stub_run[-1]["cmd"] == [
+        "python",
+        str(ops.ARENA_PROMOTE),
+        "strat_x",
+        "--min-trades",
+        "80",
+        "--min-sharpe",
+        "0.4",
+        "--max-drawdown",
+        "20.0",
+        "--output-dir",
+        "/tmp/pkg",
+        "--force",
+    ]

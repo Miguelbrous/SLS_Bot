@@ -17,8 +17,10 @@ def _score(profile: StrategyProfile) -> float:
     if not stats:
         return 0.0
     progress = stats.balance / max(stats.goal, 1.0)
-    penalty = stats.drawdown_pct / 100.0
-    return max(progress - penalty, 0.0)
+    sharpe_bonus = max(stats.sharpe_ratio, 0.0) * 0.2
+    penalty = (stats.max_drawdown_pct or stats.drawdown_pct) / 150.0
+    activity_bonus = min(stats.trades / 200.0, 0.3)
+    return max(progress + sharpe_bonus + activity_bonus - penalty, 0.0)
 
 
 def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
@@ -30,6 +32,9 @@ def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
         stats = profile.stats
         latest = latest_balances.get(profile.id)
         balance_override = latest["balance_after"] if latest else None
+        trades = 0
+        if stats:
+            trades = stats.trades or (stats.wins + stats.losses)
         row = {
             "id": profile.id,
             "name": profile.name,
@@ -42,6 +47,9 @@ def generate_ranking(target: Path | None = None) -> List[Dict[str, object]]:
             "wins": stats.wins if stats else 0,
             "losses": stats.losses if stats else 0,
             "drawdown_pct": stats.drawdown_pct if stats else 0.0,
+            "max_drawdown_pct": stats.max_drawdown_pct if stats else 0.0,
+            "sharpe_ratio": stats.sharpe_ratio if stats else 0.0,
+            "trades": trades,
         }
         items.append(row)
     items.sort(key=lambda x: x["score"], reverse=True)

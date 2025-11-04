@@ -43,6 +43,24 @@ class MarketSimulator:
         pnl = max(min(pnl_pct / 100.0 * last.get("close", 1.0) / 100.0, 5.0), -5.0)
         return pnl
 
+    def _update_stats(self, stats: StrategyStats, pnl: float) -> None:
+        stats.trades += 1
+        stats.pnl_sum += pnl
+        stats.pnl_sum_sq += pnl * pnl
+        if stats.trades > 1:
+            mean = stats.pnl_sum / stats.trades
+            variance = max(stats.pnl_sum_sq / stats.trades - mean * mean, 1e-6)
+            stats.sharpe_ratio = round(mean / math.sqrt(variance), 4)
+        else:
+            stats.sharpe_ratio = 0.0
+        stats.peak_balance = max(stats.peak_balance or stats.balance, stats.balance)
+        if stats.peak_balance and stats.peak_balance > 0:
+            drawdown = max(0.0, (stats.peak_balance - stats.balance) / stats.peak_balance * 100.0)
+            stats.drawdown_pct = round(drawdown, 4)
+            stats.max_drawdown_pct = max(stats.max_drawdown_pct, stats.drawdown_pct)
+        else:
+            stats.drawdown_pct = 0.0
+
     def play_batch(self, strategies: Iterable[StrategyProfile]) -> List[StrategyLedgerEntry]:
         self.refresh_market()
         ledger: List[StrategyLedgerEntry] = []
@@ -55,10 +73,7 @@ class MarketSimulator:
                 stats.wins += 1
             else:
                 stats.losses += 1
-            stats.drawdown_pct = min(
-                100.0,
-                max(stats.drawdown_pct, max(0.0, (stats.goal - stats.balance) / stats.goal * 100.0)),
-            )
+            self._update_stats(stats, pnl)
             stats.last_updated = datetime.now(timezone.utc).isoformat()
             profile.stats = stats
             entry = StrategyLedgerEntry(

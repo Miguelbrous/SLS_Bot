@@ -163,6 +163,8 @@ npm run build
 - `python scripts/ops.py deploy rollout --restart --services sls-api.service sls-bot.service` reinicia las unidades systemd clave (opcionalmente con `--daemon-reload`).
 - `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook https://hooks.slack...` ejecuta el monitor que valida `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando hay drawdown o ticks pegados.
 - `make monitor-check PANEL_TOKEN=token SLACK_WEBHOOK=...` sirve como wrapper listo para cron/CI; reutiliza `python scripts/ops.py monitor check` respetando los umbrales (`MAX_ARENA_LAG`, `MAX_DRAWDOWN`, `MAX_TICKS`).
+- `python scripts/ops.py arena promote strat_42 --min-trades 80 --min-sharpe 0.4 --max-drawdown 25` exporta ganadores solo si superan las validaciones de Sharpe/drawdown/trades (usa `--force` para ignorarlas).
+- `python scripts/ops.py arena notes add strat_42 --message "Afinar TP a 1.5R"` registra notas de experimento (usa `arena notes list` para consultarlas desde CLI sin abrir la DB).
 - `/metrics` expone métricas Prometheus de la API (instrumentadas con `prometheus-fastapi-instrumentator`).
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.
@@ -199,9 +201,9 @@ npm run build
   para que el loop cargue el scalper tras cada `run SLS_Bot start`.
 - Programa `scripts/run_arena_tick.sh` (cron/systemd) para refrescar `bot/arena/cup_state.json` y `ranking_latest.json`,
   que consumen los endpoints `/arena/state` y `/arena/ranking`.
-- Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; se genera la carpeta
-  `bot/arena/promoted/<id>/` con `profile.json`, `ledger_tail.json` y `SUMMARY.md` (blueprint para mover a real).
-- Panel `/arena` muestra ranking completo, filtros, ledger y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
+- Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id> --min-trades 60 --min-sharpe 0.4 --max-drawdown 25`; la exportación se bloquea si no pasa los umbrales (usa `--force` para omitirlos). El paquete incluye `validation.json` con los métricos usados.
+- Registra bitácoras rápidas con `python scripts/ops.py arena notes add <id> --message "..."` o vía `POST /arena/notes`; consúltalas con `arena notes list` o `GET /arena/notes?strategy_id=<id>`.
+- Panel `/arena` muestra ranking completo (incluye Sharpe/MaxDD), ledger, notas y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 

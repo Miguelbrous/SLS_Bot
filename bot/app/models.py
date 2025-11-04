@@ -115,3 +115,20 @@ class DashboardTradeMarker(BaseModel):
 class DashboardChartResponse(BaseModel):
     candles: List[DashboardCandle]
     trades: List[DashboardTradeMarker]
+
+
+class ArenaNote(BaseModel):
+    strategy_id: str
+    note: str
+    author: Optional[str] = None
+    ts: str
+
+
+class ArenaNotePayload(BaseModel):
+    strategy_id: str
+    note: str
+    author: Optional[str] = None
+
+
+class ArenaNotesResponse(BaseModel):
+    notes: List[ArenaNote]

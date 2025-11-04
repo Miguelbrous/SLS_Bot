@@ -110,7 +110,22 @@ def cmd_arena_run(args: argparse.Namespace) -> None:
 
 
 def cmd_arena_promote(args: argparse.Namespace) -> None:
-    _run([_python_exec(), str(ARENA_PROMOTE), args.strategy_id])
+    cmd = [
+        _python_exec(),
+        str(ARENA_PROMOTE),
+        args.strategy_id,
+        "--min-trades",
+        str(args.min_trades),
+        "--min-sharpe",
+        str(args.min_sharpe),
+        "--max-drawdown",
+        str(args.max_drawdown),
+    ]
+    if args.output_dir:
+        cmd.extend(["--output-dir", args.output_dir])
+    if args.force:
+        cmd.append("--force")
+    _run(cmd)
 
 
 def cmd_arena_ranking(args: argparse.Namespace) -> None:
@@ -123,6 +138,22 @@ def cmd_arena_ranking(args: argparse.Namespace) -> None:
 def cmd_arena_state(args: argparse.Namespace) -> None:
     data = json.loads(ARENA_STATE.read_text(encoding="utf-8")) if ARENA_STATE.exists() else {}
     print(json.dumps(data, indent=2))
+
+
+def cmd_arena_note_add(args: argparse.Namespace) -> None:
+    from bot.arena.storage import ArenaStorage
+
+    storage = ArenaStorage()
+    record = storage.add_note(args.strategy_id, args.message, args.author)
+    print(json.dumps(record, ensure_ascii=False, indent=2))
+
+
+def cmd_arena_note_list(args: argparse.Namespace) -> None:
+    from bot.arena.storage import ArenaStorage
+
+    storage = ArenaStorage()
+    notes = storage.notes_for(args.strategy_id, limit=args.limit)
+    print(json.dumps(notes, ensure_ascii=False, indent=2))
 
 
 def cmd_infra(args: argparse.Namespace) -> None:
@@ -279,6 +310,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     arena_promote = arena_sub.add_parser("promote", help="Exporta una estrategia ganadora")
     arena_promote.add_argument("strategy_id", help="ID presente en registry.json")
+    arena_promote.add_argument("--output-dir", help="Directorio destino opcional")
+    arena_promote.add_argument("--min-trades", type=int, default=50, help="Trades mínimos requeridos")
+    arena_promote.add_argument("--min-sharpe", type=float, default=0.2, help="Sharpe mínimo")
+    arena_promote.add_argument("--max-drawdown", type=float, default=35.0, help="Max drawdown permitido (%)")
+    arena_promote.add_argument("--force", action="store_true", help="Ignorar validaciones")
     arena_promote.set_defaults(func=cmd_arena_promote)
 
     arena_rank = arena_sub.add_parser("ranking", help="Muestra el top actual")
@@ -287,6 +323,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     arena_state = arena_sub.add_parser("state", help="Muestra el estado actual de la copa")
     arena_state.set_defaults(func=cmd_arena_state)
+
+    arena_notes = arena_sub.add_parser("notes", help="Gestiona notas de estrategias")
+    arena_notes_sub = arena_notes.add_subparsers(dest="notes_cmd", required=True)
+
+    arena_note_add = arena_notes_sub.add_parser("add", help="Agrega una nota")
+    arena_note_add.add_argument("strategy_id")
+    arena_note_add.add_argument("--message", required=True, help="Contenido de la nota")
+    arena_note_add.add_argument("--author", default="ops", help="Autor opcional")
+    arena_note_add.set_defaults(func=cmd_arena_note_add)
+
+    arena_note_list = arena_notes_sub.add_parser("list", help="Lista notas recientes")
+    arena_note_list.add_argument("strategy_id")
+    arena_note_list.add_argument("--limit", type=int, default=10)
+    arena_note_list.set_defaults(func=cmd_arena_note_list)
 
     cerebro = sub.add_parser("cerebro", help="Flujos relacionados con el Cerebro IA")
     cerebro_sub = cerebro.add_subparsers(dest="cerebro_cmd", required=True)

@@ -97,13 +97,45 @@ def test_arena_tick_invokes_service(monkeypatch, arena_module):
 def test_arena_promote_uses_exporter(monkeypatch, arena_module):
     exported = {}
 
-    def fake_export(strategy_id: str) -> Path:
+    def fake_export(strategy_id: str, **kwargs) -> Path:
         exported["id"] = strategy_id
+        exported["kwargs"] = kwargs
         return Path("/tmp/pkg")
 
     monkeypatch.setattr("bot.arena.promote.export_strategy", fake_export)
     client = TestClient(arena_module.app)
-    resp = client.post("/arena/promote?strategy_id=strat_x", headers=HEADERS)
+    resp = client.post(
+        "/arena/promote?strategy_id=strat_x&min_trades=60&min_sharpe=0.4&max_drawdown=25&force=true",
+        headers=HEADERS,
+    )
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
     assert exported["id"] == "strat_x"
+    assert exported["kwargs"]["min_trades"] == 60
+    assert exported["kwargs"]["force"] is True
+
+
+def test_arena_notes_endpoints(monkeypatch, arena_module):
+    class DummyStorage:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def notes_for(self, strategy_id: str, limit: int):
+            return [{"strategy_id": strategy_id, "note": "hola", "author": "ops", "ts": "2025"}]
+
+        def add_note(self, strategy_id: str, note: str, author: str | None = None):
+            return {"strategy_id": strategy_id, "note": note, "author": author, "ts": "2025"}
+
+    monkeypatch.setattr("bot.arena.storage.ArenaStorage", DummyStorage)
+    client = TestClient(arena_module.app)
+    resp = client.get("/arena/notes?strategy_id=strat_x", headers=HEADERS)
+    assert resp.status_code == 200
+    assert resp.json()["notes"][0]["note"] == "hola"
+
+    resp = client.post(
+        "/arena/notes",
+        json={"strategy_id": "strat_x", "note": "listo", "author": "panel"},
+        headers=HEADERS,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["note"] == "listo"

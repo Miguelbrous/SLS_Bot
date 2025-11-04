@@ -40,14 +40,20 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
 - `python scripts/ops.py arena run --interval 120` levanta el servicio embebido con `ArenaService` y actualiza ranking/ledger en loop.
 - `python scripts/ops.py arena promote <id>` empaqueta una estrategia campeona con sus metadatos.
 - `python scripts/ops.py arena ranking --limit 20` y `state` permiten auditar el top actual o la copa sin abrir archivos.
+- `python scripts/ops.py arena promote <id> --min-trades 80 --min-sharpe 0.4 --max-drawdown 25` bloquea la exportación si los umbrales no se cumplen (usa `--force` para omitirlos); se genera `validation.json` con los motivos.
+- `python scripts/ops.py arena notes add/list` registra notas de experimento directamente en `arena.db`, útiles para compartir hallazgos antes de promover.
 
 Todos estos comandos comparten la misma configuración (`bot/core/settings.py`), así que el CLI respeta tus `.env` y rutas.
+
+## Notas y workflow de promoción
+- `POST /arena/notes` y `GET /arena/notes?strategy_id=...` permiten registrar/leer bitácoras desde el panel o scripts (las notas se guardan en SQLite y también están disponibles vía `ops arena notes *`).
+- La promoción ejecuta validaciones automáticas (`min_trades`, `min_sharpe`, `max_drawdown`). Si falla, la API/CLI devuelve un `400` explicando los motivos; puedes usar `force=true` o `--force` para omitirlas, aunque se registrará igualmente `validation.json`.
 
 ## Pruebas
 - `bot/tests/test_arena_routes.py` valida que los endpoints `/arena/*` respetan autenticación (`X-Panel-Token`) y delegan en `ArenaService`, `ArenaStorage` y `export_strategy` según corresponda.
 - Al ejecutar `python scripts/ops.py qa` se corre `pytest` (incluyendo las pruebas anteriores) y el lint del panel para detectar regresiones antes de publicar.
 
-- ## Métricas y monitoreo
+## Métricas y monitoreo
 - FastAPI expone métricas Prometheus adicionales (`sls_arena_current_goal_eur`, `sls_arena_goal_drawdown_pct`, `sls_arena_state_age_seconds`, `sls_arena_ticks_since_win`, `sls_arena_total_wins`, `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`). Se actualizan automáticamente al consultar `/arena/state` o durante el scrape de `/metrics`.
 - `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook ...` ejecuta `scripts/tools/monitor_guard.py`, revisa `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando el drawdown o el lag superan los umbrales. Para integrarlo a cron/CI usa `make monitor-check PANEL_TOKEN=... SLACK_WEBHOOK=...`.
 

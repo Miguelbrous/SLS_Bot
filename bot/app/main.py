@@ -30,6 +30,9 @@ from .models import (
     DashboardChartResponse,
     DashboardCandle,
     DashboardTradeMarker,
+    ArenaNote,
+    ArenaNotesResponse,
+    ArenaNotePayload,
 )
 from .services import service_action, service_status
 from .utils import tail_lines
@@ -942,8 +945,46 @@ def arena_tick(_: None = Depends(require_panel_token)):
 
 
 @app.post("/arena/promote")
-def arena_promote(strategy_id: str = Query(..., min_length=2, max_length=64), _: None = Depends(require_panel_token)):
+def arena_promote(
+    strategy_id: str = Query(..., min_length=2, max_length=64),
+    min_trades: int = Query(50, ge=10, le=1000),
+    min_sharpe: float = Query(0.2, ge=0.0, le=5.0),
+    max_drawdown: float = Query(35.0, ge=1.0, le=100.0),
+    force: bool = Query(False),
+    _: None = Depends(require_panel_token),
+):
     from bot.arena.promote import export_strategy
 
-    pkg_dir = export_strategy(strategy_id)
+    try:
+        pkg_dir = export_strategy(
+            strategy_id,
+            min_trades=min_trades,
+            min_sharpe=min_sharpe,
+            max_drawdown=max_drawdown,
+            force=force,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "path": str(pkg_dir)}
+
+
+@app.get("/arena/notes", response_model=ArenaNotesResponse)
+def arena_notes(
+    strategy_id: str = Query(..., min_length=2, max_length=64),
+    limit: int = Query(20, ge=1, le=50),
+    _: None = Depends(require_panel_token),
+):
+    from bot.arena.storage import ArenaStorage
+
+    storage = ArenaStorage(ARENA_DB)
+    notes = storage.notes_for(strategy_id, limit=limit)
+    return {"notes": notes}
+
+
+@app.post("/arena/notes", response_model=ArenaNote)
+def arena_add_note(payload: ArenaNotePayload, _: None = Depends(require_panel_token)):
+    from bot.arena.storage import ArenaStorage
+
+    storage = ArenaStorage(ARENA_DB)
+    record = storage.add_note(payload.strategy_id, payload.note, payload.author or "panel")
+    return record

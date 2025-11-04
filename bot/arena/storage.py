@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Iterable, List
 
 from .models import StrategyLedgerEntry
@@ -45,6 +46,18 @@ class ArenaStorage:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    strategy_id TEXT NOT NULL,
+                    note TEXT NOT NULL,
+                    author TEXT,
+                    ts TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_notes_strategy ON notes(strategy_id)")
             conn.commit()
 
     def append_ledger(self, entries: Iterable[StrategyLedgerEntry]) -> None:
@@ -107,6 +120,32 @@ class ArenaStorage:
                 """
                 SELECT strategy_id, ts, pnl, balance_after, reason
                 FROM ledger
+                WHERE strategy_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (strategy_id, limit),
+            ).fetchall()
+            data = [dict(row) for row in rows]
+            data.reverse()
+            return data
+
+    def add_note(self, strategy_id: str, note: str, author: str | None = None) -> dict:
+        ts = datetime.now(timezone.utc).isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO notes(strategy_id, note, author, ts) VALUES (?, ?, ?, ?)",
+                (strategy_id, note, author, ts),
+            )
+            conn.commit()
+        return {"strategy_id": strategy_id, "note": note, "author": author, "ts": ts}
+
+    def notes_for(self, strategy_id: str, limit: int = 20) -> List[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT strategy_id, note, author, ts
+                FROM notes
                 WHERE strategy_id = ?
                 ORDER BY id DESC
                 LIMIT ?
