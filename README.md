@@ -9,6 +9,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
 - `bot/arena/` concentra la **Arena de estrategias** con 5 000 perfiles simulados, registro, ranking y
   orquestador para la “carrera” test → real.
+- `bot/core/settings.py` centraliza la lectura de `.env`/config para compartir defaults entre CLI, loop y servicios.
 - `docs/cerebro.md` describe el nuevo **Cerebro IA**, un servicio que observa al bot,
   genera features y aprende de los resultados para proponer mejoras. Act?valo
   habilitando `cerebro.enabled` en `config/config.json`; el Cerebro propondr?
@@ -153,6 +154,7 @@ npm run build
 `docker-compose.yml` levanta solo el panel en modo host. Ajusta el archivo si quieres incluir la API/control.
 
 ## Comandos utiles
+- `python scripts/ops.py up` enciende API, bot, Cerebro y la estrategia (`down`, `status`, `logs`, `arena tick` y `arena promote` funcionan igual). El CLI usa los mismos scripts internos, pero unifica el flujo operativo.
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.
 - `npm run lint` para validar el panel antes de publicar.
