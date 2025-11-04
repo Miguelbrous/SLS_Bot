@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from pathlib import Path
 from typing import Iterable
 import json
 
-from .config import load_cup_config, ARENA_DIR
+from .config import load_cup_config
 from .models import StrategyProfile, StrategyStats
 from .registry import ArenaRegistry, LEDGER_PATH
 from .simulator import MarketSimulator
@@ -58,9 +57,6 @@ class LeagueManager:
                 profile.mode = "champion"
                 promoted.append(profile)
         if promoted:
-            new_goal = self.registry.update_goal_after_win()
-            state = self.registry.ensure_state()
-            state["current_goal"] = new_goal
-            self.storage.save_state(state)
+            self.registry.update_goal_after_win()
             self.registry.save()
         return promoted

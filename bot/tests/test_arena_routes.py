@@ -17,7 +17,13 @@ def arena_module(tmp_path, monkeypatch):
     ranking_file = tmp_path / "ranking.json"
     ranking_file.write_text(json.dumps(ranking_data), encoding="utf-8")
 
-    state_payload = {"current_goal": 150.0, "wins": 2}
+    state_payload = {
+        "current_goal": 150.0,
+        "wins": 2,
+        "last_tick_ts": "2025-01-01T00:00:00Z",
+        "ticks_since_win": 0,
+        "drawdown_pct": 12.5,
+    }
     state_file = tmp_path / "state.json"
     state_file.write_text(json.dumps(state_payload), encoding="utf-8")
 

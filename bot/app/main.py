@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge, REGISTRY
 
 from .alerts import collect_alerts
 from .models import (
@@ -105,6 +106,25 @@ ARENA_DB = Path(os.getenv("ARENA_DB_PATH", ARENA_DIR / "arena.db"))
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
+def _get_or_create_gauge(name: str, description: str) -> Gauge:
+    names_map = getattr(REGISTRY, "_names_to_collectors", None)
+    if isinstance(names_map, dict) and name in names_map:
+        existing = names_map[name]
+        if isinstance(existing, Gauge):
+            return existing
+    return Gauge(name, description)
+
+
+ARENA_GOAL_GAUGE = _get_or_create_gauge("sls_arena_current_goal_eur", "Meta activa en la arena (EUR)")
+ARENA_WINS_GAUGE = _get_or_create_gauge("sls_arena_total_wins", "Victorias acumuladas en la arena")
+ARENA_STATE_AGE_GAUGE = _get_or_create_gauge(
+    "sls_arena_state_age_seconds", "Segundos desde el último tick registrado"
+)
+ARENA_DRAWDOWN_GAUGE = _get_or_create_gauge("sls_arena_goal_drawdown_pct", "Drawdown vs meta de la arena (%)")
+ARENA_TICKS_SINCE_WIN_GAUGE = _get_or_create_gauge(
+    "sls_arena_ticks_since_win", "Ticks desde la última promoción"
+)
 
 try:
     from cerebro.router import cerebro_router  # type: ignore
@@ -223,6 +243,37 @@ def _load_json_file(path: Path, fallback):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return fallback
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        raw = value.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _update_arena_metrics(state: Dict[str, Any]) -> None:
+    goal = float(state.get("current_goal") or 0.0)
+    ARENA_GOAL_GAUGE.set(goal)
+    wins = float(state.get("wins") or 0.0)
+    ARENA_WINS_GAUGE.set(wins)
+    ticks = float(state.get("ticks_since_win") or 0.0)
+    ARENA_TICKS_SINCE_WIN_GAUGE.set(ticks)
+    drawdown = state.get("drawdown_pct")
+    if isinstance(drawdown, (int, float)):
+        ARENA_DRAWDOWN_GAUGE.set(float(drawdown))
+    last_tick = _parse_iso_datetime(state.get("last_tick_ts") or state.get("updated_at"))
+    if last_tick:
+        age = max(0.0, (datetime.now(timezone.utc) - last_tick).total_seconds())
+        ARENA_STATE_AGE_GAUGE.set(age)
+    else:
+        ARENA_STATE_AGE_GAUGE.set(float("nan"))
 
 
 def _recent_pnl_entries(limit: int = 10) -> List[DashboardTrade]:
@@ -807,6 +858,7 @@ def arena_ranking(_: None = Depends(require_panel_token)):
 @app.get("/arena/state")
 def arena_state(_: None = Depends(require_panel_token)):
     state = _load_json_file(ARENA_STATE, {"current_goal": None, "wins": 0})
+    _update_arena_metrics(state)
     return state
 
 

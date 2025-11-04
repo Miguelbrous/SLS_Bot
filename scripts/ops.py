@@ -6,6 +6,7 @@ import argparse
 import json
 import subprocess
 import sys
+import os
 from pathlib import Path
 from typing import List
 
@@ -23,6 +24,14 @@ HEALTH_SCRIPT = ROOT / "scripts" / "tools" / "healthcheck.py"
 INFRA_CHECK = ROOT / "scripts" / "tools" / "infra_check.py"
 GENERATE_DATASET = ROOT / "scripts" / "tools" / "generate_cerebro_dataset.py"
 PROMOTE_MODEL = ROOT / "scripts" / "tools" / "promote_best_cerebro_model.py"
+DEPLOY_BOOTSTRAP = ROOT / "scripts" / "deploy" / "bootstrap.sh"
+MONITOR_GUARD = ROOT / "scripts" / "tools" / "monitor_guard.py"
+DEFAULT_SYSTEMD_SERVICES = [
+    "sls-api.service",
+    "sls-bot.service",
+    "sls-cerebro.service",
+    "sls-panel.service",
+]
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -30,8 +39,14 @@ if str(ROOT) not in sys.path:
 from bot.arena.service import ArenaService
 
 
-def _run(cmd: List[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd or ROOT, check=check)
+def _run(
+    cmd: List[str],
+    *,
+    cwd: Path | None = None,
+    check: bool = True,
+    env: dict | None = None,
+) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, cwd=cwd or ROOT, check=check, env=env)
 
 
 def _python_exec() -> str:
@@ -149,6 +164,56 @@ def cmd_cerebro_promote(args: argparse.Namespace) -> None:
     _run(cmd)
 
 
+def cmd_deploy_bootstrap(args: argparse.Namespace) -> None:
+    env = os.environ.copy()
+    env["APP_ROOT"] = args.app_root or env.get("APP_ROOT") or str(ROOT)
+    env["SVC_USER"] = args.svc_user or env.get("SVC_USER") or os.environ.get("USER", "sls")
+    if args.install_systemd or env.get("INSTALL_SYSTEMD"):
+        env["INSTALL_SYSTEMD"] = "1"
+    cmd = ["bash", str(DEPLOY_BOOTSTRAP)]
+    _run(cmd, env=env)
+
+
+def cmd_deploy_rollout(args: argparse.Namespace) -> None:
+    services = args.services or DEFAULT_SYSTEMD_SERVICES
+    if args.daemon_reload:
+        _run(["systemctl", "daemon-reload"])
+    for service in services:
+        action = "restart" if args.restart else "reload"
+        _run(["systemctl", action, service])
+    if args.status:
+        for service in services:
+            _run(["systemctl", "status", service], check=False)
+
+
+def cmd_monitor_check(args: argparse.Namespace) -> None:
+    cmd = [
+        _python_exec(),
+        str(MONITOR_GUARD),
+        "--api-base",
+        args.api_base,
+        "--max-arena-lag",
+        str(args.max_arena_lag),
+        "--max-drawdown",
+        str(args.max_drawdown),
+        "--max-ticks-since-win",
+        str(args.max_ticks_since_win),
+    ]
+    if args.panel_token:
+        cmd.extend(["--panel-token", args.panel_token])
+    if args.slack_webhook:
+        cmd.extend(["--slack-webhook", args.slack_webhook])
+    if args.telegram_token:
+        if not args.telegram_chat_id:
+            raise SystemExit("Debes especificar --telegram-chat-id junto al token.")
+        cmd.extend(
+            ["--telegram-token", args.telegram_token, "--telegram-chat-id", args.telegram_chat_id]
+        )
+    if args.dry_run:
+        cmd.append("--dry-run")
+    _run(cmd)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="CLI operativo para SLS_Bot")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -181,6 +246,26 @@ def build_parser() -> argparse.ArgumentParser:
     sub_infra.add_argument("--env-file", dest="env_file", help="Ruta a .env opcional")
     sub_infra.add_argument("--ensure-dirs", action="store_true", help="Crear directorios faltantes")
     sub_infra.set_defaults(func=cmd_infra)
+
+    deploy = sub.add_parser("deploy", help="Automatiza bootstrap/rollouts de servicios")
+    deploy_sub = deploy.add_subparsers(dest="deploy_cmd", required=True)
+
+    deploy_bootstrap = deploy_sub.add_parser("bootstrap", help="Ejecuta scripts/deploy/bootstrap.sh")
+    deploy_bootstrap.add_argument("--app-root", help="Sobrescribe APP_ROOT al ejecutar el script")
+    deploy_bootstrap.add_argument("--svc-user", help="Usuario del servicio (SVC_USER)")
+    deploy_bootstrap.add_argument("--install-systemd", action="store_true", help="Copia unit files systemd")
+    deploy_bootstrap.set_defaults(func=cmd_deploy_bootstrap)
+
+    deploy_rollout = deploy_sub.add_parser("rollout", help="Reinicia servicios systemd")
+    deploy_rollout.add_argument(
+        "--services",
+        nargs="+",
+        help="Listado de unidades systemd a operar (default sls-*)",
+    )
+    deploy_rollout.add_argument("--daemon-reload", action="store_true", help="systemctl daemon-reload antes")
+    deploy_rollout.add_argument("--status", action="store_true", help="Muestra systemctl status tras reiniciar")
+    deploy_rollout.add_argument("--restart", action="store_true", help="Usa restart en lugar de reload")
+    deploy_rollout.set_defaults(func=cmd_deploy_rollout)
 
     arena = sub.add_parser("arena", help="Operaciones relacionadas a la arena")
     arena_sub = arena.add_subparsers(dest="arena_cmd", required=True)
@@ -223,6 +308,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Mínimo requerido para la métrica seleccionada",
     )
     cerebro_promote.set_defaults(func=cmd_cerebro_promote)
+
+    monitor = sub.add_parser("monitor", help="Monitoreo activo de /metrics y /arena/state")
+    monitor_sub = monitor.add_subparsers(dest="monitor_cmd", required=True)
+
+    monitor_check = monitor_sub.add_parser("check", help="Valida métricas y envía alertas (Slack/Telegram)")
+    monitor_check.add_argument("--api-base", default="http://127.0.0.1:8880", help="Base URL de la API")
+    monitor_check.add_argument("--panel-token", help="Token del panel para acceder a /arena/state")
+    monitor_check.add_argument("--max-arena-lag", type=int, default=600, help="Umbral de atraso para ticks (s)")
+    monitor_check.add_argument("--max-drawdown", type=float, default=30.0, help="Drawdown (%) máximo permitido")
+    monitor_check.add_argument(
+        "--max-ticks-since-win",
+        type=int,
+        default=20,
+        help="Ticks sin promover campeones antes de alertar",
+    )
+    monitor_check.add_argument("--slack-webhook", help="Webhook Slack opcional")
+    monitor_check.add_argument("--telegram-token", help="Token del bot de Telegram")
+    monitor_check.add_argument("--telegram-chat-id", help="Chat ID de Telegram")
+    monitor_check.add_argument("--dry-run", action="store_true", help="No envía alertas, solo imprime")
+    monitor_check.set_defaults(func=cmd_monitor_check)
 
     return parser
 

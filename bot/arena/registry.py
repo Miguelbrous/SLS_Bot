@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List
 
@@ -12,6 +12,10 @@ from .config import ARENA_DIR, load_cup_config
 REGISTRY_PATH = ARENA_DIR / "registry.json"
 LEDGER_PATH = ARENA_DIR / "ledger.jsonl"
 STATE_PATH = ARENA_DIR / "cup_state.json"
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class ArenaRegistry:
@@ -73,14 +77,24 @@ class ArenaRegistry:
                 "current_goal": cfg.initial_goal,
                 "goal_increment": cfg.goal_increment,
                 "wins": 0,
+                "last_tick_ts": None,
+                "ticks_since_win": 0,
+                "drawdown_pct": 0.0,
+                "updated_at": _now_iso(),
             }
             STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
             return state
         return json.loads(STATE_PATH.read_text(encoding="utf-8"))
 
+    def save_state(self, state: dict) -> None:
+        if "updated_at" not in state:
+            state["updated_at"] = _now_iso()
+        STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
     def update_goal_after_win(self) -> float:
         state = self.ensure_state()
         state["wins"] += 1
         state["current_goal"] += state.get("goal_increment", 50.0)
-        STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        state["updated_at"] = _now_iso()
+        self.save_state(state)
         return state["current_goal"]

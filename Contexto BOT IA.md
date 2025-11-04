@@ -19,6 +19,8 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - API expone `/arena/ledger` y el panel cuenta con `/arena` para consumir ranking + ledger con filtros directamente desde la UI.
 - Nuevos endpoints `POST /arena/tick` y `POST /arena/promote` permiten operar la arena (forzar tick/exportar) desde el panel vía botones dedicados.
 - `/metrics` ahora expone métricas (Prometheus) gracias a `prometheus-fastapi-instrumentator`, útil para observabilidad externa.
+- `scripts/ops.py` ahora incluye comandos `deploy bootstrap/rollout` y `monitor check` para orquestar systemd + enviar alertas Slack/Telegram cuando la arena se estanca o supera el drawdown configurado (ver `scripts/tools/monitor_guard.py`).
+- `cup_state.json` registra `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y los endpoints `/arena/state` actualizan métricas `sls_arena_*` que se consumen vía `/metrics`.
 
 ---
 
