@@ -152,6 +152,7 @@ registrando automáticamente el artefacto resultante.
   usando `BacktestSimulator`; está expuesto vía `POST /cerebro/simulate` (`symbol`, `timeframe`, `horizon`, `news_sentiment`).
 - `scripts/tools/generate_cerebro_dataset.py` (o `python scripts/ops.py cerebro dataset --mode test --rows 300 --overwrite`) crea datasets sintéticos (JSONL) para ejercitar entrenamientos sin depender de fills reales.
 - `scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` (o `python scripts/ops.py cerebro promote ...`) escoge el modelo registrado con mejor métrica y lo promueve a `active_model.json`, dejando trazabilidad en `models/cerebro/<mode>/registry.json`.
+- `python scripts/ops.py cerebro train --mode test --epochs 400 --min-auc 0.58 --min-win-rate 0.55 --dry-run` ejecuta `bot.cerebro.train`: admite `--dataset`, `--output-dir`, `--seed`, `--no-promote` y umbrales customizados para automatizar entrenamientos desde el CLI.
 
 ## Logs e historial
 

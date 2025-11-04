@@ -195,6 +195,35 @@ def cmd_cerebro_promote(args: argparse.Namespace) -> None:
     _run(cmd)
 
 
+def cmd_cerebro_train(args: argparse.Namespace) -> None:
+    cmd = [_python_exec(), "-m", "bot.cerebro.train"]
+    if args.mode:
+        cmd.extend(["--mode", args.mode])
+    if args.dataset:
+        cmd.extend(["--dataset", args.dataset])
+    if args.output_dir:
+        cmd.extend(["--output-dir", args.output_dir])
+    cmd.extend([
+        "--epochs",
+        str(args.epochs),
+        "--lr",
+        str(args.lr),
+        "--train-ratio",
+        str(args.train_ratio),
+        "--min-auc",
+        str(args.min_auc),
+        "--min-win-rate",
+        str(args.min_win_rate),
+        "--seed",
+        str(args.seed),
+    ])
+    if args.dry_run:
+        cmd.append("--dry-run")
+    if args.no_promote:
+        cmd.append("--no-promote")
+    _run(cmd)
+
+
 def cmd_deploy_bootstrap(args: argparse.Namespace) -> None:
     env = os.environ.copy()
     env["APP_ROOT"] = args.app_root or env.get("APP_ROOT") or str(ROOT)
@@ -347,6 +376,20 @@ def build_parser() -> argparse.ArgumentParser:
     cerebro_dataset.add_argument("--bias", type=float, default=0.0, help="Sesgo adicional para pnl")
     cerebro_dataset.add_argument("--overwrite", action="store_true", help="Sobrescribir dataset existente")
     cerebro_dataset.set_defaults(func=cmd_cerebro_dataset)
+
+    cerebro_train = cerebro_sub.add_parser("train", help="Entrena el modelo ligero del Cerebro")
+    cerebro_train.add_argument("--mode", help="Modo objetivo (test, real, etc.)")
+    cerebro_train.add_argument("--dataset", help="Ruta al dataset JSONL (opcional)")
+    cerebro_train.add_argument("--output-dir", help="Directorio de artefactos (opcional)")
+    cerebro_train.add_argument("--epochs", type=int, default=400)
+    cerebro_train.add_argument("--lr", type=float, default=0.05)
+    cerebro_train.add_argument("--train-ratio", type=float, default=0.8)
+    cerebro_train.add_argument("--min-auc", type=float, default=0.52)
+    cerebro_train.add_argument("--min-win-rate", type=float, default=0.52)
+    cerebro_train.add_argument("--seed", type=int, default=42)
+    cerebro_train.add_argument("--dry-run", action="store_true", help="Solo imprime métricas")
+    cerebro_train.add_argument("--no-promote", action="store_true", help="No promueve automáticamente")
+    cerebro_train.set_defaults(func=cmd_cerebro_train)
 
     cerebro_promote = cerebro_sub.add_parser("promote", help="Promueve el mejor modelo registrado")
     cerebro_promote.add_argument("--mode", default="test", help="Modo objetivo (test, real, etc.)")

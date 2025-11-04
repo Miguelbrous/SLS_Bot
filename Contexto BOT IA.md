@@ -24,6 +24,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Promover una estrategia ahora ejecuta validaciones (mínimo de trades, Sharpe y drawdown); el CLI/endpoint aceptan `--force`/`force=true` y generan `validation.json` con los métricos utilizados.
 - `python scripts/ops.py arena notes add/list` y los endpoints `/arena/notes` registran bitácoras para cada estrategia directamente en `arena.db`, útil antes de moverlas a real.
 - `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`, ideales para cron/CI y dashboards Grafana.
+- `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.
 
 ---
 

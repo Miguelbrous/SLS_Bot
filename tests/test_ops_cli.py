@@ -145,3 +145,59 @@ def test_arena_promote_command_builds_thresholds(stub_run):
         "/tmp/pkg",
         "--force",
     ]
+
+
+def test_cerebro_train_command(stub_run):
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "train",
+            "--mode",
+            "real",
+            "--dataset",
+            "/tmp/data.jsonl",
+            "--output-dir",
+            "/tmp/models",
+            "--epochs",
+            "200",
+            "--lr",
+            "0.1",
+            "--train-ratio",
+            "0.7",
+            "--min-auc",
+            "0.6",
+            "--min-win-rate",
+            "0.55",
+            "--seed",
+            "7",
+            "--dry-run",
+            "--no-promote",
+        ]
+    )
+    args.func(args)
+    assert stub_run[-1]["cmd"] == [
+        "python",
+        "-m",
+        "bot.cerebro.train",
+        "--mode",
+        "real",
+        "--dataset",
+        "/tmp/data.jsonl",
+        "--output-dir",
+        "/tmp/models",
+        "--epochs",
+        "200",
+        "--lr",
+        "0.1",
+        "--train-ratio",
+        "0.7",
+        "--min-auc",
+        "0.6",
+        "--min-win-rate",
+        "0.55",
+        "--seed",
+        "7",
+        "--dry-run",
+        "--no-promote",
+    ]

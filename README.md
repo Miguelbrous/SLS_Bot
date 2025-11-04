@@ -159,6 +159,7 @@ npm run build
 - `python scripts/ops.py infra --env-file .env.local --ensure-dirs` corre `infra_check.py`, valida tokens/credenciales y opcionalmente crea los directorios faltantes por modo.
 - `python scripts/ops.py cerebro dataset --mode test --rows 300 --overwrite` genera datasets sintéticos para reentrenar el Cerebro sin depender de fills reales; `--bias` ajusta el sesgo de PnL.
 - `python scripts/ops.py cerebro promote --mode real --metric auc --min-value 0.65` promueve el mejor modelo registrado a `active_model.json` sin buscar el script manualmente.
+- `python scripts/ops.py cerebro train --mode test --epochs 300 --min-auc 0.6 --dry-run` entrena/evalúa el modelo ligero (usa `--no-promote` para solo guardar artefactos o `--dataset`/`--output-dir` para rutas personalizadas).
 - `python scripts/ops.py deploy bootstrap --install-systemd` corre `scripts/deploy/bootstrap.sh` con las variables apropiadas (`APP_ROOT`, `SVC_USER`) y recompila backend + panel en un solo paso.
 - `python scripts/ops.py deploy rollout --restart --services sls-api.service sls-bot.service` reinicia las unidades systemd clave (opcionalmente con `--daemon-reload`).
 - `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook https://hooks.slack...` ejecuta el monitor que valida `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando hay drawdown o ticks pegados.
