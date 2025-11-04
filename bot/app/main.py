@@ -34,6 +34,10 @@ from .models import (
     ArenaNote,
     ArenaNotesResponse,
     ArenaNotePayload,
+    ObservabilitySummary,
+    ObservabilityArena,
+    ObservabilityBot,
+    ObservabilityCerebro,
 )
 from .services import service_action, service_status
 from .utils import tail_lines
@@ -343,6 +347,30 @@ def _cerebro_decisions_rate_metric() -> float:
 
 _bind_gauge_function(BOT_DRAWDOWN_GAUGE, _bot_drawdown_metric)
 _bind_gauge_function(CEREBRO_DECISIONS_RATE_GAUGE, _cerebro_decisions_rate_metric)
+
+
+def _build_observability_summary() -> ObservabilitySummary:
+    state = _load_json_file(ARENA_STATE, {}) or {}
+    last_tick_ts = state.get("last_tick_ts") or state.get("updated_at")
+    tick_age = None
+    dt = _parse_iso_datetime(last_tick_ts)
+    if dt:
+        tick_age = max(0.0, (datetime.now(timezone.utc) - dt).total_seconds())
+    arena = ObservabilityArena(
+        current_goal=state.get("current_goal"),
+        wins=state.get("wins"),
+        ticks_since_win=state.get("ticks_since_win"),
+        last_tick_ts=last_tick_ts,
+        tick_age_seconds=tick_age,
+    )
+    bot_drawdown = _bot_drawdown_metric()
+    cerebro_rate = _cerebro_decisions_rate_metric()
+    bot_summary = ObservabilityBot(drawdown_pct=round(bot_drawdown, 4) if bot_drawdown is not None else None)
+    cerebro_summary = ObservabilityCerebro(
+        decisions_per_min=round(cerebro_rate, 4) if cerebro_rate is not None else None
+    )
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return ObservabilitySummary(timestamp=timestamp, arena=arena, bot=bot_summary, cerebro=cerebro_summary)
 
 
 def _recent_pnl_entries(limit: int = 10) -> List[DashboardTrade]:
@@ -929,6 +957,11 @@ def arena_state(_: None = Depends(require_panel_token)):
     state = _load_json_file(ARENA_STATE, {"current_goal": None, "wins": 0})
     _update_arena_metrics(state)
     return state
+
+
+@app.get("/observability/summary", response_model=ObservabilitySummary)
+def observability_summary(_: None = Depends(require_panel_token)):
+    return _build_observability_summary()
 
 
 @app.get("/arena/ledger")

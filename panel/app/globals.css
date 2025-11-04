@@ -43,6 +43,8 @@ button:hover { border-color: var(--accent); }
 .badge.warn { color:#ffd089; border-color:#3e331b; background:#2a1b0e; }
 .badge.muted { color: var(--muted); border-color:#2a2a2a; background:#141414; }
 .badge-mini { font-size:10px; padding:1px 6px; text-transform: uppercase; letter-spacing: .04em; }
+.pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid #2a2a2a; color:var(--muted); background:#121212; }
+.pill.neutral { border-color:#1f1f1f; }
 
 .badges { display:flex; gap:8px; flex-wrap:wrap; margin-block-end:8px; }
 .kv { display:grid; grid-template-columns: 1fr; gap:4px; margin-block-end:8px; }

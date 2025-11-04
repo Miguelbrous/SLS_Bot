@@ -132,3 +132,26 @@ class ArenaNotePayload(BaseModel):
 
 class ArenaNotesResponse(BaseModel):
     notes: List[ArenaNote]
+
+
+class ObservabilityArena(BaseModel):
+    current_goal: float | None = None
+    wins: int | None = None
+    ticks_since_win: int | None = None
+    last_tick_ts: str | None = None
+    tick_age_seconds: float | None = None
+
+
+class ObservabilityBot(BaseModel):
+    drawdown_pct: float | None = None
+
+
+class ObservabilityCerebro(BaseModel):
+    decisions_per_min: float | None = None
+
+
+class ObservabilitySummary(BaseModel):
+    timestamp: str
+    arena: ObservabilityArena
+    bot: ObservabilityBot
+    cerebro: ObservabilityCerebro

@@ -57,9 +57,34 @@ type ArenaRankingEntry = {
 };
 type ArenaRankingResponse = { count: number; ranking: ArenaRankingEntry[] };
 type ArenaState = { current_goal?: number | null; goal_increment?: number | null; wins?: number | null };
+type ObservabilitySummary = {
+  timestamp: string;
+  arena: {
+    current_goal?: number | null;
+    wins?: number | null;
+    ticks_since_win?: number | null;
+    last_tick_ts?: string | null;
+    tick_age_seconds?: number | null;
+  };
+  bot: { drawdown_pct?: number | null };
+  cerebro: { decisions_per_min?: number | null };
+};
 
 const SYMBOLS = ["BTCUSDT", "ETHUSDT"];
 const TIMEFRAMES = ["5m", "15m", "1h"];
+
+const describeAge = (iso?: string | null): string | null => {
+  if (!iso) return null;
+  try {
+    const updated = new Date(iso);
+    const diff = (Date.now() - updated.getTime()) / 1000;
+    if (diff < 60) return "hace instantes";
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} minutos`;
+    return `hace ${Math.floor(diff / 3600)} horas`;
+  } catch {
+    return null;
+  }
+};
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -70,6 +95,8 @@ export default function DashboardPage() {
   const [loadingChart, setLoadingChart] = useState<boolean>(false);
   const [arenaRanking, setArenaRanking] = useState<ArenaRankingEntry[]>([]);
   const [arenaState, setArenaState] = useState<ArenaState | null>(null);
+  const [observability, setObservability] = useState<ObservabilitySummary | null>(null);
+  const [loadingObservability, setLoadingObservability] = useState<boolean>(false);
   const [loadingArena, setLoadingArena] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
@@ -135,6 +162,19 @@ export default function DashboardPage() {
     }
   }, [fetchJSON]);
 
+  const loadObservability = useCallback(async () => {
+    try {
+      setLoadingObservability(true);
+      const payload = await fetchJSON<ObservabilitySummary>("/observability/summary");
+      setObservability(payload);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error cargando observabilidad";
+      setError(message);
+    } finally {
+      setLoadingObservability(false);
+    }
+  }, [fetchJSON]);
+
 useEffect(() => {
   loadSummary();
 }, [loadSummary]);
@@ -146,6 +186,12 @@ useEffect(() => {
 useEffect(() => {
   loadArena();
 }, [loadArena]);
+
+useEffect(() => {
+  loadObservability();
+  const interval = setInterval(loadObservability, 60000);
+  return () => clearInterval(interval);
+}, [loadObservability]);
 
   useEffect(() => {
     if (!chartData || !chartRef.current) return;
@@ -223,18 +269,8 @@ useEffect(() => {
   const formattedAlerts = summary?.alerts ?? [];
 
   const statusClass = summary ? `status-pill ${summary.level}` : "status-pill ok";
-  const updatedAgo = useMemo(() => {
-    if (!summary?.updated_at) return null;
-    try {
-      const updated = new Date(summary.updated_at);
-      const diff = (Date.now() - updated.getTime()) / 1000;
-      if (diff < 60) return "hace instantes";
-      if (diff < 3600) return `hace ${Math.floor(diff / 60)} minutos`;
-      return `hace ${Math.floor(diff / 3600)} horas`;
-    } catch {
-      return null;
-    }
-  }, [summary?.updated_at]);
+  const updatedAgo = useMemo(() => describeAge(summary?.updated_at), [summary?.updated_at]);
+  const observabilityAgo = useMemo(() => describeAge(observability?.timestamp), [observability?.timestamp]);
 
   const renderArenaRanking = () => {
     if (loadingArena) return <p>Cargando arena...</p>;
@@ -271,6 +307,19 @@ useEffect(() => {
     );
   };
 
+  const formatTickAge = (seconds?: number | null) => {
+    if (seconds === undefined || seconds === null) return "N/D";
+    if (seconds < 60) return `${seconds.toFixed(0)}s`;
+    if (seconds < 3600) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}m ${secs}s`;
+    }
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${mins}m`;
+  };
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-head">
@@ -290,6 +339,60 @@ useEffect(() => {
       </div>
 
       {error ? <div className="error-banner">{error}</div> : null}
+
+      <section className="dashboard-section">
+        <div className="card">
+          <div className="dashboard-title">
+            <h2>Observabilidad</h2>
+            {loadingObservability ? <span className="badge muted">Actualizando…</span> : null}
+            {!loadingObservability && observabilityAgo ? <span className="pill neutral">{observabilityAgo}</span> : null}
+          </div>
+          {observability ? (
+            <div className="metric-grid">
+              <div className="metric-card">
+                <span>Meta arena</span>
+                <strong>
+                  {typeof observability.arena.current_goal === "number"
+                    ? `€${observability.arena.current_goal.toFixed(2)}`
+                    : "—"}
+                </strong>
+                <small>
+                  Victorias {observability.arena.wins ?? 0} · Ticks sin win {observability.arena.ticks_since_win ?? 0}
+                </small>
+              </div>
+              <div className="metric-card">
+                <span>Último tick</span>
+                <strong>{formatTickAge(observability.arena.tick_age_seconds)}</strong>
+                <small>
+                  {observability.arena.last_tick_ts
+                    ? new Date(observability.arena.last_tick_ts).toLocaleString()
+                    : "Sin registro"}
+                </small>
+              </div>
+              <div className="metric-card">
+                <span>Drawdown bot</span>
+                <strong>
+                  {typeof observability.bot.drawdown_pct === "number"
+                    ? `${observability.bot.drawdown_pct.toFixed(2)}%`
+                    : "—"}
+                </strong>
+                <small>Estado actual de risk_state.json</small>
+              </div>
+              <div className="metric-card">
+                <span>Decisiones Cerebro</span>
+                <strong>
+                  {typeof observability.cerebro.decisions_per_min === "number"
+                    ? observability.cerebro.decisions_per_min.toFixed(2)
+                    : "—"}
+                </strong>
+                <small>Promedio últimos 15 minutos</small>
+              </div>
+            </div>
+          ) : (
+            <div className="empty small">Sin datos de observabilidad.</div>
+          )}
+        </div>
+      </section>
 
       <section className="dashboard-section">
         <div className="card">

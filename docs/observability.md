@@ -2,6 +2,7 @@
 
 ## Métricas Prometheus
 - La API expone `/metrics` (Prometheus). Se incluyen `sls_arena_*`, `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min` y métricas básicas de FastAPI.
+- Use `/observability/summary` (requiere token del panel) para obtener un snapshot JSON listo para el panel, con meta de la arena, drawdown del bot y decisiones/minuto del Cerebro.
 - Ejemplo `prometheus.yml`:
   ```yaml
   scrape_configs:

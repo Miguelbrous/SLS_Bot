@@ -211,6 +211,7 @@ npm run build
 - `scripts/cron/cerebro_train.sh` es un hook para cron/systemd: lee variables `CEREBRO_TRAIN_*` y ejecuta `python scripts/ops.py cerebro train ...`, registrando la salida en `tmp_logs/cerebro_train.log`.
 - `python scripts/tools/arena_candidate_report.py --min-sharpe 0.4 --min-trades 80 --top 5` genera un informe (tabla) con las estrategias más sanas para mover a testnet antes de promoverlas.
 - Consulta `docs/observability.md` para integrar Prometheus/Grafana, programar `ops monitor check` y extender el pipeline CI recién añadido (`.github/workflows/ci.yml`).
+- Endpoint nuevo `/observability/summary` (token panel) devuelve los indicadores del bot/Cerebro/Arena que el panel muestra en la tarjeta “Observabilidad”.
 
 ## Frentes débiles actuales
 - **Panel / Observabilidad:** aunque ya contamos con `ANALYZE=true npm run build` y métricas adicionales en la vista de arena, el panel todavía no expone las métricas Prometheus del bot/Cerebro ni utiliza cargas diferidas para componentes pesados como `lightweight-charts`. Falta revisar los reportes generados por el bundle analyzer y diseñar visualizaciones/alertas adicionales desde la UI.
