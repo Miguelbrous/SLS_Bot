@@ -206,6 +206,11 @@ npm run build
 - Registra bitácoras rápidas con `python scripts/ops.py arena notes add <id> --message "..."` o vía `POST /arena/notes`; consúltalas con `arena notes list` o `GET /arena/notes?strategy_id=<id>`.
 - Panel `/arena` muestra ranking completo (incluye Sharpe/MaxDD), ledger, notas y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
 
+## Frentes débiles actuales
+- **Panel / Observabilidad:** aunque ya contamos con `ANALYZE=true npm run build` y métricas adicionales en la vista de arena, el panel todavía no expone las métricas Prometheus del bot/Cerebro ni utiliza cargas diferidas para componentes pesados como `lightweight-charts`. Falta revisar los reportes generados por el bundle analyzer y diseñar visualizaciones/alertas adicionales desde la UI.
+- **Cerebro IA / Ingestas:** el Cerebro sigue limitado a los feeds existentes (market/news/macro). Deberíamos integrar nuevas fuentes (funding detallado, order book profundo, datos on-chain o de riesgo) y automatizar entrenamientos (`ops cerebro train`) desde CI/cron con datasets validados antes de promover modelos.
+- **Observabilidad / CI:** pese al CLI unificado y las métricas nuevas, falta un pipeline formal (GitHub Actions/Jenkins) que ejecute `ops qa`, `ops monitor check` y entrenamientos `--dry-run` tras cada cambio. También se requiere instrumentar dashboards externos (Grafana/Alertmanager) para consumir `sls_arena_*`, `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`.
+
 ## Webhook HTTPS y prueba en Bybit Testnet
 
 - **Dominio listo:** `api.slstudominio.com` apunta al VPS. Nginx (`/etc/nginx/sites-available/sls_api.conf`) proxyea `/webhook` y `/ia/signal` tanto por HTTP como por HTTPS (Certbot renueva automáticamente los certificados).
