@@ -206,10 +206,16 @@ npm run build
 - Registra bitácoras rápidas con `python scripts/ops.py arena notes add <id> --message "..."` o vía `POST /arena/notes`; consúltalas con `arena notes list` o `GET /arena/notes?strategy_id=<id>`.
 - Panel `/arena` muestra ranking completo (incluye Sharpe/MaxDD), ledger, notas y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
 
+## Operación controlada y automatizaciones
+- `scripts/run_testnet_session.sh` levanta el stack completo en modo testnet (`SLSBOT_MODE=test`, `STRATEGY_ID=scalp_rush_v1`) y deja log en `tmp_logs/testnet_session.log`. Ideal para sesiones de recolección de datos antes de usar capital real.
+- `scripts/cron/cerebro_train.sh` es un hook para cron/systemd: lee variables `CEREBRO_TRAIN_*` y ejecuta `python scripts/ops.py cerebro train ...`, registrando la salida en `tmp_logs/cerebro_train.log`.
+- `python scripts/tools/arena_candidate_report.py --min-sharpe 0.4 --min-trades 80 --top 5` genera un informe (tabla) con las estrategias más sanas para mover a testnet antes de promoverlas.
+- Consulta `docs/observability.md` para integrar Prometheus/Grafana, programar `ops monitor check` y extender el pipeline CI recién añadido (`.github/workflows/ci.yml`).
+
 ## Frentes débiles actuales
 - **Panel / Observabilidad:** aunque ya contamos con `ANALYZE=true npm run build` y métricas adicionales en la vista de arena, el panel todavía no expone las métricas Prometheus del bot/Cerebro ni utiliza cargas diferidas para componentes pesados como `lightweight-charts`. Falta revisar los reportes generados por el bundle analyzer y diseñar visualizaciones/alertas adicionales desde la UI.
 - **Cerebro IA / Ingestas:** el Cerebro sigue limitado a los feeds existentes (market/news/macro). Deberíamos integrar nuevas fuentes (funding detallado, order book profundo, datos on-chain o de riesgo) y automatizar entrenamientos (`ops cerebro train`) desde CI/cron con datasets validados antes de promover modelos.
-- **Observabilidad / CI:** ya existe `.github/workflows/ci.yml` con `pytest`, `npm run lint` y `python scripts/ops.py monitor check --dry-run`, pero sigue pendiente integrar dashboards Prometheus/Grafana y alarmas externas que consuman las métricas (`sls_arena_*`, `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`) para monitoreo continuo.
+- **Observabilidad / CI:** ya existe `.github/workflows/ci.yml` con `pytest`, `npm run lint` y `python scripts/ops.py monitor check --dry-run`, además del manual `docs/observability.md`; sigue pendiente instrumentar dashboards Prometheus/Grafana y alarmas externas que consuman `sls_arena_*`, `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`.
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 
