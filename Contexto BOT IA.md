@@ -12,6 +12,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Tips operativos: define en `.env` `STRATEGY_ID=scalp_rush_v1` y `STRATEGY_INTERVAL_SECONDS=30`, agenda `scripts/run_arena_tick.sh` y usa `python scripts/promote_arena_strategy.py <strategy_id>` al seleccionar estrategias para modo real.
 - Nuevo CLI `python scripts/ops.py` centraliza `up/down/status/logs`, healthcheck y acciones de arena para no depender de múltiples scripts.
 - `bot/core/settings.py` unifica la lectura de `.env` mediante Pydantic, así loop y CLI comparten los mismos defaults (estrategia, intervalos, firma, modo).
+- `bot/arena/service.py` introduce `ArenaService`, un loop embebido que puedes levantar con `python scripts/ops.py arena run` para mantener ranking/state sin depender de cron.
 
 ---
 

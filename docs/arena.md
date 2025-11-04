@@ -24,7 +24,7 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
 ## Integración
 - FastAPI ya expone `/arena/ranking` y `/arena/state` (requieren token del panel). Ambos leen
   `bot/arena/ranking_latest.json` y `bot/arena/cup_state.json`, por lo que basta ejecutar periódicamente
-  `python -m bot.arena` o `scripts/run_arena_tick.sh` para mantener los datos frescos.
+  `python -m bot.arena`, `scripts/run_arena_tick.sh` o `python scripts/ops.py arena run` para mantener los datos frescos.
 - Cuando una estrategia alcanza la meta vigente pasa a `champion` y se marca como candidata para modo real.
   Su carpeta en `bot/arena/strategies/<id>/` puede contener código personalizado y seguirá aprendiendo aun
   después de ser promovida.
@@ -33,7 +33,7 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
   los metadatos a replicar en el modo real.
 
 ## Próximos pasos
-1. Automatizar `LeagueManager` como servicio (`python -m bot.arena` o `scripts/run_arena_tick.sh`).
+1. Automatizar `LeagueManager` como servicio (`python scripts/ops.py arena run` o `python -m bot.arena`).
 2. Extender el simulador con diferentes motores (martingale, mean reversion, news driven) para alimentar
    las 5 000 estrategias.
 3. Conectar el ranking al panel y permitir “draft picks” para seleccionar estrategias a modo real (el endpoint ya está disponible; falta integrar la UI).

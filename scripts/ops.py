@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import List
 
 ROOT = Path(__file__).resolve().parents[1]
+VENV_DIR = ROOT / "venv"
+SITE_PACKAGES = VENV_DIR / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+if SITE_PACKAGES.exists() and str(SITE_PACKAGES) not in sys.path:
+    sys.path.insert(0, str(SITE_PACKAGES))
 MANAGE_SH = ROOT / "scripts" / "manage.sh"
 ARENA_TICK = ROOT / "scripts" / "run_arena_tick.sh"
 ARENA_PROMOTE = ROOT / "scripts" / "promote_arena_strategy.py"
@@ -17,12 +21,20 @@ ARENA_RANKING = ROOT / "bot" / "arena" / "ranking_latest.json"
 ARENA_STATE = ROOT / "bot" / "arena" / "cup_state.json"
 HEALTH_SCRIPT = ROOT / "scripts" / "tools" / "healthcheck.py"
 
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from bot.arena.service import ArenaService
+
 
 def _run(cmd: List[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd or ROOT, check=check)
 
 
 def _python_exec() -> str:
+    candidate = VENV_DIR / "bin" / "python"
+    if candidate.exists():
+        return str(candidate)
     return sys.executable or "python3"
 
 
@@ -56,6 +68,18 @@ def cmd_health(args: argparse.Namespace) -> None:
 
 def cmd_arena_tick(args: argparse.Namespace) -> None:
     _run([str(ARENA_TICK)])
+
+
+def cmd_arena_run(args: argparse.Namespace) -> None:
+    interval = max(30, args.interval)
+    service = ArenaService(interval_seconds=interval)
+    try:
+        print(f"[arena] Loop iniciado (cada {interval}s). Ctrl+C para detener.")
+        service.run_forever()
+    except KeyboardInterrupt:
+        print("[arena] Detenido manualmente.")
+    finally:
+        service.stop()
 
 
 def cmd_arena_promote(args: argparse.Namespace) -> None:
@@ -103,6 +127,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     arena_tick = arena_sub.add_parser("tick", help="Ejecuta un ciclo de la arena")
     arena_tick.set_defaults(func=cmd_arena_tick)
+
+    arena_run = arena_sub.add_parser("run", help="Corre la arena en loop (bloqueante)")
+    arena_run.add_argument("--interval", type=int, default=300, help="Segundos entre ticks (>=30)")
+    arena_run.set_defaults(func=cmd_arena_run)
 
     arena_promote = arena_sub.add_parser("promote", help="Exporta una estrategia ganadora")
     arena_promote.add_argument("strategy_id", help="ID presente en registry.json")

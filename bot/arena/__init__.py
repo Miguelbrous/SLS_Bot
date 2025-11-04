@@ -4,6 +4,7 @@ from .config import CupConfig, load_cup_config
 from .models import StrategyProfile, StrategyStats, StrategyLedgerEntry
 from .registry import ArenaRegistry
 from .ranking import generate_ranking
+from .service import ArenaService
 
 __all__ = [
     "CupConfig",
@@ -11,6 +12,7 @@ __all__ = [
     "StrategyStats",
     "StrategyLedgerEntry",
     "ArenaRegistry",
+    "ArenaService",
     "generate_ranking",
     "load_cup_config",
 ]

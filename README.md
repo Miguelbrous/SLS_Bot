@@ -178,6 +178,7 @@ npm run build
   `scripts/manage.sh encender-estrategia`.
 - `micro_scalp_v1` redujo los filtros (EMA ≥3 bps, RSI 40-60) para registrar experiencias más rápido en testnet
   mientras la Arena sigue aprendiendo en paralelo.
+- `python scripts/ops.py arena run --interval 300` ejecuta el servicio de arena embebido en loop (ya no dependes de cron) y actualiza `ranking_latest.json` tras cada tick.
 
 ### Tips operativos rápidos
 - Añade en `.env`:
