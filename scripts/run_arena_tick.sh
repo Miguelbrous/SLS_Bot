@@ -9,7 +9,7 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
   source "${ROOT_DIR}/.env"
 fi
 
-if [[ -x "${VENV_DIR}/bin/activate" ]]; then
+if [[ -f "${VENV_DIR}/bin/activate" ]]; then
   # shellcheck disable=SC1091
   source "${VENV_DIR}/bin/activate"
 fi
