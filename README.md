@@ -191,6 +191,7 @@ npm run build
   que consumen los endpoints `/arena/state` y `/arena/ranking`.
 - Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id>`; se genera la carpeta
   `bot/arena/promoted/<id>/` con `profile.json`, `ledger_tail.json` y `SUMMARY.md` (blueprint para mover a real).
+- Panel `/arena` muestra el ranking completo, filtros por categoría y ledger reciente usando los endpoints `/arena/ranking`, `/arena/state` y `/arena/ledger`.
 
 ## Webhook HTTPS y prueba en Bybit Testnet
 
