@@ -150,6 +150,9 @@ button:hover { border-color: var(--accent); }
 .toolbar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
 .toolbar label { font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:4px; }
 .toolbar select { background:#0f0f0f; border:1px solid #222; color:var(--fg); padding:4px 6px; border-radius:6px; }
+.top-nav { display:flex; gap:12px; margin-block-end:16px; }
+.top-nav a { color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; padding:4px 6px; }
+.top-nav a:hover { border-color:var(--accent); color:var(--accent); }
 
 .dashboard-table { overflow:auto; max-block-size:300px; }
 .error-banner { padding:10px 12px; border:1px solid #3e1b1b; background:#2a0e0e; color:#ffb6b6; border-radius:10px; font-size:12px; }

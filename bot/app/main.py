@@ -100,6 +100,7 @@ LOGS_ROOT = LOGS_DIR.parent
 ARENA_DIR = PROJECT_ROOT / "bot" / "arena"
 ARENA_RANKING = Path(os.getenv("ARENA_RANKING_PATH", ARENA_DIR / "ranking_latest.json"))
 ARENA_STATE = Path(os.getenv("ARENA_STATE_PATH", ARENA_DIR / "cup_state.json"))
+ARENA_DB = Path(os.getenv("ARENA_DB_PATH", ARENA_DIR / "arena.db"))
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -805,3 +806,16 @@ def arena_ranking(_: None = Depends(require_panel_token)):
 def arena_state(_: None = Depends(require_panel_token)):
     state = _load_json_file(ARENA_STATE, {"current_goal": None, "wins": 0})
     return state
+
+
+@app.get("/arena/ledger")
+def arena_ledger(
+    strategy_id: str = Query(..., min_length=2, max_length=64),
+    limit: int = Query(50, ge=10, le=200),
+    _: None = Depends(require_panel_token),
+):
+    from bot.arena.storage import ArenaStorage
+
+    storage = ArenaStorage(ARENA_DB)
+    data = storage.ledger_for(strategy_id, limit=limit)
+    return {"id": strategy_id, "entries": data}

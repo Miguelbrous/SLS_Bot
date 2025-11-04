@@ -288,6 +288,9 @@ export default function Page() {
         <Link href="/dashboard" className="badge ok">
           Abrir dashboard visual
         </Link>
+        <Link href="/arena" className="badge ok">
+          Arena
+        </Link>
       </div>
 
       <Card title="Servicios">
