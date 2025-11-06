@@ -9,7 +9,7 @@ import sys
 import os
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 VENV_DIR = ROOT / "venv"
@@ -42,6 +42,7 @@ if str(ROOT) not in sys.path:
 from bot.arena.service import ArenaService
 from bot.arena.promote import export_strategy
 from bot.arena.storage import ArenaStorage
+from scripts.lib import cerebro_autopilot_dataset as autopilot_dataset
 
 
 def _run(
@@ -102,12 +103,26 @@ def _write_prometheus_file(path: str, lines: List[str]) -> None:
     tmp.replace(target)
 
 
+def _write_summary_file(path: Optional[str], summary: Dict[str, object], append: bool) -> None:
+    if not path:
+        return
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    data = json.dumps(summary, ensure_ascii=False)
+    if append or target.suffix.lower() in {".jsonl", ".log"}:
+        with target.open("a", encoding="utf-8") as fh:
+            fh.write(data + "\n")
+    else:
+        target.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def _autopilot_prometheus_lines(
     success: bool,
     promoted: bool,
     metrics: Dict[str, float],
     rows: int,
     duration_seconds: float,
+    dataset_stats: Optional[Dict[str, object]] = None,
 ) -> List[str]:
     lines = [
         f"cerebro_autopilot_success {1 if success else 0}",
@@ -119,6 +134,19 @@ def _autopilot_prometheus_lines(
     for key, value in sorted(metrics.items()):
         if isinstance(value, (int, float)):
             lines.append(f'cerebro_autopilot_metric{{name="{key}"}} {value}')
+    if dataset_stats:
+        win_rate = dataset_stats.get("positive_rate")
+        if isinstance(win_rate, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_win_rate {round(win_rate, 6)}")
+        positives = dataset_stats.get("positives")
+        if isinstance(positives, int):
+            lines.append(f"cerebro_autopilot_dataset_positives {positives}")
+        negatives = dataset_stats.get("negatives")
+        if isinstance(negatives, int):
+            lines.append(f"cerebro_autopilot_dataset_negatives {negatives}")
+        age_hours = dataset_stats.get("file_age_hours")
+        if isinstance(age_hours, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_age_hours {round(age_hours, 6)}")
     return lines
 
 
@@ -478,7 +506,11 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
     slack_webhook = args.slack_webhook
     slack_user = args.slack_user
     require_promote = args.require_promote
+    summary_file = args.summary_json
+    summary_append = bool(getattr(args, "summary_append", False))
     max_age_minutes = max(0, int(args.max_dataset_age_minutes or 0))
+    dataset_max_age_hours = max(args.dataset_max_age_hours or 0.0, max_age_minutes / 60 if max_age_minutes else 0.0)
+    dataset_stats = None
     rows = _count_dataset_rows(dataset)
     metrics: Dict[str, float] = {}
     promoted = False
@@ -506,15 +538,18 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
                 summary["error"] = error_message
                 raise SystemExit(error_message)
         summary["rows"] = rows
-        if max_age_minutes and dataset.exists():
-            age = _dataset_age_minutes(dataset) or 0
-            summary["dataset_age_minutes"] = round(age, 2)
-            if age > max_age_minutes:
-                error_message = (
-                    f"Dataset {dataset} tiene {age:.1f} minutos de antigüedad (> {max_age_minutes}). Renovar antes de entrenar."
-                )
-                summary["error"] = error_message
-                raise SystemExit(error_message)
+        dataset_stats = autopilot_dataset.analyze_dataset(dataset)
+        summary["dataset_stats"] = dataset_stats.to_dict()
+        summary["dataset_age_minutes"] = round(dataset_stats.file_age_hours * 60, 2)
+        if not args.skip_dataset_check:
+            autopilot_dataset.ensure_dataset_quality(
+                dataset_stats,
+                min_rows=min_rows,
+                min_win_rate=args.dataset_min_win_rate,
+                max_win_rate=args.dataset_max_win_rate,
+                min_symbols=max(1, args.dataset_min_symbols),
+                max_age_hours=max(0.0, dataset_max_age_hours),
+            )
         print(f"[autopilot] Dataset listo ({rows} filas). Lanzando entrenamiento...")
         train_cmd = [
             _python_exec(),
@@ -556,6 +591,12 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
             error_message = "El entrenamiento no promovió el modelo y se solicitó --require-promote."
             summary["error"] = error_message
             raise SystemExit(error_message)
+    except autopilot_dataset.DatasetValidationError as exc:
+        error_message = str(exc)
+        summary["error"] = error_message
+        if dataset_stats:
+            summary["dataset_stats"] = dataset_stats.to_dict()
+        raise SystemExit(f"[autopilot] {exc}") from exc
     except SystemExit as exc:
         if not summary.get("error"):
             error_message = str(exc)
@@ -570,6 +611,7 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
         summary["duration_seconds"] = round(duration, 3)
         summary["success"] = success
         summary["promoted"] = promoted
+        summary.setdefault("status", "ok" if success else "error")
         try:
             with log_file.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(summary, ensure_ascii=False) + "\n")
@@ -577,15 +619,38 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
             print(f"[autopilot] No se pudo registrar el log en {log_file}", file=sys.stderr)
         if prom_file:
             try:
-                prom_lines = _autopilot_prometheus_lines(success, promoted, metrics, rows, duration)
+                prom_lines = _autopilot_prometheus_lines(
+                    success,
+                    promoted,
+                    metrics,
+                    rows,
+                    duration,
+                    summary.get("dataset_stats"),
+                )
                 _write_prometheus_file(prom_file, prom_lines)
             except Exception as exc:
                 print(f"[autopilot] No se pudo escribir Prometheus file {prom_file}: {exc}", file=sys.stderr)
+        if summary_file:
+            try:
+                _write_summary_file(summary_file, summary, summary_append)
+            except Exception as exc:
+                print(f"[autopilot] No se pudo guardar summary en {summary_file}: {exc}", file=sys.stderr)
         if slack_webhook:
             stats = ", ".join(f"{k}={v}" for k, v in sorted(metrics.items())) or "sin métricas"
             status_emoji = ":white_check_mark:" if success else ":x:"
             promoted_text = "promovido" if promoted else "sin promover"
-            text = f"{status_emoji} Cerebro autopilot ({args.mode}, {rows} filas, {promoted_text}): {stats}"
+            dataset_text = ""
+            dataset_dict = summary.get("dataset_stats") or {}
+            win_rate = dataset_dict.get("positive_rate")
+            if isinstance(win_rate, (int, float)):
+                dataset_text += f" win={win_rate*100:.1f}%"
+            age_hours = dataset_dict.get("file_age_hours")
+            if isinstance(age_hours, (int, float)):
+                dataset_text += f" age={age_hours:.1f}h"
+            dataset_text = dataset_text.strip()
+            text = f"{status_emoji} Cerebro autopilot ({args.mode}, filas={rows}, {promoted_text}): {stats}"
+            if dataset_text:
+                text += f" | dataset:{dataset_text}"
             if error_message:
                 text += f" :: {error_message}"
             _post_slack(slack_webhook, text, slack_user)
@@ -872,6 +937,13 @@ def build_parser() -> argparse.ArgumentParser:
     cerebro_autopilot.add_argument("--slack-user", default="cerebro-autopilot", help="Nombre de usuario a mostrar en Slack")
     cerebro_autopilot.add_argument("--require-promote", action="store_true", help="Falla si el entrenamiento no promueve el modelo")
     cerebro_autopilot.add_argument("--max-dataset-age-minutes", type=int, default=0, help="Antigüedad máxima (minutos) permitida para el dataset antes de entrenar")
+    cerebro_autopilot.add_argument("--dataset-min-win-rate", type=float, default=0.3, help="Win rate mínimo aceptado para el dataset antes de entrenar")
+    cerebro_autopilot.add_argument("--dataset-max-win-rate", type=float, default=0.8, help="Win rate máximo aceptado (evita datasets sesgados)")
+    cerebro_autopilot.add_argument("--dataset-min-symbols", type=int, default=1, help="Cantidad mínima de símbolos representados en el dataset")
+    cerebro_autopilot.add_argument("--dataset-max-age-hours", type=float, default=0.0, help="Antigüedad máxima en horas (0 = sin validar). Se combina con --max-dataset-age-minutes si se especifica")
+    cerebro_autopilot.add_argument("--skip-dataset-check", action="store_true", help="Omite la validación avanzada del dataset antes de entrenar")
+    cerebro_autopilot.add_argument("--summary-json", help="Ruta opcional para guardar el resumen de la ejecución (JSON o JSONL)")
+    cerebro_autopilot.add_argument("--summary-append", action="store_true", help="Si se indica, agrega como JSONL en lugar de sobrescribir")
     cerebro_autopilot.set_defaults(func=cmd_cerebro_autopilot)
 
     monitor = sub.add_parser("monitor", help="Monitoreo activo de /metrics y /arena/state")

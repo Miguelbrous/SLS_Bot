@@ -33,6 +33,11 @@ if [[ -z "$PROM_FILE" && -n "$TEXTFILE_DIR" ]]; then
 fi
 REQUIRE_PROMOTE="${CEREBRO_AUTO_REQUIRE_PROMOTE:-}"
 MAX_DATASET_AGE="${CEREBRO_AUTO_MAX_DATASET_AGE_MIN:-}"
+DATASET_MIN_WIN_RATE="${CEREBRO_AUTO_DATASET_MIN_WIN_RATE:-}"
+DATASET_MAX_WIN_RATE="${CEREBRO_AUTO_DATASET_MAX_WIN_RATE:-}"
+DATASET_MIN_SYMBOLS="${CEREBRO_AUTO_DATASET_MIN_SYMBOLS:-}"
+DATASET_MAX_AGE_HOURS="${CEREBRO_AUTO_DATASET_MAX_AGE_HOURS:-}"
+SKIP_DATASET_CHECK="${CEREBRO_AUTO_SKIP_DATASET_CHECK:-}"
 
 CMD=("${PYTHON_BIN:-python}" "$ROOT/scripts/ops.py" "cerebro" "autopilot" "--mode" "$MODE" "--min-rows" "$MIN_ROWS" "--backfill-rows" "$BACKFILL_ROWS" "--epochs" "$EPOCHS" "--lr" "$LR" "--train-ratio" "$TRAIN_RATIO" "--min-auc" "$MIN_AUC" "--min-win-rate" "$MIN_WIN_RATE" "--log-file" "$LOG_FILE")
 if [[ -n "$DATASET" ]]; then
@@ -61,6 +66,21 @@ if [[ -n "$REQUIRE_PROMOTE" ]]; then
 fi
 if [[ -n "$MAX_DATASET_AGE" ]]; then
   CMD+=("--max-dataset-age-minutes" "$MAX_DATASET_AGE")
+fi
+if [[ -n "$DATASET_MIN_WIN_RATE" ]]; then
+  CMD+=("--dataset-min-win-rate" "$DATASET_MIN_WIN_RATE")
+fi
+if [[ -n "$DATASET_MAX_WIN_RATE" ]]; then
+  CMD+=("--dataset-max-win-rate" "$DATASET_MAX_WIN_RATE")
+fi
+if [[ -n "$DATASET_MIN_SYMBOLS" ]]; then
+  CMD+=("--dataset-min-symbols" "$DATASET_MIN_SYMBOLS")
+fi
+if [[ -n "$DATASET_MAX_AGE_HOURS" ]]; then
+  CMD+=("--dataset-max-age-hours" "$DATASET_MAX_AGE_HOURS")
+fi
+if [[ -n "$SKIP_DATASET_CHECK" ]]; then
+  CMD+=("--skip-dataset-check")
 fi
 
 echo "[cerebro-autopilot] $(date --iso-8601=seconds) :: ${CMD[*]}" | tee -a "$LOG_FILE"

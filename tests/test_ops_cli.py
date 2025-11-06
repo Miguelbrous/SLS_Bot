@@ -4,6 +4,7 @@ import json
 import os
 import time
 from types import SimpleNamespace
+import json
 from typing import List
 
 import pytest
@@ -454,7 +455,11 @@ def test_cerebro_autopilot_command_generates_dataset(monkeypatch, tmp_path):
     def fake_run(cmd, **kwargs):
         commands.append(cmd)
         if "generate_cerebro_dataset" in str(cmd[1]):
-            dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+            rows = []
+            for idx in range(60):
+                pnl = 1 if idx % 2 == 0 else -0.5
+                rows.append(json.dumps({"symbol": "BTCUSDT", "decision": "LONG", "pnl": pnl, "features": {}}))
+            dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
     def fake_capture(cmd):
         commands.append(cmd)
@@ -468,9 +473,49 @@ def test_cerebro_autopilot_command_generates_dataset(monkeypatch, tmp_path):
     assert any("bot.cerebro.train" in part for part in commands[-1])
 
 
+def test_cerebro_autopilot_dataset_check_can_be_skipped(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    rows = []
+    for idx in range(60):
+        pnl = -1 if idx % 2 == 0 else -0.2
+        rows.append(json.dumps({"symbol": "BTCUSDT", "decision": "LONG", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--mode",
+            "test",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "1",
+            "--skip-dataset-check",
+        ]
+    )
+
+    def fake_run(cmd, **kwargs):
+        return None
+
+    def fake_capture(cmd):
+        class Result:
+            stdout = json.dumps({"metrics": {"auc": 0.7, "win_rate": 0.6}, "status": "PROMOVIDO"})
+
+        return Result()
+
+    monkeypatch.setattr(ops, "_run", fake_run)
+    monkeypatch.setattr(ops, "_run_capture_output", fake_capture)
+    args.func(args)
+
+
 def test_cerebro_autopilot_enforces_dataset_age(monkeypatch, tmp_path):
     dataset_path = tmp_path / "dataset.jsonl"
-    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    rows = []
+    for idx in range(60):
+        pnl = 1 if idx % 2 == 0 else -0.5
+        rows.append(json.dumps({"symbol": "BTCUSDT", "decision": "SHORT", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     old_time = time.time() - 7200
     os.utime(dataset_path, (old_time, old_time))
     parser = ops.build_parser()
@@ -497,9 +542,14 @@ def test_cerebro_autopilot_enforces_dataset_age(monkeypatch, tmp_path):
 
 def test_cerebro_autopilot_prometheus_and_slack(monkeypatch, tmp_path):
     dataset_path = tmp_path / "dataset.jsonl"
-    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    payloads = []
+    for idx in range(80):
+        pnl = 1 if idx % 2 == 0 else -0.4
+        payloads.append(json.dumps({"symbol": "ETHUSDT", "decision": "LONG", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(payloads) + "\n", encoding="utf-8")
     prom_file = tmp_path / "metrics.prom"
     log_file = tmp_path / "autopilot.log"
+    summary_file = tmp_path / "summary.jsonl"
     payload = {
         "metrics": {"auc": 0.71, "win_rate": 0.63, "samples_train": 80, "samples_test": 20},
         "status": "PROMOVIDO",
@@ -527,20 +577,34 @@ def test_cerebro_autopilot_prometheus_and_slack(monkeypatch, tmp_path):
             "autopilot-bot",
             "--log-file",
             str(log_file),
+            "--summary-json",
+            str(summary_file),
+            "--summary-append",
         ]
     )
     args.func(args)
     content = prom_file.read_text(encoding="utf-8")
     assert "cerebro_autopilot_success 1" in content
     assert 'cerebro_autopilot_metric{name="auc"} 0.71' in content
+    assert "cerebro_autopilot_dataset_win_rate" in content
+    assert "cerebro_autopilot_dataset_age_hours" in content
+    summary_lines = summary_file.read_text(encoding="utf-8").strip().splitlines()
+    assert summary_lines
+    summary_payload = json.loads(summary_lines[-1])
+    assert summary_payload["dataset_stats"]["positives"] > 0
     assert slack_calls
     assert ":white_check_mark:" in slack_calls[0][1]
+    assert "dataset:" in slack_calls[0][1]
     assert slack_calls[0][2] == "autopilot-bot"
 
 
 def test_cerebro_autopilot_require_promote(monkeypatch, tmp_path):
     dataset_path = tmp_path / "dataset.jsonl"
-    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    rows = []
+    for idx in range(60):
+        pnl = 1 if idx % 2 == 0 else -0.5
+        rows.append(json.dumps({"symbol": "BTCUSDT", "decision": "LONG", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     prom_file = tmp_path / "metrics.prom"
     payload = {
         "metrics": {"auc": 0.6, "win_rate": 0.55},

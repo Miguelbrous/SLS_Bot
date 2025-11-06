@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check observability-up observability-down observability-check
+.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check observability-up observability-down observability-check textfile-smoke autopilot-ci
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -100,3 +100,32 @@ observability-down: ## Apaga el stack local de observabilidad.
 
 observability-check: ## Valida Prometheus/Grafana/Alertmanager (requiere PROM_BASE/GRAFANA_BASE/...)
 	@$(PYTHON_BIN) scripts/ops.py observability check
+
+textfile-smoke: ## Valida los archivos .prom y fuerza fallos controlados (usa DIR=/var/lib/node_exporter/textfile_collector).
+	@bash scripts/tests/cerebro_metrics_smoke.sh $(if $(DIR),--dir $(DIR),) $(if $(MAX_AGE),--max-age $(MAX_AGE),)
+
+autopilot-ci: ## Valida dataset + dry-run del autopilot (usa MODE=test, DATASET=logs/test/cerebro_experience.jsonl).
+	@MODE=$${MODE:-test}; \
+	 DATASET=$${DATASET:-logs/test/cerebro_experience.jsonl}; \
+	 MIN_ROWS=$${MIN_ROWS:-200}; \
+	 MIN_WIN=$${MIN_WIN_RATE:-0.3}; \
+	 MAX_WIN=$${MAX_WIN_RATE:-0.8}; \
+	 MIN_SYMBOLS=$${MIN_SYMBOLS:-1}; \
+	 MAX_AGE=$${MAX_AGE_HOURS:-0}; \
+	 MIN_AUC=$${MIN_CI_AUC:-0.52}; \
+	 MIN_WIN_CI=$${MIN_CI_WIN_RATE:-0.5}; \
+	 SLACK=$${SLACK_WEBHOOK:-}; \
+	 SLACK_USER=$${SLACK_USER:-cerebro-autopilot-ci}; \
+	 EXTRA=""; \
+	 if [[ -n $$SLACK ]]; then EXTRA="--slack-webhook $$SLACK --slack-user $$SLACK_USER"; fi; \
+	 $(PYTHON_BIN) scripts/tests/cerebro_autopilot_ci.py \
+	 	--mode $$MODE \
+	 	--dataset $$DATASET \
+	 	--min-rows $$MIN_ROWS \
+	 	--min-win-rate $$MIN_WIN \
+	 	--max-win-rate $$MAX_WIN \
+	 	--min-symbols $$MIN_SYMBOLS \
+	 	--max-age-hours $$MAX_AGE \
+	 	--min-ci-auc $$MIN_AUC \
+	 	--min-ci-win-rate $$MIN_WIN_CI \
+	 	$$EXTRA

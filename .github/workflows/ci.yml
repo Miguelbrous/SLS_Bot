@@ -60,6 +60,29 @@ jobs:
           source venv/bin/activate
           python scripts/ops.py monitor check --dry-run --panel-token dummy || true
 
+      - name: Cerebro autopilot dataset + dry-run
+        env:
+          SLACK_WEBHOOK_CEREBRO: ${{ secrets.SLACK_WEBHOOK_CEREBRO }}
+        run: |
+          source venv/bin/activate
+          mkdir -p tmp_logs
+          EXTRA_SLACK_ARGS=""
+          if [ -n "$SLACK_WEBHOOK_CEREBRO" ]; then
+            EXTRA_SLACK_ARGS="--slack-webhook $SLACK_WEBHOOK_CEREBRO"
+          fi
+          python scripts/tests/cerebro_autopilot_ci.py \
+            --mode test \
+            --dataset logs/test/cerebro_experience.jsonl \
+            --min-rows 150 \
+            --min-win-rate 0.25 \
+            --max-win-rate 0.8 \
+            --min-symbols 1 \
+            --min-ci-auc 0.52 \
+            --min-ci-win-rate 0.45 \
+            --epochs 150 \
+            --summary-json tmp_logs/cerebro_autopilot_ci.json \
+            $EXTRA_SLACK_ARGS
+
   observability:
     needs: test
     runs-on: ubuntu-latest
