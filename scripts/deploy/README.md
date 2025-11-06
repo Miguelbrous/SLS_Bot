@@ -84,3 +84,19 @@ El script copia `scripts/deploy/systemd/sls-cerebro.service`, reemplaza `{{APP_R
 curl -fsS http://127.0.0.1:${SLS_API_PORT:-8880}/cerebro/status | jq '.time'
 ```
 Incorpora este servicio en tus dashboards (Prometheus, healthchecks externos, etc.) si necesitas observar la latencia de las decisiones IA de forma separada.
+
+## 8. Monitor 24/7 vía systemd timer
+`scripts/tools/monitor_guard.py` revisa `/arena/state` y `/metrics` para alertar de lag, drawdown o ausencia de promociones. Para automatizarlo cada 5 minutos:
+```bash
+sudo cp scripts/deploy/systemd/sls-monitor.service /etc/systemd/system/
+sudo cp scripts/deploy/systemd/sls-monitor.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now sls-monitor.timer
+```
+Personaliza los umbrales editando `/etc/sls_bot.env`:
+```
+SLACK_WEBHOOK_MONITOR=https://hooks.slack.com/services/...
+MONITOR_MAX_ARENA_LAG=900
+MONITOR_MIN_DECISIONS_PER_MIN=0.2
+```
+El timer ejecuta `scripts/cron/run_monitor_guard.sh`, que respeta los overrides `MONITOR_*` (`API_BASE`, `MAX_DRAWDOWN`, `MAX_TICKS_SINCE_WIN`, `MIN_ARENA_SHARPE`, etc.) y envía alertas a Slack/Telegram según la configuración.

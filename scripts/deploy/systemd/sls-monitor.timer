@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer para ejecutar el monitor de SLS_Bot
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

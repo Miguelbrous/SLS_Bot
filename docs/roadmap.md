@@ -1,43 +1,109 @@
-# Roadmap SLS_Bot
+# Roadmap SLS_Bot 2V
 
-Documento vivo con los objetivos estratégicos y el estado de ejecución. Última actualización: 2025-10-31.
+Documento vivo para guiar la evolución hacia **SLS_Bot 2V**: una versión robusta, automatizada y lista para operar 24/7 con ciclos rápidos de mejora. Última actualización: 2025-11-06.
 
-## Objetivos generales del proyecto
+## Objetivo macro
 
-| # | Objetivo | Estado | Comentarios |
-|---|----------|--------|-------------|
-| 1 | Automatizar validación de `.env` y `config/config.json` multi-modo | ✅ Completo (base) | `scripts/tools/infra_check.py` valida tokens, contraseñas y soporta `--ensure-dirs`. |
-| 2 | Normalizar artefactos `logs/{mode}`, `excel/{mode}`, `models/{mode}` con rotación automática | ✅ Completo (base) | `make rotate-artifacts` usa `scripts/tools/rotate_artifacts.py` para archivar logs/modelos por modo. |
-| 3 | Integrar healthchecks HTTP y smoke tests en Makefile | ✅ Completo (base) | Nuevos targets `make health` y `make smoke` invocan scripts dedicados. |
-| 4 | Orquestar despliegues systemd con reintentos/notificación | 🟡 En curso | `scripts/manage_bot.py` añade `--retries/--retry-delay`; falta integrar notificaciones. |
-| 5 | Completar observabilidad (métricas/alertas) | ⭕ Pendiente | Definir stack Prometheus o logs centralizados. |
-| 6 | Pipeline CI/CD con linters, tests y build panel | ⭕ Pendiente | Diseñar workflows y artefactos. |
-| 7 | Automatizar promoción testnet→real | ⭕ Pendiente | Requiere ampliar `promote_strategy.py` y playbooks. |
-| 8 | Endurecer seguridad API (tokens, rate limiting, auditoría) | ⭕ Pendiente | Analizar middlewares, logs y rotación de credenciales. |
-| 9 | Garantizar compatibilidad panel/API en cada release | ⭕ Pendiente | Definir control de versiones y contratos DTO. |
-| 10 | Playbooks operativos (bootstrap, claves, recuperación) | ⭕ Pendiente | Documentar procedimientos paso a paso. |
+> **Entregar un bot capaz de operar 24/7 en real con resiliencia de infraestructura, inteligencia de trading verificable y herramientas operativas que permitan iterar sin fricción.**
 
-## Objetivos Cerebro IA
+## Fases principales
 
-| # | Objetivo | Estado | Comentarios |
-|---|----------|--------|-------------|
-| 1 | Desacoplar data sources con colas/caching | ✅ Completo | `DataIngestionManager` encola `IngestionTask` y cachea respuestas con TTL. |
-| 2 | Extender FeatureStore con normalización avanzada | ✅ Completo | `FeatureStore` mantiene medias/varianzas y expone slices normalizados. |
-| 3 | Evaluación continua de modelos (A/B heurístico vs ML) | ✅ Completo | `EvaluationTracker` persiste métricas en `logs/<mode>/metrics`. |
-| 4 | Detección de anomalías previa a decisiones | ✅ Completo | `AnomalyDetector` aplica z-score y fuerza `NO_TRADE` con motivo. |
-| 5 | Pipelines de entrenamiento online vs offline | ✅ Completo | `TrainingPipeline` lanza `cerebro.train` y marca datasets para offline. |
-| 6 | Gestión de versiones y rollback de modelos | ✅ Completo | `ModelRegistry` registra artefactos, promueve y permite rollback. |
-| 7 | Explicabilidad ligera (drivers de decisiones) | ✅ Completo | Metadata expone razón, score ML, anomalía, simulación y umbral dinámico. |
-| 8 | Simulador retroactivo antes de promover decisiones | ✅ Completo | `BacktestSimulator` estima PnL promedio sobre la ventana reciente. |
-| 9 | Reportes post-sesión (win rate, drawdown evitado) | ✅ Completo | `ReportBuilder` genera `cerebro_daily_report.json` por sesión. |
-| 10 | Límites de confianza dinámicos según volatilidad/datos | ✅ Completo | `DynamicConfidenceGate` ajusta el umbral con base en volatilidad/calidad. |
+| Fase | Nombre | Propósito | Criterios de salida |
+|------|--------|-----------|---------------------|
+| F0 | **Baseline estable** *(Completada)* | Servicios systemd, cronjobs, monitor guard, checklists de operación. | Guía 24/7 publicada, `make monitor-install`, cron ingest/autopilot parametrizados. |
+| F1 | **Reliability & Ops** | Congelar infraestructura reproducible y pipelines de despliegue. | CI/CD multi-stage, backups automatizados, alertas accionables, runbooks cerrados. |
+| F2 | **Estrategia & IA** | Elevar performance del Cerebro y estrategias evaluadas. | Dataset QoS > 90%, backtests reproducibles, autopilot con salvaguardas y explainability extendida. |
+| F3 | **Experiencia & Panel** | Herramientas para operar y auditar en tiempo real. | Panel “Control Center” con KPIs, flujos promote/rollback self-service, reporting diario automatizado. |
+| F4 | **Security & Compliance** | Cerrar gaps de seguridad, auditoría y gobernanza. | Control de acceso centralizado, auditoría de acciones, políticas de llaves y rotación. |
+| F5 | **Go-live escalonado** | Pasar de testnet a real con criterios objetivos. | Checklist de producción cumplida, métricas de profit/risk en ventana piloto, firma de Go/No-Go. |
 
-## Fases de implementación
+## Backlog por frente
 
-- **Fase 0 – Preparación (Completada)**: Validación automatizada (`infra_check --ensure-dirs`), directorios creados para ambos modos, comandos `make health`/`make smoke` documentados.
-- **Fase 1 – Hardening base (En curso)**: Reintentos systemd y rotación listos; faltan notificaciones y alertas centralizadas.
-- **Fase 2 – Ciclo de pruebas (Planificada)**: Ejecutar smoke continuo, datasets simulados y panel en modo test.
-- **Fase 3 – Cerebro modular (Planificada)**: Refactor de pipelines internos y métricas.
-- **Fase 4 – Entrenamiento continuo (Planificada)**: Automatizar reentrenos/promociones.
-- **Fase 5 – Go-live testnet (Planificada)**: Orquestar servicios completos en testnet hasta estabilidad.
-- **Fase 6 – Promoción a real (Planificada)**: Replicar configuración con claves mainnet y activar monitoreo extendido.
+### 1. Infraestructura & Operaciones (F1)
+- **CI/CD**: pipeline GitHub Actions multi-stage (lint, tests, build panel, empaquetado release, deploy staging). Artefactos versionados.
+- **Provisioning reproducible**: playbooks Ansible o Terraform para levantar nodos (usuarios, paquetes, systemd, cron, prom stack).
+- **Backups automáticos**: snapshot diario de `logs/`, `models/`, `.env` cifrado usando restic + almacenamiento S3/GCS.
+- **Observabilidad ampliada**: métricas negocio (PnL acumulado, drawdown, slippage) + dashboards Grafana 2V.
+- **Alertas operativas**: Alertmanager con rutas para trading halt, data stale, autopilot fail, desbalance panel/API.
+- **Chaos / resiliencia**: script de failover para reiniciar servicios y proveer reporte post-mortem.
+
+### 2. Trading & Estrategia (F2)
+- **Arena 2V**: ranking con métricas ponderadas (Sharpe, Calmar, profit factor, consistencia), simulación multi-parámetro, explainers.
+- **Autopilot**:
+  - Entrenamiento incremental vs batch, control de drift en features clave.
+  - Librería de datos curados (particiones por modo, etiquetado manual).
+  - Guard rails: límites de riesgo por símbolo, auto-disable si volatilidad > X.
+- **Riesgo dinámico**: motor que ajusta tamaño de posición según drawdown global, volatilidad de sesión, liquidez de Bybit.
+- **Testing**: backtest reproducible con datasets fijados, test de performance en CPU/GPU.
+
+### 3. Datos & Integraciones
+- **Ingesta reforzada**: colas externas (Redis/Kafka) opcional, reintentos, degradación controlada.
+- **Data lake ligero**: bucket S3 con snapshots diarios + esquema Parquet para BI.
+- **Feeds alternativos**: Deribit, Binance para cobertura cruzada; modulizar drivers.
+- **Pipeline de etiquetado**: notebooks/scripts para validar señales, detectar outliers.
+
+### 4. Panel & UX (F3)
+- **Control Center**: vista única con estado servicios, KPIs trading, alarmas activas, botones promote/rollback.
+- **Gestión de experimentos**: lanzar jobs de autopilot con presets, guardar historial de runs y comparativas.
+- **Reportes**: panel diario/semanal exportable a PDF/Slack con PnL, win rate, drawdown, top estrategias, incidentes.
+- **Accesos**: roles (view-only, operator, admin), toggles para activar guardias, escalado manual de riesgo.
+- **API pública**: endpoints versionados con documentación (OpenAPI) y contratos fijos por release.
+
+### 5. Seguridad & Compliance (F4)
+- **Gestión secretos**: Vault o SOPS; rotación programada de keys Bybit, Slack, panel.
+- **Auditoría**: log estructurado de acciones (deploys, promote, override guardias) + retención centralizada.
+- **Hardening API**: rate limiting, detección de brute force, mTLS opcional, refresh tokens.
+- **Política incidentes**: quién puede parar bot, qué se guarda, cómo reactivar.
+
+### 6. Organización & Ritmo de entregas
+- **Cadencia**: sprints de 2 semanas con entregable demostrable por frente.
+- **Definition of Done**: código + docs + pruebas + monitoreo + checklist de despliegue.
+- **Control de versiones**: ramas `main` (prod), `release/*` (hardening), `feature/*`; etiquetas semánticas (`v2.0.0-alpha`).
+- **Comunicación**: tablero Kanban (Notion/Jira) con estados: Backlog → Ready → In Progress → In Review → Done.
+
+## Gobernanza, dependencias y responsables
+
+### Células y ownership
+
+| Frente | Responsable principal | Apoyo cruzado | Dependencias clave | Slack/Canal |
+|--------|----------------------|---------------|--------------------|-------------|
+| Infra/Ops | `@infra-team` (SRE) | `@devops`, `@cloud-admin` | Acceso root, cuentas cloud, secrets SRE, pipeline GitHub Actions | `#sls-ops` |
+| Estrategia & IA | `@quant-team` | `@data-eng`, `@analytics` | Dataset curado, resultados Arena, simulaciones, etiquetado manual | `#sls-quant` |
+| Panel & UX | `@frontend-team` | `@product`, `@design` | APIs versionadas, tokens panel, contratos DTO, dashboards | `#sls-panel` |
+| Seguridad & Compliance | `@secops-team` | `@legal`, `@audit` | Política de claves, acceso auditoría, Vault/SOPS, playbooks incidentes | `#sls-security` |
+
+**Modelo RACI**  
+- *Responsible*: célula listada en la tabla.  
+- *Accountable*: `@product-owner` + `@cto` (aprueban hitos).  
+- *Consulted*: equipos mencionados en “Apoyo cruzado”.  
+- *Informed*: stakeholders externos (`finance`, `support`, partners).
+
+### Dependencias externas críticas
+- **Cloud**: proyectos GCP/AWS para backups y observabilidad.  
+- **Bybit**: claves API rotativas + sandbox.  
+- **Slack/Telegram**: canales de alertas y postmortems.  
+- **Node Exporter / Prometheus remoto**: recolección de métricas productivas.  
+- **Repositorio datasets**: bucket S3 `sls-data-lake` (definir permisos IAM).
+
+## Hitos de control y entregables
+
+| Hito | Fases cubiertas | Entregables clave | Due owner | Señales de salida |
+|------|-----------------|-------------------|-----------|-------------------|
+| **M1 – Infra estable** | F1 | CI/CD multi-stage (`ci.yml`) estable, alertas Slack ingest/autopilot, plan de backups + restore dry-run documentado | `@infra-team` | Pipeline verde 3 runs consecutivos, alerta simulada recibida, snapshot restaurado en staging |
+| **M2 – Trading listo para piloto** | F2 + F3 (parcial) | Autopilot 2V con drift guard & explainers, Panel Control Center en `staging`, simulación 30d con PnL>0 y drawdown <= X% | `@quant-team` + `@frontend-team` | Informe simulación firmado, demo Control Center, checklist IA completado |
+| **M3 – Seguridad cerrada** | F4 | Vault/SOPS productivo, rotación automática, auditoría end-to-end centralizada, playbooks incidentes aprobados | `@secops-team` | Rotación ejecutada sin downtime, log de auditoría disponible 30d, postmortem plantilla revisada |
+| **M4 – Go/No-Go ventana real** | F5 | Checklist 24/7 completado, métricas tiempo real validadas, comité de aprobación con KPIs | `@product-owner` + Leads | Acta Go/No-Go, KPIs dentro de guardrails, plan rollback testado |
+
+### Cadencia de revisión
+- **Weekly sync** por frente (30 min).  
+- **Revisión cross-team** quincenal (1 h) para alinear dependencias.  
+- **Post-mortem** dentro de 48 h tras cualquier incidente de severidad alta.  
+- **Quarterly planning** para refrescar roadmap 2V y asignar recursos.
+
+## Documentos relacionados
+- `docs/operations/operacion_24_7.md` – Guía detallada de operación continua.
+- `Contexto BOT IA.md` – Estado diario y decisiones recientes.
+- `README.md` – Referencias rápidas de comandos y automatizaciones.
+- `docs/security/politicas.md` *(pendiente)* – Reglas de llaves, auditoría y respuestas a incidentes.
+
+Mantén este roadmap actualizado al cerrar tareas o redefinir prioridades. Cualquier cambio estructural debe reflejarse también en `Contexto BOT IA.md` y en los canales correspondientes para alinear al equipo operativo.

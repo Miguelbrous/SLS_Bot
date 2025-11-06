@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check observability-up observability-down observability-check textfile-smoke autopilot-ci
+.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install observability-up observability-down observability-check textfile-smoke autopilot-ci
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -91,6 +91,14 @@ monitor-check: ## Ejecuta el monitor de arena (/arena/state + /metrics). Pensado
 		$(if $(MAX_DRAWDOWN),--max-drawdown $(MAX_DRAWDOWN),) \
 		$(if $(MAX_TICKS),--max-ticks-since-win $(MAX_TICKS),) \
 		$(if $(DRY_RUN),--dry-run,)
+
+monitor-install: ## Copia sls-monitor.service/timer y habilita el watchdog 24/7 (requiere sudo).
+	@echo "[monitor] instalando sls-monitor.service/timer en /etc/systemd/system"
+	@sudo cp scripts/deploy/systemd/sls-monitor.service /etc/systemd/system/
+	@sudo cp scripts/deploy/systemd/sls-monitor.timer /etc/systemd/system/
+	@sudo systemctl daemon-reload
+	@sudo systemctl enable --now sls-monitor.timer
+	@sudo systemctl status sls-monitor.timer --no-pager
 
 observability-up: ## Levanta Prometheus+Grafana+Alertmanager locales usando docker compose.
 	docker compose -f docs/observability/docker-compose.yml --project-name sls-observability up -d
