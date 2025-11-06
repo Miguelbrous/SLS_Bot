@@ -13,6 +13,8 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
 
+import requests
+
 ROOT = Path(__file__).resolve().parents[2]
 import sys
 
@@ -21,6 +23,10 @@ if str(ROOT) not in sys.path:
 
 from bot.cerebro.config import load_cerebro_config
 from bot.cerebro.ingestion import DataIngestionManager, IngestionTask
+
+
+class IngestValidationError(RuntimeError):
+    """Se lanza cuando faltan fuentes obligatorias."""
 
 
 def _csv(value: str | None) -> List[str]:
@@ -47,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--onchain-symbols", help="Lista separada por comas para on-chain (default = symbols).", default="")
     parser.add_argument("--require-sources", help="Lista separada por comas (market,news,macro,orderflow,funding,onchain) que deben devolver filas.", default="")
     parser.add_argument("--min-market-rows", type=int, default=0, help="Mínimo de velas obtenidas para aprobar la ingesta (sumando todos los símbolos/timeframes).")
+    parser.add_argument("--slack-webhook", help="Webhook opcional para notificar resultados (OK/ERROR)")
     return parser
 
 
@@ -56,7 +63,7 @@ def _json_default(value):
     return str(value)
 
 
-def run(args: argparse.Namespace) -> None:
+def run(args: argparse.Namespace) -> Dict[str, dict]:
     cfg = load_cerebro_config()
     symbols = _csv(args.symbols) or list(cfg.symbols)
     timeframes = _csv(args.timeframes) or list(cfg.timeframes)
@@ -114,6 +121,7 @@ def run(args: argparse.Namespace) -> None:
     print(f"[cerebro.ingest] Guardado {output_path} con {len(results)} tareas.")
     for source, count in summary["rows_by_source"].items():
         print(f"[cerebro.ingest] {source}: {count} filas")
+    return summary
 
 
 def _build_summary(results: Dict[str, List[dict]]) -> Dict[str, dict]:
@@ -130,17 +138,45 @@ def _validate_requirements(summary: Dict[str, dict], require_sources: str, min_m
     if required:
         missing = {src for src in required if rows_by_source.get(src, 0) <= 0}
         if missing:
-            raise SystemExit(f"[cerebro.ingest] Las fuentes requeridas no devolvieron filas: {', '.join(sorted(missing))}")
+            raise IngestValidationError(
+                f"Las fuentes requeridas no devolvieron filas: {', '.join(sorted(missing))}"
+            )
     if min_market_rows > 0 and rows_by_source.get("market", 0) < min_market_rows:
-        raise SystemExit(
-            f"[cerebro.ingest] Solo se obtuvieron {rows_by_source.get('market', 0)} filas de market (<{min_market_rows})."
+        raise IngestValidationError(
+            f"Solo se obtuvieron {rows_by_source.get('market', 0)} filas de market (<{min_market_rows})."
         )
+
+
+def _format_slack_message(summary: Dict[str, dict], output: str, success: bool = True) -> str:
+    rows = summary.get("rows_by_source", {})
+    stats = ", ".join(f"{src}={count}" for src, count in sorted(rows.items())) or "sin datos"
+    status = ":white_check_mark:" if success else ":x:"
+    return f"{status} Cerebro ingest ({Path(output).name}): {stats}"
+
+
+def _post_slack(webhook: str, text: str) -> None:
+    try:
+        resp = requests.post(webhook, json={"text": text}, timeout=5)
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"[cerebro.ingest] No se pudo notificar a Slack: {exc}", file=sys.stderr)
 
 
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    run(args)
+    try:
+        summary = run(args)
+        if args.slack_webhook:
+            _post_slack(args.slack_webhook, _format_slack_message(summary, args.output, success=True))
+    except IngestValidationError as exc:
+        if getattr(args, "slack_webhook", None):
+            _post_slack(args.slack_webhook, f":x: Cerebro ingest falló: {exc}")
+        raise SystemExit(f"[cerebro.ingest] {exc}") from exc
+    except Exception as exc:
+        if getattr(args, "slack_webhook", None):
+            _post_slack(args.slack_webhook, f":x: Cerebro ingest error inesperado: {exc}")
+        raise
 
 
 if __name__ == "__main__":

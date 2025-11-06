@@ -362,6 +362,8 @@ def cmd_cerebro_ingest(args: argparse.Namespace) -> None:
         cmd.extend(["--require-sources", args.require_sources])
     if args.min_market_rows:
         cmd.extend(["--min-market-rows", str(args.min_market_rows)])
+    if args.slack_webhook:
+        cmd.extend(["--slack-webhook", args.slack_webhook])
     _run(cmd)
 
 
@@ -698,6 +700,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Lista separada por comas (market,news,macro,orderflow,funding,onchain) que deben devolver filas",
     )
     cerebro_ingest.add_argument("--min-market-rows", type=int, help="Mínimo total de velas requeridas para aprobar la ingesta")
+    cerebro_ingest.add_argument("--slack-webhook", help="Webhook Slack opcional para notificar el resultado")
     cerebro_ingest.set_defaults(func=cmd_cerebro_ingest)
 
     cerebro_autopilot = cerebro_sub.add_parser("autopilot", help="Valida dataset y lanza entrenamiento")
