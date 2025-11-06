@@ -185,6 +185,7 @@ registrando automáticamente el artefacto resultante.
 
 ## Utilidades rápidas
 - `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --output tmp_logs/cerebro_ingestion.json` consulta los data sources (market/news/macro/orderflow), rellena cache y deja un snapshot JSON para inspeccionar la ingesta antes de lanzar el servicio completo. Ideal para healthchecks de cron o para generar datasets de pruebas.
+- `scripts/cron/cerebro_ingest.sh` programa la ingesta anterior desde cron/systemd usando variables `CEREBRO_INGEST_*` para definir símbolos, timeframes, límites y qué feeds incluir (news/macro/orderflow/funding/on-chain); deja el JSON en `tmp_logs/cerebro_ingestion.json` por defecto.
 
 ## Simulaciones y promoción controlada
 

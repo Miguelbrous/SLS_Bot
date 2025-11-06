@@ -10,7 +10,8 @@ import json
 import time
 from datetime import date, datetime
 from pathlib import Path
-from typing import List
+from collections import defaultdict
+from typing import Dict, List
 
 ROOT = Path(__file__).resolve().parents[2]
 import sys
@@ -44,6 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--include-onchain", action="store_true", help="Consulta on-chain aunque esté deshabilitado en config.")
     parser.add_argument("--funding-symbols", help="Lista separada por comas para funding (default = symbols).", default="")
     parser.add_argument("--onchain-symbols", help="Lista separada por comas para on-chain (default = symbols).", default="")
+    parser.add_argument("--require-sources", help="Lista separada por comas (market,news,macro,orderflow,funding,onchain) que deben devolver filas.", default="")
+    parser.add_argument("--min-market-rows", type=int, default=0, help="Mínimo de velas obtenidas para aprobar la ingesta (sumando todos los símbolos/timeframes).")
     return parser
 
 
@@ -89,6 +92,8 @@ def run(args: argparse.Namespace) -> None:
             manager.schedule(IngestionTask(source="onchain", symbol=symbol, limit=1))
 
     results = manager.run_pending(max_tasks=max(1, args.max_tasks))
+    summary = _build_summary(results)
+    _validate_requirements(summary, args.require_sources, args.min_market_rows)
     payload = {
         "ts": int(time.time()),
         "symbols": symbols,
@@ -101,11 +106,35 @@ def run(args: argparse.Namespace) -> None:
         "funding_symbols": funding_symbols,
         "onchain_symbols": onchain_symbols,
         "results": results,
+        "summary": summary,
     }
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default), encoding="utf-8")
     print(f"[cerebro.ingest] Guardado {output_path} con {len(results)} tareas.")
+    for source, count in summary["rows_by_source"].items():
+        print(f"[cerebro.ingest] {source}: {count} filas")
+
+
+def _build_summary(results: Dict[str, List[dict]]) -> Dict[str, dict]:
+    rows_by_source: Dict[str, int] = defaultdict(int)
+    for key, entries in results.items():
+        source = key.split(":", 1)[0]
+        rows_by_source[source] += len(entries or [])
+    return {"rows_by_source": dict(rows_by_source)}
+
+
+def _validate_requirements(summary: Dict[str, dict], require_sources: str, min_market_rows: int) -> None:
+    rows_by_source: Dict[str, int] = summary.get("rows_by_source", {})
+    required = {item.strip().lower() for item in (require_sources or "").split(",") if item.strip()}
+    if required:
+        missing = {src for src in required if rows_by_source.get(src, 0) <= 0}
+        if missing:
+            raise SystemExit(f"[cerebro.ingest] Las fuentes requeridas no devolvieron filas: {', '.join(sorted(missing))}")
+    if min_market_rows > 0 and rows_by_source.get("market", 0) < min_market_rows:
+        raise SystemExit(
+            f"[cerebro.ingest] Solo se obtuvieron {rows_by_source.get('market', 0)} filas de market (<{min_market_rows})."
+        )
 
 
 def main() -> None:

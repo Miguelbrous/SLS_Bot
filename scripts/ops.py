@@ -358,6 +358,10 @@ def cmd_cerebro_ingest(args: argparse.Namespace) -> None:
         cmd.append("--include-funding")
     if args.include_onchain:
         cmd.append("--include-onchain")
+    if args.require_sources:
+        cmd.extend(["--require-sources", args.require_sources])
+    if args.min_market_rows:
+        cmd.extend(["--min-market-rows", str(args.min_market_rows)])
     _run(cmd)
 
 
@@ -484,6 +488,10 @@ def cmd_monitor_check(args: argparse.Namespace) -> None:
         cmd.extend(
             ["--telegram-token", args.telegram_token, "--telegram-chat-id", args.telegram_chat_id]
         )
+    if args.min_arena_sharpe is not None:
+        cmd.extend(["--min-arena-sharpe", str(args.min_arena_sharpe)])
+    if args.min_decisions_per_min is not None:
+        cmd.extend(["--min-decisions-per-min", str(args.min_decisions_per_min)])
     if args.dry_run:
         cmd.append("--dry-run")
     _run(cmd)
@@ -685,6 +693,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Consulta datos on-chain aunque estén deshabilitados",
     )
+    cerebro_ingest.add_argument(
+        "--require-sources",
+        help="Lista separada por comas (market,news,macro,orderflow,funding,onchain) que deben devolver filas",
+    )
+    cerebro_ingest.add_argument("--min-market-rows", type=int, help="Mínimo total de velas requeridas para aprobar la ingesta")
     cerebro_ingest.set_defaults(func=cmd_cerebro_ingest)
 
     cerebro_autopilot = cerebro_sub.add_parser("autopilot", help="Valida dataset y lanza entrenamiento")
@@ -720,6 +733,13 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_check.add_argument("--slack-webhook", help="Webhook Slack opcional")
     monitor_check.add_argument("--telegram-token", help="Token del bot de Telegram")
     monitor_check.add_argument("--telegram-chat-id", help="Chat ID de Telegram")
+    monitor_check.add_argument("--min-arena-sharpe", type=float, default=None, help="Sharpe promedio mínimo antes de alertar")
+    monitor_check.add_argument(
+        "--min-decisions-per-min",
+        type=float,
+        default=None,
+        help="Decisiones/min mínimas del Cerebro antes de alertar",
+    )
     monitor_check.add_argument("--dry-run", action="store_true", help="No envía alertas, solo imprime")
     monitor_check.set_defaults(func=cmd_monitor_check)
 

@@ -23,7 +23,7 @@ DATASET="${CEREBRO_TRAIN_DATASET:-}"
 OUTPUT_DIR="${CEREBRO_TRAIN_OUTPUT:-}"
 DRY_RUN="${CEREBRO_TRAIN_DRY_RUN:-}"  # set to 1 to avoid promover
 
-CMD=("python" "$ROOT/scripts/ops.py" "cerebro" "train" "--mode" "$MODE" "--epochs" "$EPOCHS" "--lr" "$LR" "--train-ratio" "$TRAIN_RATIO" "--min-auc" "$MIN_AUC" "--min-win-rate" "$MIN_WIN" "--seed" "$SEED")
+CMD=("${PYTHON_BIN:-python}" "$ROOT/scripts/ops.py" "cerebro" "train" "--mode" "$MODE" "--epochs" "$EPOCHS" "--lr" "$LR" "--train-ratio" "$TRAIN_RATIO" "--min-auc" "$MIN_AUC" "--min-win-rate" "$MIN_WIN" "--seed" "$SEED")
 if [[ -n "$DATASET" ]]; then
   CMD+=("--dataset" "$DATASET")
 fi
