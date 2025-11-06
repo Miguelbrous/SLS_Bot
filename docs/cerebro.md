@@ -180,13 +180,25 @@ registrando automáticamente el artefacto resultante.
 - Valida que el dataset (`logs/cerebro_experience.jsonl` por defecto) tenga el mínimo de filas requerido (`--min-rows`).
 - Si faltan datos y pasas `--backfill-rows`, invoca el generador sintético (`cerebro dataset ...`) antes de entrenar.
 - Lanza `bot.cerebro.train` con los parámetros que le pases (`--epochs`, `--lr`, `--min-auc`, etc.) y admite `--dry-run`/`--no-promote`.
-- Útil para cron/CI: `python scripts/ops.py cerebro autopilot --mode test --dataset logs/cerebro_experience.jsonl --min-rows 500 --backfill-rows 600 --output-dir models/cerebro/test/autopilot`.
-- `scripts/cron/cerebro_autopilot.sh` envuelve el comando para cron: usa `CEREBRO_AUTO_*` (modo, dataset, min rows, backfill, etc.) y deja logs en `tmp_logs/cerebro_autopilot_runner.log` + `tmp_logs/cerebro_autopilot_<mode>.log`.
+- Útil para cron/CI: `python scripts/ops.py cerebro autopilot --mode test --dataset logs/cerebro_experience.jsonl --min-rows 500 --backfill-rows 600 --output-dir models/cerebro/test/autopilot --max-dataset-age-minutes 60 --require-promote` bloquea datasets viejos y falla cuando el entrenamiento no promueve un nuevo `active_model.json`.
+- Puedes añadir `--prometheus-file /var/lib/node_exporter/cerebro_autopilot.prom` para exportar métricas (`cerebro_autopilot_success`, `..._promoted`, `..._metric{name="auc"}`) y `--slack-webhook https://hooks.slack... --slack-user cerebro-autopilot` para recibir un resumen OK/ERROR en Slack.
+- `scripts/cron/cerebro_autopilot.sh` envuelve el comando para cron: ahora respeta `CEREBRO_AUTO_PROM_FILE`, `CEREBRO_AUTO_SLACK_WEBHOOK`, `CEREBRO_AUTO_SLACK_USER`, `CEREBRO_AUTO_REQUIRE_PROMOTE` y `CEREBRO_AUTO_MAX_DATASET_AGE_MIN` además de las variables previas (modo, dataset, min rows, backfill, etc.) y deja logs en `tmp_logs/cerebro_autopilot_runner.log` + `tmp_logs/cerebro_autopilot_<mode>.log`.
+- Para un smoke sin tocar producción ejecuta `python scripts/tests/cerebro_autopilot_failure_sim.py --prometheus-file /var/lib/node_exporter/textfile_collector/cerebro_autopilot.prom --extra-args --slack-webhook https://hooks.slack...`. El script fuerza `--min-rows 999999`, por lo que el comando fallará antes de entrenar y deberías ver `cerebro_autopilot_success 0` + alerta en Slack.
 
 ## Utilidades rápidas
-- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --output tmp_logs/cerebro_ingestion.json` consulta los data sources (market/news/macro/orderflow), rellena cache y deja un snapshot JSON para inspeccionar la ingesta antes de lanzar el servicio completo. Ideal para healthchecks de cron o para generar datasets de pruebas.
-- `scripts/cron/cerebro_ingest.sh` programa la ingesta anterior desde cron/systemd usando variables `CEREBRO_INGEST_*` para definir símbolos, timeframes, límites y qué feeds incluir (news/macro/orderflow/funding/on-chain); deja el JSON en `tmp_logs/cerebro_ingestion.json` por defecto.
-- Las nuevas flags `--require-sources market,funding,onchain`, `--min-market-rows N` y `--slack-webhook https://hooks.slack...` permiten fallar la ingesta cuando una fuente vuelve vacío y opcionalmente notificar el resultado. `scripts/cron/cerebro_ingest.sh` soporta las variables `CEREBRO_INGEST_REQUIRE_SOURCES`, `CEREBRO_INGEST_MIN_MARKET_ROWS` y `CEREBRO_INGEST_SLACK_WEBHOOK` para usarlo en cron de forma automática.
+- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --output tmp_logs/cerebro_ingestion.json` consulta los data sources (market/news/macro/orderflow/funding/on-chain), rellena cache y deja un snapshot JSON para inspeccionar la ingesta antes de lanzar el servicio completo. Ideal para healthchecks de cron o para generar datasets de pruebas.
+- Usa `--require-sources market,funding,onchain` + `--min-market-rows N` para fallar cuando falte una fuente crítica, `--prometheus-file /var/lib/node_exporter/cerebro_ingest.prom` para publicar métricas (`cerebro_ingest_success`, `cerebro_ingest_rows{source="market"}`) y `--slack-webhook ... --slack-user cerebro-ingest --slack-timeout 8 --slack-proxy http://proxy:8080` para notificar éxito/fracaso incluso detrás de un proxy.
+- `scripts/cron/cerebro_ingest.sh` programa la ingesta anterior desde cron/systemd usando variables `CEREBRO_INGEST_*` para definir símbolos, timeframes, límites y qué feeds incluir (news/macro/orderflow/funding/on-chain); además de `CEREBRO_INGEST_REQUIRE_SOURCES` / `CEREBRO_INGEST_MIN_MARKET_ROWS` ahora respeta `CEREBRO_INGEST_SLACK_USER`, `CEREBRO_INGEST_SLACK_TIMEOUT`, `CEREBRO_INGEST_SLACK_PROXY` y `CEREBRO_INGEST_PROM_FILE`. Si exportas `NODE_EXPORTER_TEXTFILE_DIR=/var/lib/node_exporter/textfile_collector`, automáticamente usará `<dir>/cerebro_ingest.prom`, así que basta correr una vez `python scripts/tools/setup_textfile_collector.py --dir /var/lib/node_exporter/textfile_collector` para preparar permisos. El resultado queda en `tmp_logs/cerebro_ingestion.json` por defecto.
+- Para validar todo sin tocar producción:
+  ```bash
+  python scripts/tests/prometheus_textfile_check.py \
+    --file /var/lib/node_exporter/textfile_collector/cerebro_ingest.prom \
+    --require-metric cerebro_ingest_success
+  python scripts/tests/cerebro_ingest_failure_sim.py \
+    --prometheus-file /var/lib/node_exporter/textfile_collector/cerebro_ingest.prom \
+    --extra-args --slack-webhook https://hooks.slack... --slack-user cerebro-ingest
+  ```  
+  El primer comando revisa permisos/frescura del `.prom`; el segundo fuerza una ingesta fallida (`--require-sources fake_source`) para comprobar que Slack recibe la alerta y que `cerebro_ingest_success 0` queda registrado en el textfile. Si prefieres un único check para ambos `.prom`, usa `python scripts/tests/prometheus_textfile_suite.py --dir /var/lib/node_exporter/textfile_collector --max-age-minutes 20`.
 
 ## Simulaciones y promoción controlada
 

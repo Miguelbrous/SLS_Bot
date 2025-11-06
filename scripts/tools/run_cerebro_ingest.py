@@ -28,6 +28,10 @@ from bot.cerebro.ingestion import DataIngestionManager, IngestionTask
 class IngestValidationError(RuntimeError):
     """Se lanza cuando faltan fuentes obligatorias."""
 
+    def __init__(self, message: str, summary: Dict[str, dict] | None = None):
+        super().__init__(message)
+        self.summary = summary or {}
+
 
 def _csv(value: str | None) -> List[str]:
     if not value:
@@ -55,6 +59,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-market-rows", type=int, default=0, help="Mínimo de velas obtenidas para aprobar la ingesta (sumando todos los símbolos/timeframes).")
     parser.add_argument("--slack-webhook", help="Webhook opcional para notificar resultados (OK/ERROR)")
     parser.add_argument("--slack-user", help="Nombre de usuario opcional para Slack", default="cerebro-ingest")
+    parser.add_argument("--slack-timeout", type=float, default=5.0, help="Timeout (s) por request a Slack (default 5s)")
+    parser.add_argument("--slack-proxy", help="Proxy HTTP/S a usar para Slack (ej. http://proxy:8080)")
+    parser.add_argument("--prometheus-file", help="Ruta opcional para escribir métricas estilo Node Exporter textfile")
     return parser
 
 
@@ -133,6 +140,15 @@ def _build_summary(results: Dict[str, List[dict]]) -> Dict[str, dict]:
     return {"rows_by_source": dict(rows_by_source)}
 
 
+def _normalize_summary(summary: Dict[str, dict] | None) -> Dict[str, dict]:
+    if not summary:
+        return {"rows_by_source": {}}
+    if "rows_by_source" not in summary or not isinstance(summary.get("rows_by_source"), dict):
+        summary = dict(summary)
+        summary["rows_by_source"] = {}
+    return summary
+
+
 def _validate_requirements(summary: Dict[str, dict], require_sources: str, min_market_rows: int) -> None:
     rows_by_source: Dict[str, int] = summary.get("rows_by_source", {})
     required = {item.strip().lower() for item in (require_sources or "").split(",") if item.strip()}
@@ -140,46 +156,103 @@ def _validate_requirements(summary: Dict[str, dict], require_sources: str, min_m
         missing = {src for src in required if rows_by_source.get(src, 0) <= 0}
         if missing:
             raise IngestValidationError(
-                f"Las fuentes requeridas no devolvieron filas: {', '.join(sorted(missing))}"
+                f"Las fuentes requeridas no devolvieron filas: {', '.join(sorted(missing))}", summary=summary
             )
     if min_market_rows > 0 and rows_by_source.get("market", 0) < min_market_rows:
         raise IngestValidationError(
-            f"Solo se obtuvieron {rows_by_source.get('market', 0)} filas de market (<{min_market_rows})."
+            f"Solo se obtuvieron {rows_by_source.get('market', 0)} filas de market (<{min_market_rows}).",
+            summary=summary,
         )
 
 
 def _format_slack_message(summary: Dict[str, dict], output: str, success: bool = True) -> str:
+    summary = _normalize_summary(summary)
     rows = summary.get("rows_by_source", {})
     stats = ", ".join(f"{src}={count}" for src, count in sorted(rows.items())) or "sin datos"
     status = ":white_check_mark:" if success else ":x:"
     return f"{status} Cerebro ingest ({Path(output).name}): {stats}"
 
 
-def _post_slack(webhook: str, text: str, username: str | None = None) -> None:
+def _post_slack(
+    webhook: str,
+    text: str,
+    username: str | None = None,
+    timeout: float | None = None,
+    proxy: str | None = None,
+) -> None:
     try:
         payload = {"text": text}
         if username:
             payload["username"] = username
-        resp = requests.post(webhook, json=payload, timeout=5)
+        proxies = None
+        if proxy:
+            proxies = {"http": proxy, "https": proxy}
+        resp = requests.post(webhook, json=payload, timeout=timeout or 5, proxies=proxies)
         resp.raise_for_status()
     except Exception as exc:
         print(f"[cerebro.ingest] No se pudo notificar a Slack: {exc}", file=sys.stderr)
 
 
+def _write_prometheus_file(path: str, summary: Dict[str, dict], success: bool) -> None:
+    summary = _normalize_summary(summary)
+    rows = summary.get("rows_by_source", {})
+    ts = int(time.time())
+    lines = [
+        f"cerebro_ingest_success {1 if success else 0}",
+        f"cerebro_ingest_last_ts {ts}",
+    ]
+    for source, count in sorted(rows.items()):
+        lines.append(f"cerebro_ingest_rows{{source=\"{source}\"}} {count}")
+    tmp = Path(path).with_suffix(".tmp")
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    tmp.replace(Path(path))
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    prom_file = args.prometheus_file
+    summary: Dict[str, dict] = {}
     try:
         summary = run(args)
+        summary = _normalize_summary(summary)
+        if prom_file:
+            _write_prometheus_file(prom_file, summary, True)
         if args.slack_webhook:
-            _post_slack(args.slack_webhook, _format_slack_message(summary, args.output, success=True), username=args.slack_user)
+            _post_slack(
+                args.slack_webhook,
+                _format_slack_message(summary, args.output, success=True),
+                username=args.slack_user,
+                timeout=args.slack_timeout,
+                proxy=args.slack_proxy,
+            )
     except IngestValidationError as exc:
+        summary = _normalize_summary(exc.summary or summary)
+        if prom_file:
+            _write_prometheus_file(prom_file, summary, False)
         if getattr(args, "slack_webhook", None):
-            _post_slack(args.slack_webhook, f":x: Cerebro ingest falló: {exc}", username=args.slack_user)
+            _post_slack(
+                args.slack_webhook,
+                f":x: Cerebro ingest falló: {exc}",
+                username=args.slack_user,
+                timeout=args.slack_timeout,
+                proxy=args.slack_proxy,
+            )
         raise SystemExit(f"[cerebro.ingest] {exc}") from exc
     except Exception as exc:
+        # Si falló antes de construir el summary simplemente escribimos lo acumulado (puede estar vacío)
+        summary = _normalize_summary(summary)
+        if prom_file:
+            _write_prometheus_file(prom_file, summary, False)
         if getattr(args, "slack_webhook", None):
-            _post_slack(args.slack_webhook, f":x: Cerebro ingest error inesperado: {exc}", username=args.slack_user)
+            _post_slack(
+                args.slack_webhook,
+                f":x: Cerebro ingest error inesperado: {exc}",
+                username=args.slack_user,
+                timeout=args.slack_timeout,
+                proxy=args.slack_proxy,
+            )
         raise
 
 

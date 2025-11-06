@@ -9,7 +9,7 @@ import sys
 import os
 import time
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 ROOT = Path(__file__).resolve().parents[1]
 VENV_DIR = ROOT / "venv"
@@ -54,11 +54,88 @@ def _run(
     return subprocess.run(cmd, cwd=cwd or ROOT, check=check, env=env)
 
 
+def _run_capture_output(cmd: List[str]) -> subprocess.CompletedProcess:
+    """Ejecuta un comando capturando stdout/stderr pero replicándolos al usuario."""
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    if proc.stdout:
+        print(proc.stdout, end="")
+    if proc.stderr:
+        print(proc.stderr, end="", file=sys.stderr)
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(proc.returncode, cmd, output=proc.stdout, stderr=proc.stderr)
+    return proc
+
+
 def _python_exec() -> str:
     candidate = VENV_DIR / "bin" / "python"
     if candidate.exists():
         return str(candidate)
     return sys.executable or "python3"
+
+
+def _dataset_age_minutes(path: Path) -> float | None:
+    if not path.exists():
+        return None
+    return max(0.0, (time.time() - path.stat().st_mtime) / 60.0)
+
+
+def _post_slack(webhook: str, text: str, username: str | None = None) -> None:
+    if not webhook:
+        return
+    try:
+        import requests
+
+        payload = {"text": text}
+        if username:
+            payload["username"] = username
+        resp = requests.post(webhook, json=payload, timeout=5)
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"[slack] No se pudo enviar notificación: {exc}", file=sys.stderr)
+
+
+def _write_prometheus_file(path: str, lines: List[str]) -> None:
+    target = Path(path)
+    tmp = target.with_suffix(".tmp")
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    tmp.replace(target)
+
+
+def _autopilot_prometheus_lines(
+    success: bool,
+    promoted: bool,
+    metrics: Dict[str, float],
+    rows: int,
+    duration_seconds: float,
+) -> List[str]:
+    lines = [
+        f"cerebro_autopilot_success {1 if success else 0}",
+        f"cerebro_autopilot_promoted {1 if promoted else 0}",
+        f"cerebro_autopilot_last_ts {int(time.time())}",
+        f"cerebro_autopilot_rows {rows}",
+        f"cerebro_autopilot_duration_seconds {round(duration_seconds, 3)}",
+    ]
+    for key, value in sorted(metrics.items()):
+        if isinstance(value, (int, float)):
+            lines.append(f'cerebro_autopilot_metric{{name="{key}"}} {value}')
+    return lines
+
+
+def _extract_training_payload(stdout: str) -> Dict[str, object]:
+    payload: Dict[str, object] = {}
+    if not stdout:
+        return payload
+    for line in reversed(stdout.strip().splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            payload = json.loads(line)
+            break
+        except json.JSONDecodeError:
+            continue
+    return payload
 
 
 def cmd_up(args: argparse.Namespace) -> None:
@@ -364,6 +441,14 @@ def cmd_cerebro_ingest(args: argparse.Namespace) -> None:
         cmd.extend(["--min-market-rows", str(args.min_market_rows)])
     if args.slack_webhook:
         cmd.extend(["--slack-webhook", args.slack_webhook])
+    if args.slack_user:
+        cmd.extend(["--slack-user", args.slack_user])
+    if args.slack_timeout:
+        cmd.extend(["--slack-timeout", str(args.slack_timeout)])
+    if args.slack_proxy:
+        cmd.extend(["--slack-proxy", args.slack_proxy])
+    if args.prometheus_file:
+        cmd.extend(["--prometheus-file", args.prometheus_file])
     _run(cmd)
 
 
@@ -381,68 +466,129 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
     default_dataset = ROOT / "logs" / args.mode / "cerebro_experience.jsonl"
     dataset = Path(args.dataset or default_dataset)
     min_rows = max(50, args.min_rows)
-    rows = _count_dataset_rows(dataset)
     log_file = Path(args.log_file) if args.log_file else ROOT / "tmp_logs" / f"cerebro_autopilot_{args.mode}.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
-    if rows < min_rows:
-        if args.backfill_rows:
-            print(f"[autopilot] Dataset {dataset} tiene {rows} filas (<{min_rows}). Generando sintético...")
-            dataset_cmd = [
-                _python_exec(),
-                str(GENERATE_DATASET),
-                "--mode",
-                args.mode,
-                "--rows",
-                str(max(min_rows, args.backfill_rows)),
-                "--overwrite",
-            ]
-            _run(dataset_cmd)
-            rows = _count_dataset_rows(dataset)
-        else:
-            raise SystemExit(f"Dataset {dataset} tiene {rows} filas (<{min_rows}) y no se solicitó backfill")
-    print(f"[autopilot] Dataset listo ({rows} filas). Lanzando entrenamiento...")
-    train_cmd = [
-        _python_exec(),
-        "-m",
-        "bot.cerebro.train",
-        "--mode",
-        args.mode,
-        "--dataset",
-        str(dataset),
-        "--epochs",
-        str(args.epochs),
-        "--lr",
-        str(args.lr),
-        "--train-ratio",
-        str(args.train_ratio),
-        "--min-auc",
-        str(args.min_auc),
-        "--min-win-rate",
-        str(args.min_win_rate),
-    ]
-    if args.output_dir:
-        train_cmd.extend(["--output-dir", args.output_dir])
-    if args.no_promote:
-        train_cmd.append("--no-promote")
-    if args.dry_run:
-        train_cmd.append("--dry-run")
-    _run(train_cmd)
+    summary: Dict[str, object] = {
+        "ts": int(time.time()),
+        "mode": args.mode,
+        "dataset": str(dataset),
+        "min_rows": min_rows,
+    }
+    prom_file = args.prometheus_file
+    slack_webhook = args.slack_webhook
+    slack_user = args.slack_user
+    require_promote = args.require_promote
+    max_age_minutes = max(0, int(args.max_dataset_age_minutes or 0))
+    rows = _count_dataset_rows(dataset)
+    metrics: Dict[str, float] = {}
+    promoted = False
+    success = False
+    started = time.time()
+    error_message = ""
     try:
-        with log_file.open("a", encoding="utf-8") as fh:
-            fh.write(
-                json.dumps(
-                    {
-                        "ts": int(time.time()),
-                        "mode": args.mode,
-                        "dataset": str(dataset),
-                        "rows": rows,
-                        "cmd": train_cmd,
-                    }
+        if rows < min_rows:
+            if args.backfill_rows:
+                print(f"[autopilot] Dataset {dataset} tiene {rows} filas (<{min_rows}). Generando sintético...")
+                dataset_cmd = [
+                    _python_exec(),
+                    str(GENERATE_DATASET),
+                    "--mode",
+                    args.mode,
+                    "--rows",
+                    str(max(min_rows, args.backfill_rows)),
+                    "--overwrite",
+                ]
+                _run(dataset_cmd)
+                rows = _count_dataset_rows(dataset)
+            else:
+                error_message = f"Dataset {dataset} tiene {rows} filas (<{min_rows}) y no se solicitó backfill"
+                summary["rows"] = rows
+                summary["error"] = error_message
+                raise SystemExit(error_message)
+        summary["rows"] = rows
+        if max_age_minutes and dataset.exists():
+            age = _dataset_age_minutes(dataset) or 0
+            summary["dataset_age_minutes"] = round(age, 2)
+            if age > max_age_minutes:
+                error_message = (
+                    f"Dataset {dataset} tiene {age:.1f} minutos de antigüedad (> {max_age_minutes}). Renovar antes de entrenar."
                 )
-                + "\n"
-            )
-    except Exception:
-        print(f"[autopilot] No se pudo registrar el log en {log_file}", file=sys.stderr)
+                summary["error"] = error_message
+                raise SystemExit(error_message)
+        print(f"[autopilot] Dataset listo ({rows} filas). Lanzando entrenamiento...")
+        train_cmd = [
+            _python_exec(),
+            "-m",
+            "bot.cerebro.train",
+            "--mode",
+            args.mode,
+            "--dataset",
+            str(dataset),
+            "--epochs",
+            str(args.epochs),
+            "--lr",
+            str(args.lr),
+            "--train-ratio",
+            str(args.train_ratio),
+            "--min-auc",
+            str(args.min_auc),
+            "--min-win-rate",
+            str(args.min_win_rate),
+        ]
+        if args.output_dir:
+            train_cmd.extend(["--output-dir", args.output_dir])
+        if args.no_promote:
+            train_cmd.append("--no-promote")
+        if args.dry_run:
+            train_cmd.append("--dry-run")
+        summary["train_cmd"] = train_cmd
+        result = _run_capture_output(train_cmd)
+        payload = _extract_training_payload(result.stdout)
+        payload_metrics = payload.get("metrics") or {}
+        metrics = {key: value for key, value in payload_metrics.items() if isinstance(value, (int, float))}
+        summary["metrics"] = payload_metrics
+        summary["status"] = payload.get("status")
+        summary["artifact"] = payload.get("artifact")
+        promoted = bool(payload.get("status") == "PROMOVIDO")
+        success = True
+        if require_promote and not promoted:
+            success = False
+            error_message = "El entrenamiento no promovió el modelo y se solicitó --require-promote."
+            summary["error"] = error_message
+            raise SystemExit(error_message)
+    except SystemExit as exc:
+        if not summary.get("error"):
+            error_message = str(exc)
+            summary["error"] = error_message
+        raise
+    except Exception as exc:
+        error_message = str(exc)
+        summary["error"] = error_message
+        raise
+    finally:
+        duration = time.time() - started
+        summary["duration_seconds"] = round(duration, 3)
+        summary["success"] = success
+        summary["promoted"] = promoted
+        try:
+            with log_file.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(summary, ensure_ascii=False) + "\n")
+        except Exception:
+            print(f"[autopilot] No se pudo registrar el log en {log_file}", file=sys.stderr)
+        if prom_file:
+            try:
+                prom_lines = _autopilot_prometheus_lines(success, promoted, metrics, rows, duration)
+                _write_prometheus_file(prom_file, prom_lines)
+            except Exception as exc:
+                print(f"[autopilot] No se pudo escribir Prometheus file {prom_file}: {exc}", file=sys.stderr)
+        if slack_webhook:
+            stats = ", ".join(f"{k}={v}" for k, v in sorted(metrics.items())) or "sin métricas"
+            status_emoji = ":white_check_mark:" if success else ":x:"
+            promoted_text = "promovido" if promoted else "sin promover"
+            text = f"{status_emoji} Cerebro autopilot ({args.mode}, {rows} filas, {promoted_text}): {stats}"
+            if error_message:
+                text += f" :: {error_message}"
+            _post_slack(slack_webhook, text, slack_user)
 
 
 def cmd_deploy_bootstrap(args: argparse.Namespace) -> None:
@@ -701,6 +847,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cerebro_ingest.add_argument("--min-market-rows", type=int, help="Mínimo total de velas requeridas para aprobar la ingesta")
     cerebro_ingest.add_argument("--slack-webhook", help="Webhook Slack opcional para notificar el resultado")
+    cerebro_ingest.add_argument("--slack-user", help="Nombre de usuario para Slack")
+    cerebro_ingest.add_argument("--slack-timeout", type=float, help="Timeout (s) para la llamada a Slack")
+    cerebro_ingest.add_argument("--slack-proxy", help="Proxy HTTP/S para notificar Slack (ej. http://proxy:8080)")
+    cerebro_ingest.add_argument("--prometheus-file", help="Archivo .prom para exponer métricas (Node Exporter textfile)")
     cerebro_ingest.set_defaults(func=cmd_cerebro_ingest)
 
     cerebro_autopilot = cerebro_sub.add_parser("autopilot", help="Valida dataset y lanza entrenamiento")
@@ -717,6 +867,11 @@ def build_parser() -> argparse.ArgumentParser:
     cerebro_autopilot.add_argument("--no-promote", action="store_true")
     cerebro_autopilot.add_argument("--dry-run", action="store_true")
     cerebro_autopilot.add_argument("--log-file", help="Archivo donde registrar ejecuciones (por defecto tmp_logs/cerebro_autopilot_<mode>.log)")
+    cerebro_autopilot.add_argument("--prometheus-file", help="Archivo .prom para textfile collector de Node Exporter")
+    cerebro_autopilot.add_argument("--slack-webhook", help="Webhook de Slack para notificar éxito/fracaso")
+    cerebro_autopilot.add_argument("--slack-user", default="cerebro-autopilot", help="Nombre de usuario a mostrar en Slack")
+    cerebro_autopilot.add_argument("--require-promote", action="store_true", help="Falla si el entrenamiento no promueve el modelo")
+    cerebro_autopilot.add_argument("--max-dataset-age-minutes", type=int, default=0, help="Antigüedad máxima (minutos) permitida para el dataset antes de entrenar")
     cerebro_autopilot.set_defaults(func=cmd_cerebro_autopilot)
 
     monitor = sub.add_parser("monitor", help="Monitoreo activo de /metrics y /arena/state")

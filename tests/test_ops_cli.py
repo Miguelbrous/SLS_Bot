@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
+import time
+from types import SimpleNamespace
 from typing import List
 
 import pytest
@@ -358,12 +362,26 @@ def test_cerebro_ingest_command(stub_run):
             "BTCUSDT",
             "--onchain-symbols",
             "ETHUSDT",
+            "--require-sources",
+            "market,funding",
+            "--min-market-rows",
+            "10",
             "--include-news",
             "--include-orderflow",
             "--include-funding",
             "--include-onchain",
             "--output",
             "tmp_logs/ingest.json",
+            "--slack-webhook",
+            "https://hooks.slack.test",
+            "--slack-user",
+            "ingest-bot",
+            "--slack-timeout",
+            "7",
+            "--slack-proxy",
+            "http://proxy.local:8080",
+            "--prometheus-file",
+            "/var/lib/node_exporter/cerebro_ingest.prom",
         ]
     )
     args.func(args)
@@ -390,6 +408,20 @@ def test_cerebro_ingest_command(stub_run):
         "--include-orderflow",
         "--include-funding",
         "--include-onchain",
+        "--require-sources",
+        "market,funding",
+        "--min-market-rows",
+        "10",
+        "--slack-webhook",
+        "https://hooks.slack.test",
+        "--slack-user",
+        "ingest-bot",
+        "--slack-timeout",
+        "7.0",
+        "--slack-proxy",
+        "http://proxy.local:8080",
+        "--prometheus-file",
+        "/var/lib/node_exporter/cerebro_ingest.prom",
     ]
 
 
@@ -422,9 +454,118 @@ def test_cerebro_autopilot_command_generates_dataset(monkeypatch, tmp_path):
     def fake_run(cmd, **kwargs):
         commands.append(cmd)
         if "generate_cerebro_dataset" in str(cmd[1]):
-            dataset_path.write_text("{}\n{}\n{}\n{}\n{}\n{}\n", encoding="utf-8")
+            dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+
+    def fake_capture(cmd):
+        commands.append(cmd)
+        payload = {"metrics": {"auc": 0.7}, "status": "PROMOVIDO"}
+        return SimpleNamespace(stdout=json.dumps(payload))
 
     monkeypatch.setattr(ops, "_run", fake_run)
+    monkeypatch.setattr(ops, "_run_capture_output", fake_capture)
     args.func(args)
-    assert str(ops.GENERATE_DATASET) in commands[0]
+    assert str(ops.GENERATE_DATASET) in commands[0][1]
     assert any("bot.cerebro.train" in part for part in commands[-1])
+
+
+def test_cerebro_autopilot_enforces_dataset_age(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    old_time = time.time() - 7200
+    os.utime(dataset_path, (old_time, old_time))
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--mode",
+            "test",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "5",
+            "--max-dataset-age-minutes",
+            "5",
+            "--log-file",
+            str(tmp_path / "autopilot.log"),
+        ]
+    )
+    monkeypatch.setattr(ops, "_run_capture_output", lambda cmd: (_ for _ in ()).throw(AssertionError("no training")))
+    with pytest.raises(SystemExit):
+        args.func(args)
+
+
+def test_cerebro_autopilot_prometheus_and_slack(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    prom_file = tmp_path / "metrics.prom"
+    log_file = tmp_path / "autopilot.log"
+    payload = {
+        "metrics": {"auc": 0.71, "win_rate": 0.63, "samples_train": 80, "samples_test": 20},
+        "status": "PROMOVIDO",
+        "artifact": "/tmp/model.json",
+    }
+    monkeypatch.setattr(ops, "_run_capture_output", lambda cmd: SimpleNamespace(stdout=json.dumps(payload)))
+    slack_calls = []
+    monkeypatch.setattr(ops, "_post_slack", lambda webhook, text, username: slack_calls.append((webhook, text, username)))
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--mode",
+            "test",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "5",
+            "--prometheus-file",
+            str(prom_file),
+            "--slack-webhook",
+            "https://hooks.slack.test",
+            "--slack-user",
+            "autopilot-bot",
+            "--log-file",
+            str(log_file),
+        ]
+    )
+    args.func(args)
+    content = prom_file.read_text(encoding="utf-8")
+    assert "cerebro_autopilot_success 1" in content
+    assert 'cerebro_autopilot_metric{name="auc"} 0.71' in content
+    assert slack_calls
+    assert ":white_check_mark:" in slack_calls[0][1]
+    assert slack_calls[0][2] == "autopilot-bot"
+
+
+def test_cerebro_autopilot_require_promote(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    dataset_path.write_text("{}\n" * 60, encoding="utf-8")
+    prom_file = tmp_path / "metrics.prom"
+    payload = {
+        "metrics": {"auc": 0.6, "win_rate": 0.55},
+        "status": "SOLO_ENTRENADO",
+    }
+    monkeypatch.setattr(ops, "_run_capture_output", lambda cmd: SimpleNamespace(stdout=json.dumps(payload)))
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--mode",
+            "test",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "5",
+            "--require-promote",
+            "--prometheus-file",
+            str(prom_file),
+            "--log-file",
+            str(tmp_path / "autopilot.log"),
+        ]
+    )
+    with pytest.raises(SystemExit):
+        args.func(args)
+    content = prom_file.read_text(encoding="utf-8")
+    assert "cerebro_autopilot_success 0" in content
