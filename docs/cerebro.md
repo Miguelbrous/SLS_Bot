@@ -17,6 +17,8 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 - **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
 - **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
 - **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades). Ahora cachea respuestas HTTP (`cache_ttl`) y reintenta automáticamente para no golpear APIs externas en exceso; también persiste fallback en disco para operar aun sin conectividad.
+- **FundingDataSource** (opcional): resume el sesgo de funding consultando `/v5/market/funding/history` de Bybit. Calcula `avg_rate`, `last_rate`, `bias` (`longs_pay`, `shorts_pay`, `neutral`) y lo adjunta como metadata para que la política reduzca o incremente riesgo si el sesgo favorece/penaliza al lado propuesto. Se activa con `cerebro.funding_feeds.enabled=true`.
+- **OnchainDataSource** (opcional): consume `https://api.blockchair.com/<asset>/stats` para obtener mempool, hash rate, fees y direcciones activas. Deriva `mempool_ratio` y un `whale_bias` que la política utiliza para ajustar riesgo (por ejemplo, mempool saturada → menor agresividad en LONG). Habilítalo con `cerebro.onchain_feeds.enabled=true` y mapea cada símbolo a su asset (`BTCUSDT: bitcoin`, `ETHUSDT: ethereum`).
 - **OrderflowDataSource** (opcional): consulta `/v5/market/orderbook` de Bybit, agrega liquidez bid/ask y calcula imbalance/spread. Se activa definiendo `cerebro.orderflow_feeds.enabled=true` en `config/config.json`. Campos soportados:
   ```jsonc
   "orderflow_feeds": {
@@ -77,6 +79,22 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
     "funding_rate_url": "https://example.com/funding",
     "whale_flow_url": "https://example.com/whales",
     "cache_dir": "./tmp_logs/macro"
+  },
+  "funding_feeds": {
+    "enabled": true,
+    "base_url": "https://api.bybit.com",
+    "category": "linear",
+    "threshold": 0.00025,
+    "history_limit": 24
+  },
+  "onchain_feeds": {
+    "enabled": true,
+    "base_url": "https://api.blockchair.com",
+    "assets": {
+      "BTCUSDT": "bitcoin",
+      "ETHUSDT": "ethereum"
+    },
+    "inflow_threshold": 0.05
   },
   "min_confidence": 0.55,
   "confidence_max": 0.7,
@@ -157,6 +175,16 @@ El registro de modelos (`models/cerebro/<mode>/registry.json`) guarda cada versi
 `scripts/tools/rotate_artifacts.py` para archivar artefactos antiguos y `ModelRegistry.promote()` para reactivar uno.
 Si defines `SLS_CEREBRO_AUTO_TRAIN=1`, el servicio ejecuta `python -m cerebro.train` cada `auto_train_interval` trades,
 registrando automáticamente el artefacto resultante.
+
+### Autopilot CLI (`python scripts/ops.py cerebro autopilot ...`)
+- Valida que el dataset (`logs/cerebro_experience.jsonl` por defecto) tenga el mínimo de filas requerido (`--min-rows`).
+- Si faltan datos y pasas `--backfill-rows`, invoca el generador sintético (`cerebro dataset ...`) antes de entrenar.
+- Lanza `bot.cerebro.train` con los parámetros que le pases (`--epochs`, `--lr`, `--min-auc`, etc.) y admite `--dry-run`/`--no-promote`.
+- Útil para cron/CI: `python scripts/ops.py cerebro autopilot --mode test --dataset logs/cerebro_experience.jsonl --min-rows 500 --backfill-rows 600 --output-dir models/cerebro/test/autopilot`.
+- `scripts/cron/cerebro_autopilot.sh` envuelve el comando para cron: usa `CEREBRO_AUTO_*` (modo, dataset, min rows, backfill, etc.) y deja logs en `tmp_logs/cerebro_autopilot_runner.log` + `tmp_logs/cerebro_autopilot_<mode>.log`.
+
+## Utilidades rápidas
+- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --output tmp_logs/cerebro_ingestion.json` consulta los data sources (market/news/macro/orderflow), rellena cache y deja un snapshot JSON para inspeccionar la ingesta antes de lanzar el servicio completo. Ideal para healthchecks de cron o para generar datasets de pruebas.
 
 ## Simulaciones y promoción controlada
 

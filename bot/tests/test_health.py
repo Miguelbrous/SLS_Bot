@@ -183,3 +183,42 @@ def test_alerts_endpoint_exposes_recent_errors() -> None:
     assert any(alert["name"] == "order_error" for alert in body["alerts"])
 
 
+def test_control_rate_limit(monkeypatch):
+    from app import main as api_main
+
+    old_max = api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS
+    old_window = api_main.CONTROL_RATE_LIMIT_WINDOW
+    api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS = 2
+    api_main.CONTROL_RATE_LIMIT_WINDOW = 3600
+    api_main._rate_limit_hits.clear()
+
+    for _ in range(2):
+        resp = client.post("/control/sls-bot/status", headers=_auth_headers())
+        assert resp.status_code == 200
+
+    resp = client.post("/control/sls-bot/status", headers=_auth_headers())
+    assert resp.status_code == 429
+
+    api_main._rate_limit_hits.clear()
+    api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS = old_max
+    api_main.CONTROL_RATE_LIMIT_WINDOW = old_window
+
+
+def test_panel_rate_limit(monkeypatch):
+    from app import main as api_main
+
+    old_max = api_main.PANEL_RATE_LIMIT_MAX_REQUESTS
+    old_window = api_main.PANEL_RATE_LIMIT_WINDOW
+    api_main.PANEL_RATE_LIMIT_MAX_REQUESTS = 1
+    api_main.PANEL_RATE_LIMIT_WINDOW = 3600
+    api_main._rate_limit_hits.clear()
+
+    resp = client.get("/status", headers=_panel_headers())
+    assert resp.status_code == 200
+    resp = client.get("/status", headers=_panel_headers())
+    assert resp.status_code == 429
+
+    api_main._rate_limit_hits.clear()
+    api_main.PANEL_RATE_LIMIT_MAX_REQUESTS = old_max
+    api_main.PANEL_RATE_LIMIT_WINDOW = old_window
+

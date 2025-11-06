@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import os
+import time
 from pathlib import Path
 from typing import List
 
@@ -24,6 +25,8 @@ HEALTH_SCRIPT = ROOT / "scripts" / "tools" / "healthcheck.py"
 INFRA_CHECK = ROOT / "scripts" / "tools" / "infra_check.py"
 GENERATE_DATASET = ROOT / "scripts" / "tools" / "generate_cerebro_dataset.py"
 PROMOTE_MODEL = ROOT / "scripts" / "tools" / "promote_best_cerebro_model.py"
+CEREBRO_INGEST = ROOT / "scripts" / "tools" / "run_cerebro_ingest.py"
+OBS_CHECK = ROOT / "scripts" / "tests" / "observability_check.py"
 DEPLOY_BOOTSTRAP = ROOT / "scripts" / "deploy" / "bootstrap.sh"
 MONITOR_GUARD = ROOT / "scripts" / "tools" / "monitor_guard.py"
 DEFAULT_SYSTEMD_SERVICES = [
@@ -37,6 +40,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from bot.arena.service import ArenaService
+from bot.arena.promote import export_strategy
 
 
 def _run(
@@ -126,6 +130,52 @@ def cmd_arena_promote(args: argparse.Namespace) -> None:
     if args.force:
         cmd.append("--force")
     _run(cmd)
+
+
+def cmd_arena_promote_real(args: argparse.Namespace) -> None:
+    package_dir = export_strategy(
+        args.strategy_id,
+        dest_dir=Path(args.output_dir) if args.output_dir else None,
+        min_trades=args.min_trades,
+        min_sharpe=args.min_sharpe,
+        max_drawdown=args.max_drawdown,
+        force=args.force,
+    )
+    print(f"[promote-real] Paquete generado en {package_dir}")
+    model_cmd = [
+        _python_exec(),
+        str(PROMOTE_MODEL),
+        "--source-mode",
+        args.source_mode,
+        "--target-mode",
+        args.target_mode,
+        "--min-auc",
+        str(args.min_auc),
+        "--min-win-rate",
+        str(args.min_win_rate),
+    ]
+    if args.skip_dataset_rotation:
+        model_cmd.append("--skip-dataset-rotation")
+    _run(model_cmd)
+    log_dir = ROOT / "logs" / "promotions"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "promotion_log.jsonl"
+    payload = {
+        "ts": int(time.time()),
+        "strategy_id": args.strategy_id,
+        "package": str(package_dir),
+        "source_mode": args.source_mode,
+        "target_mode": args.target_mode,
+        "min_trades": args.min_trades,
+        "min_sharpe": args.min_sharpe,
+        "max_drawdown": args.max_drawdown,
+        "min_auc": args.min_auc,
+        "min_win_rate": args.min_win_rate,
+        "model_cmd": model_cmd,
+    }
+    with log_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload) + "\n")
+    print(f"[promote-real] Modelo promovido, log en {log_path}")
 
 
 def cmd_arena_ranking(args: argparse.Namespace) -> None:
@@ -224,6 +274,116 @@ def cmd_cerebro_train(args: argparse.Namespace) -> None:
     _run(cmd)
 
 
+def cmd_cerebro_ingest(args: argparse.Namespace) -> None:
+    cmd = [
+        _python_exec(),
+        str(CEREBRO_INGEST),
+    ]
+    if args.symbols:
+        cmd.extend(["--symbols", args.symbols])
+    if args.timeframes:
+        cmd.extend(["--timeframes", args.timeframes])
+    if args.funding_symbols:
+        cmd.extend(["--funding-symbols", args.funding_symbols])
+    if args.onchain_symbols:
+        cmd.extend(["--onchain-symbols", args.onchain_symbols])
+    cmd.extend(["--market-limit", str(args.market_limit)])
+    cmd.extend(["--news-limit", str(args.news_limit)])
+    cmd.extend(["--macro-limit", str(args.macro_limit)])
+    cmd.extend(["--max-tasks", str(args.max_tasks)])
+    if args.output:
+        cmd.extend(["--output", args.output])
+    if args.include_news:
+        cmd.append("--include-news")
+    if args.include_macro:
+        cmd.append("--include-macro")
+    if args.include_orderflow:
+        cmd.append("--include-orderflow")
+    if args.include_funding:
+        cmd.append("--include-funding")
+    if args.include_onchain:
+        cmd.append("--include-onchain")
+    _run(cmd)
+
+
+def _count_dataset_rows(path: Path) -> int:
+    if not path.exists():
+        return 0
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            return sum(1 for _ in fh if _.strip())
+    except Exception:
+        return 0
+
+
+def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
+    default_dataset = ROOT / "logs" / args.mode / "cerebro_experience.jsonl"
+    dataset = Path(args.dataset or default_dataset)
+    min_rows = max(50, args.min_rows)
+    rows = _count_dataset_rows(dataset)
+    log_file = Path(args.log_file) if args.log_file else ROOT / "tmp_logs" / f"cerebro_autopilot_{args.mode}.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    if rows < min_rows:
+        if args.backfill_rows:
+            print(f"[autopilot] Dataset {dataset} tiene {rows} filas (<{min_rows}). Generando sintético...")
+            dataset_cmd = [
+                _python_exec(),
+                str(GENERATE_DATASET),
+                "--mode",
+                args.mode,
+                "--rows",
+                str(max(min_rows, args.backfill_rows)),
+                "--overwrite",
+            ]
+            _run(dataset_cmd)
+            rows = _count_dataset_rows(dataset)
+        else:
+            raise SystemExit(f"Dataset {dataset} tiene {rows} filas (<{min_rows}) y no se solicitó backfill")
+    print(f"[autopilot] Dataset listo ({rows} filas). Lanzando entrenamiento...")
+    train_cmd = [
+        _python_exec(),
+        "-m",
+        "bot.cerebro.train",
+        "--mode",
+        args.mode,
+        "--dataset",
+        str(dataset),
+        "--epochs",
+        str(args.epochs),
+        "--lr",
+        str(args.lr),
+        "--train-ratio",
+        str(args.train_ratio),
+        "--min-auc",
+        str(args.min_auc),
+        "--min-win-rate",
+        str(args.min_win_rate),
+    ]
+    if args.output_dir:
+        train_cmd.extend(["--output-dir", args.output_dir])
+    if args.no_promote:
+        train_cmd.append("--no-promote")
+    if args.dry_run:
+        train_cmd.append("--dry-run")
+    _run(train_cmd)
+    try:
+        with log_file.open("a", encoding="utf-8") as fh:
+            fh.write(
+                json.dumps(
+                    {
+                        "ts": int(time.time()),
+                        "mode": args.mode,
+                        "dataset": str(dataset),
+                        "rows": rows,
+                        "cmd": train_cmd,
+                    }
+                )
+                + "\n"
+            )
+    except Exception:
+        print(f"[autopilot] No se pudo registrar el log en {log_file}", file=sys.stderr)
+
+
 def cmd_deploy_bootstrap(args: argparse.Namespace) -> None:
     env = os.environ.copy()
     env["APP_ROOT"] = args.app_root or env.get("APP_ROOT") or str(ROOT)
@@ -272,6 +432,21 @@ def cmd_monitor_check(args: argparse.Namespace) -> None:
     if args.dry_run:
         cmd.append("--dry-run")
     _run(cmd)
+
+
+def cmd_observability_check(args: argparse.Namespace) -> None:
+    env = os.environ.copy()
+    if args.prom_base:
+        env["PROM_BASE"] = args.prom_base
+    if args.grafana_base:
+        env["GRAFANA_BASE"] = args.grafana_base
+    if args.grafana_user:
+        env["GRAFANA_USER"] = args.grafana_user
+    if args.grafana_password:
+        env["GRAFANA_PASSWORD"] = args.grafana_password
+    if args.alertmanager_base:
+        env["ALERTMANAGER_BASE"] = args.alertmanager_base
+    _run([_python_exec(), str(OBS_CHECK)], env=env)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -346,6 +521,20 @@ def build_parser() -> argparse.ArgumentParser:
     arena_promote.add_argument("--force", action="store_true", help="Ignorar validaciones")
     arena_promote.set_defaults(func=cmd_arena_promote)
 
+    arena_promote_real = arena_sub.add_parser("promote-real", help="Exporta paquete y promueve modelos test→real")
+    arena_promote_real.add_argument("strategy_id")
+    arena_promote_real.add_argument("--output-dir", help="Directorio destino del paquete", default=None)
+    arena_promote_real.add_argument("--min-trades", type=int, default=60)
+    arena_promote_real.add_argument("--min-sharpe", type=float, default=0.35)
+    arena_promote_real.add_argument("--max-drawdown", type=float, default=30.0)
+    arena_promote_real.add_argument("--force", action="store_true")
+    arena_promote_real.add_argument("--source-mode", default="test")
+    arena_promote_real.add_argument("--target-mode", default="real")
+    arena_promote_real.add_argument("--min-auc", type=float, default=0.58)
+    arena_promote_real.add_argument("--min-win-rate", type=float, default=0.55)
+    arena_promote_real.add_argument("--skip-dataset-rotation", action="store_true")
+    arena_promote_real.set_defaults(func=cmd_arena_promote_real)
+
     arena_rank = arena_sub.add_parser("ranking", help="Muestra el top actual")
     arena_rank.add_argument("--limit", type=int, default=10)
     arena_rank.set_defaults(func=cmd_arena_ranking)
@@ -402,6 +591,51 @@ def build_parser() -> argparse.ArgumentParser:
     )
     cerebro_promote.set_defaults(func=cmd_cerebro_promote)
 
+    cerebro_ingest = cerebro_sub.add_parser("ingest", help="Ingesta puntual de data sources")
+    cerebro_ingest.add_argument("--symbols", help="Lista separada por comas (override de config)")
+    cerebro_ingest.add_argument("--timeframes", help="Lista separada por comas (override de config)")
+    cerebro_ingest.add_argument("--funding-symbols", help="Lista separada por comas para funding")
+    cerebro_ingest.add_argument("--onchain-symbols", help="Lista separada por comas para datos on-chain")
+    cerebro_ingest.add_argument("--market-limit", type=int, default=200)
+    cerebro_ingest.add_argument("--news-limit", type=int, default=50)
+    cerebro_ingest.add_argument("--macro-limit", type=int, default=20)
+    cerebro_ingest.add_argument("--max-tasks", type=int, default=50)
+    cerebro_ingest.add_argument("--output", help="Archivo destino con resultados")
+    cerebro_ingest.add_argument("--include-news", action="store_true", help="Consulta feeds RSS configurados")
+    cerebro_ingest.add_argument("--include-macro", action="store_true", help="Consulta feeds macro configurados")
+    cerebro_ingest.add_argument(
+        "--include-orderflow",
+        action="store_true",
+        help="Consulta orderflow aunque no esté habilitado en config",
+    )
+    cerebro_ingest.add_argument(
+        "--include-funding",
+        action="store_true",
+        help="Consulta funding aunque esté deshabilitado en config",
+    )
+    cerebro_ingest.add_argument(
+        "--include-onchain",
+        action="store_true",
+        help="Consulta datos on-chain aunque estén deshabilitados",
+    )
+    cerebro_ingest.set_defaults(func=cmd_cerebro_ingest)
+
+    cerebro_autopilot = cerebro_sub.add_parser("autopilot", help="Valida dataset y lanza entrenamiento")
+    cerebro_autopilot.add_argument("--mode", default="test")
+    cerebro_autopilot.add_argument("--dataset", help="Ruta del dataset experiencia", default=str(ROOT / "logs" / "cerebro_experience.jsonl"))
+    cerebro_autopilot.add_argument("--min-rows", type=int, default=200)
+    cerebro_autopilot.add_argument("--backfill-rows", type=int, help="Si faltan datos, genera dataset sintético con N filas")
+    cerebro_autopilot.add_argument("--epochs", type=int, default=400)
+    cerebro_autopilot.add_argument("--lr", type=float, default=0.05)
+    cerebro_autopilot.add_argument("--train-ratio", type=float, default=0.8)
+    cerebro_autopilot.add_argument("--min-auc", type=float, default=0.6)
+    cerebro_autopilot.add_argument("--min-win-rate", type=float, default=0.55)
+    cerebro_autopilot.add_argument("--output-dir")
+    cerebro_autopilot.add_argument("--no-promote", action="store_true")
+    cerebro_autopilot.add_argument("--dry-run", action="store_true")
+    cerebro_autopilot.add_argument("--log-file", help="Archivo donde registrar ejecuciones (por defecto tmp_logs/cerebro_autopilot_<mode>.log)")
+    cerebro_autopilot.set_defaults(func=cmd_cerebro_autopilot)
+
     monitor = sub.add_parser("monitor", help="Monitoreo activo de /metrics y /arena/state")
     monitor_sub = monitor.add_subparsers(dest="monitor_cmd", required=True)
 
@@ -421,6 +655,17 @@ def build_parser() -> argparse.ArgumentParser:
     monitor_check.add_argument("--telegram-chat-id", help="Chat ID de Telegram")
     monitor_check.add_argument("--dry-run", action="store_true", help="No envía alertas, solo imprime")
     monitor_check.set_defaults(func=cmd_monitor_check)
+
+    observability = sub.add_parser("observability", help="Comandos para el stack de observabilidad")
+    observability_sub = observability.add_subparsers(dest="observability_cmd", required=True)
+
+    observability_check = observability_sub.add_parser("check", help="Ejecuta scripts/tests/observability_check.py")
+    observability_check.add_argument("--prom-base", help="URL de Prometheus (PROM_BASE)")
+    observability_check.add_argument("--grafana-base", help="URL de Grafana (GRAFANA_BASE)")
+    observability_check.add_argument("--grafana-user", help="Usuario Grafana si requiere auth básica/API")
+    observability_check.add_argument("--grafana-password", help="Password de Grafana")
+    observability_check.add_argument("--alertmanager-base", help="URL de Alertmanager (ALERTMANAGER_BASE)")
+    observability_check.set_defaults(func=cmd_observability_check)
 
     return parser
 

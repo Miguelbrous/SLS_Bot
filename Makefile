@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check
+.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check observability-up observability-down observability-check
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -91,3 +91,12 @@ monitor-check: ## Ejecuta el monitor de arena (/arena/state + /metrics). Pensado
 		$(if $(MAX_DRAWDOWN),--max-drawdown $(MAX_DRAWDOWN),) \
 		$(if $(MAX_TICKS),--max-ticks-since-win $(MAX_TICKS),) \
 		$(if $(DRY_RUN),--dry-run,)
+
+observability-up: ## Levanta Prometheus+Grafana+Alertmanager locales usando docker compose.
+	docker compose -f docs/observability/docker-compose.yml --project-name sls-observability up -d
+
+observability-down: ## Apaga el stack local de observabilidad.
+	docker compose -f docs/observability/docker-compose.yml --project-name sls-observability down
+
+observability-check: ## Valida Prometheus/Grafana/Alertmanager (requiere PROM_BASE/GRAFANA_BASE/...)
+	@$(PYTHON_BIN) scripts/ops.py observability check

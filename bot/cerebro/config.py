@@ -49,6 +49,8 @@ class CerebroConfig:
     max_memory: int = 5000
     macro_feeds: Dict[str, object] = field(default_factory=dict)
     orderflow_feeds: Dict[str, object] = field(default_factory=dict)
+    onchain_feeds: Dict[str, object] = field(default_factory=dict)
+    funding_feeds: Dict[str, object] = field(default_factory=dict)
     sl_atr_multiple: float = 1.5
     tp_atr_multiple: float = 2.0
     news_ttl_minutes: int = 45
@@ -73,6 +75,8 @@ class CerebroConfig:
             news_feeds=data.get("news_feeds") or [],
             macro_feeds=data.get("macro_feeds") or {},
             orderflow_feeds=data.get("orderflow_feeds") or data.get("orderflow") or {},
+            onchain_feeds=data.get("onchain_feeds") or {},
+            funding_feeds=data.get("funding_feeds") or {},
             min_confidence=float(data.get("min_confidence") or 0.55),
             max_memory=int(data.get("max_memory") or 5000),
             sl_atr_multiple=float(data.get("sl_atr_multiple") or 1.5),

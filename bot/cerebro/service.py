@@ -91,12 +91,24 @@ class Cerebro:
             cache_ttl=max(5, self.config.data_cache_ttl),
             macro_config=self.config.macro_feeds,
             orderflow_config=self.config.orderflow_feeds,
+            funding_config=self.config.funding_feeds,
+            onchain_config=self.config.onchain_feeds,
         )
         orderflow_component = getattr(self.ingestion, "orderflow", None)
         if orderflow_component and getattr(orderflow_component, "config", None):
             self._orderflow_enabled = bool(orderflow_component.config.enabled)
         else:
             self._orderflow_enabled = False
+        funding_component = getattr(self.ingestion, "funding", None)
+        if funding_component and getattr(funding_component, "config", None):
+            self._funding_enabled = bool(funding_component.config.enabled)
+        else:
+            self._funding_enabled = False
+        onchain_component = getattr(self.ingestion, "onchain", None)
+        if onchain_component and getattr(onchain_component, "config", None):
+            self._onchain_enabled = bool(onchain_component.config.enabled)
+        else:
+            self._onchain_enabled = False
         self.ingestion.warmup(self.config.symbols, self.config.timeframes)
         self.memory = ExperienceMemory(maxlen=self.config.max_memory)
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -155,14 +167,22 @@ class Cerebro:
             self._last_run = time.time()
             now = datetime.now(timezone.utc)
             self.ingestion.schedule(IngestionTask(source="news", limit=20))
+            funding_tasks = 0
+            onchain_tasks = 0
             for symbol in self.config.symbols:
+                if self._funding_enabled:
+                    self.ingestion.schedule(IngestionTask(source="funding", symbol=symbol, limit=1))
+                    funding_tasks += 1
+                if self._onchain_enabled:
+                    self.ingestion.schedule(IngestionTask(source="onchain", symbol=symbol, limit=1))
+                    onchain_tasks += 1
                 for tf in self.config.timeframes:
                     self.ingestion.schedule(IngestionTask(source="market", symbol=symbol, timeframe=tf, limit=200))
                     self.ingestion.schedule(IngestionTask(source="macro", symbol=symbol, timeframe=tf, limit=50))
                     if self._orderflow_enabled:
                         self.ingestion.schedule(IngestionTask(source="orderflow", symbol=symbol, timeframe=tf, limit=1))
             per_symbol_tasks = 2 + (1 if self._orderflow_enabled else 0)
-            total_tasks = len(self.config.symbols) * len(self.config.timeframes) * per_symbol_tasks + 1
+            total_tasks = len(self.config.symbols) * len(self.config.timeframes) * per_symbol_tasks + 1 + funding_tasks + onchain_tasks
             self.ingestion.run_pending(max_tasks=total_tasks)
             news_items = self.ingestion.fetch_now("news", limit=10)
             news_pulse = summarize_news_items(news_items, now=now, ttl_minutes=self.config.news_ttl_minutes)
@@ -191,6 +211,14 @@ class Cerebro:
                         if self._orderflow_enabled:
                             orderflow_rows = self.ingestion.fetch_now("orderflow", symbol=symbol, timeframe=tf, limit=1)
                             orderflow_meta = orderflow_rows[0] if orderflow_rows else None
+                        funding_meta = None
+                        if self._funding_enabled:
+                            funding_rows = self.ingestion.fetch_now("funding", symbol=symbol, limit=1)
+                            funding_meta = funding_rows[0] if funding_rows else None
+                        onchain_meta = None
+                        if self._onchain_enabled:
+                            onchain_rows = self.ingestion.fetch_now("onchain", symbol=symbol, limit=1)
+                            onchain_meta = onchain_rows[0] if onchain_rows else None
                         anomaly = self.anomaly_detector.score_series(slice_window.data, field="close")
                         means, variances = self.feature_store.describe(symbol, tf)
                         volatility = abs(variances.get("close", 1.0))
@@ -220,6 +248,8 @@ class Cerebro:
                             exploration_mode=exploration_mode,
                             macro_context=macro_pulse.to_metadata(),
                             orderflow_context=orderflow_meta,
+                            funding_context=funding_meta,
+                            onchain_context=onchain_meta,
                         )
                         session_name = (session_meta or {}).get("session_name", "General")
                         decision.metadata.update(self.confidence_gate.to_metadata(confidence_threshold))
@@ -234,6 +264,10 @@ class Cerebro:
                         decision.metadata["macro_pulse"] = macro_pulse.to_metadata()
                         if orderflow_meta:
                             decision.metadata["orderflow"] = orderflow_meta
+                        if funding_meta:
+                            decision.metadata["funding"] = funding_meta
+                        if onchain_meta:
+                            decision.metadata["onchain"] = onchain_meta
                         decision.metadata["volatility_estimate"] = volatility
                         if anomaly.is_anomalous and decision.action != "NO_TRADE":
                             decision.action = "NO_TRADE"

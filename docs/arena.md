@@ -41,12 +41,14 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
 - `python scripts/ops.py arena promote <id>` empaqueta una estrategia campeona con sus metadatos.
 - `python scripts/ops.py arena ranking --limit 20` y `state` permiten auditar el top actual o la copa sin abrir archivos.
 - `python scripts/ops.py arena promote <id> --min-trades 80 --min-sharpe 0.4 --max-drawdown 25` bloquea la exportación si los umbrales no se cumplen (usa `--force` para omitirlos); se genera `validation.json` con los motivos.
+- `python scripts/ops.py arena promote-real <id> --source-mode test --target-mode real` genera el paquete y promueve automáticamente el modelo de Cerebro si supera los umbrales (`--min-auc`, `--min-win-rate`). Deja registro en `logs/promotions/promotion_log.jsonl`.
 - `python scripts/ops.py arena notes add/list` registra notas de experimento directamente en `arena.db`, útiles para compartir hallazgos antes de promover.
 
 Todos estos comandos comparten la misma configuración (`bot/core/settings.py`), así que el CLI respeta tus `.env` y rutas.
 
 ## Notas y workflow de promoción
 - `POST /arena/notes` y `GET /arena/notes?strategy_id=...` permiten registrar/leer bitácoras desde el panel o scripts (las notas se guardan en SQLite y también están disponibles vía `ops arena notes *`).
+- El panel `/arena` ahora permite filtrar el ledger (todas/ganadoras/perdedoras), ver métricas agregadas (PnL total/promedio, win rate) y exportar las operaciones a CSV directamente desde la UI, además de buscar notas por autor/texto.
 - La promoción ejecuta validaciones automáticas (`min_trades`, `min_sharpe`, `max_drawdown`). Si falla, la API/CLI devuelve un `400` explicando los motivos; puedes usar `force=true` o `--force` para omitirlas, aunque se registrará igualmente `validation.json`.
 
 ## Pruebas

@@ -60,3 +60,40 @@ jobs:
           source venv/bin/activate
           python scripts/ops.py monitor check --dry-run --panel-token dummy || true
 
+  observability:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install requests
+
+      - name: Start observability stack
+        env:
+          SLS_PROM_TARGET_HOST: localhost
+          SLS_PROM_TARGET_PORT: 8880
+        run: |
+          docker compose -f docs/observability/docker-compose.yml --project-name ci-observability up -d
+          sleep 10
+
+      - name: Observability smoke check
+        run: >
+          python scripts/ops.py observability check
+          --prom-base http://localhost:9090
+          --grafana-base http://localhost:3001
+          --grafana-user admin
+          --grafana-password admin
+          --alertmanager-base http://localhost:9093
+
+      - name: Stop observability stack
+        if: always()
+        run: docker compose -f docs/observability/docker-compose.yml --project-name ci-observability down

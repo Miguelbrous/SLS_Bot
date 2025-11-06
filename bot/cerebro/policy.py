@@ -54,6 +54,8 @@ class PolicyEnsemble:
         exploration_mode: bool = False,
         macro_context: dict | None = None,
         orderflow_context: dict | None = None,
+        funding_context: dict | None = None,
+        onchain_context: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         risk_pct = float(payload["riesgo_pct"])
@@ -168,6 +170,49 @@ class PolicyEnsemble:
                 if spread_pct > 0.001:  # 0.1%
                     risk_pct = max(0.1, risk_pct * 0.9)
                     reasons.append(f"Spread amplio ({spread_pct*100:.2f}%) reduce riesgo")
+        if funding_context:
+            metadata["funding"] = funding_context
+            bias = str(funding_context.get("bias") or "neutral")
+            last_rate = float(funding_context.get("last_rate") or 0.0)
+            if decision in {"LONG", "SHORT"} and bias != "neutral":
+                if bias == "longs_pay":
+                    if decision == "LONG":
+                        risk_pct = max(0.1, risk_pct * 0.85)
+                        confidence = max(0.0, confidence - 0.03)
+                        reasons.append("Funding penaliza a los LONG (largos pagando)")
+                    else:
+                        risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                        confidence = min(1.0, confidence + 0.03)
+                        reasons.append("Funding favorece SHORT (largos pagando)")
+                elif bias == "shorts_pay":
+                    if decision == "SHORT":
+                        risk_pct = max(0.1, risk_pct * 0.85)
+                        confidence = max(0.0, confidence - 0.03)
+                        reasons.append("Funding penaliza a los SHORT (cortos pagando)")
+                    else:
+                        risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                        confidence = min(1.0, confidence + 0.03)
+                        reasons.append("Funding favorece LONG (cortos pagando)")
+            if abs(last_rate) > float(funding_context.get("threshold") or 0.00025) * 3:
+                reasons.append(f"Funding extremo {last_rate:+.5f}")
+        if onchain_context:
+            metadata["onchain"] = onchain_context
+            whale_bias = str(onchain_context.get("whale_bias") or "neutral")
+            mempool_ratio = float(onchain_context.get("mempool_ratio") or 0.0)
+            if whale_bias == "sell_pressure" and decision == "LONG":
+                risk_pct = max(0.1, risk_pct * 0.85)
+                confidence = max(0.0, confidence - 0.04)
+                reasons.append(f"Mempool saturada ({mempool_ratio:.2f}) reduce LONG")
+            elif whale_bias == "buy_pressure" and decision == "SHORT":
+                risk_pct = max(0.1, risk_pct * 0.85)
+                confidence = max(0.0, confidence - 0.04)
+                reasons.append("Sesgo on-chain favorece LONG, se reduce SHORT")
+            elif whale_bias == "buy_pressure" and decision == "LONG":
+                risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                reasons.append("On-chain acompaña LONG")
+            elif whale_bias == "sell_pressure" and decision == "SHORT":
+                risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                reasons.append("On-chain acompaña SHORT")
         if session_context:
             metadata["session_guard"] = session_context
             guard_state = session_context.get("state")

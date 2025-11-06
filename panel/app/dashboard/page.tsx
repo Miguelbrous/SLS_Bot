@@ -1,10 +1,17 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { ChartPayload } from "../components/ChartCard";
+import Sparkline from "../components/Sparkline";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8880";
 const PANEL_TOKEN = process.env.NEXT_PUBLIC_PANEL_API_TOKEN?.trim();
+const GRAFANA_BASE_URL = process.env.NEXT_PUBLIC_GRAFANA_BASE_URL?.replace(/\/$/, "");
+const GRAFANA_ARENA_UID = process.env.NEXT_PUBLIC_GRAFANA_ARENA_UID?.trim();
+const GRAFANA_BOT_UID = process.env.NEXT_PUBLIC_GRAFANA_BOT_UID?.trim();
+const PROM_BASE_URL = process.env.NEXT_PUBLIC_PROMETHEUS_BASE_URL?.replace(/\/$/, "");
 
 type SummaryMetric = { name: string; value?: number | null; formatted?: string | null; delta?: number | null; delta_formatted?: string | null };
 type SummaryIssue = { severity: "info" | "warning" | "error"; message: string };
@@ -31,17 +38,6 @@ type DashboardSummary = {
   recent_pnl: SummaryTrade[];
 };
 
-type ChartCandle = { time: number; open: number; high: number; low: number; close: number };
-type ChartTrade = {
-  time: number;
-  symbol: string;
-  timeframe?: string | null;
-  side?: string | null;
-  reason?: string | null;
-  confidence?: number | null;
-  risk_pct?: number | null;
-};
-type ChartPayload = { candles: ChartCandle[]; trades: ChartTrade[] };
 type ArenaRankingEntry = {
   id: string;
   name: string;
@@ -73,6 +69,15 @@ type ObservabilitySummary = {
 const SYMBOLS = ["BTCUSDT", "ETHUSDT"];
 const TIMEFRAMES = ["5m", "15m", "1h"];
 
+const ChartCard = dynamic(() => import("../components/ChartCard"), {
+  ssr: false,
+  loading: () => (
+    <div className="card chart-card">
+      <p className="muted">Preparando gráfico…</p>
+    </div>
+  ),
+});
+
 const describeAge = (iso?: string | null): string | null => {
   if (!iso) return null;
   try {
@@ -99,7 +104,8 @@ export default function DashboardPage() {
   const [loadingObservability, setLoadingObservability] = useState<boolean>(false);
   const [loadingArena, setLoadingArena] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const chartRef = useRef<HTMLDivElement | null>(null);
+  const [promDrawdown, setPromDrawdown] = useState<Array<{ time: number; value: number }>>([]);
+  const [promDecisions, setPromDecisions] = useState<Array<{ time: number; value: number }>>([]);
 
   const headers = useMemo(() => {
     const h: Record<string, string> = {};
@@ -175,95 +181,55 @@ export default function DashboardPage() {
     }
   }, [fetchJSON]);
 
-useEffect(() => {
-  loadSummary();
-}, [loadSummary]);
-
-useEffect(() => {
-  loadChart(symbol, timeframe);
-}, [symbol, timeframe, loadChart]);
-
-useEffect(() => {
-  loadArena();
-}, [loadArena]);
-
-useEffect(() => {
-  loadObservability();
-  const interval = setInterval(loadObservability, 60000);
-  return () => clearInterval(interval);
-}, [loadObservability]);
+  const loadPrometheusSeries = useCallback(
+    async (metric: string, setter: (points: Array<{ time: number; value: number }>) => void) => {
+      if (!PROM_BASE_URL) return;
+      try {
+        const end = Math.floor(Date.now() / 1000);
+        const start = end - 3600;
+        const resp = await fetch(
+          `${PROM_BASE_URL}/api/v1/query_range?query=${encodeURIComponent(metric)}&start=${start}&end=${end}&step=60`
+        );
+        if (!resp.ok) return;
+        const payload = await resp.json();
+        const values = payload.data?.result?.[0]?.values || [];
+        const points = values.map((row: [number, string]) => ({ time: row[0], value: parseFloat(row[1]) }));
+        setter(points);
+      } catch (err) {
+        console.debug("Prometheus fetch failed", err);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    if (!chartData || !chartRef.current) return;
-    let chartApi: any = null;
-    let candleSeries: any = null;
-    let disposed = false;
+    loadSummary();
+  }, [loadSummary]);
 
-    (async () => {
-      const { createChart } = await import("lightweight-charts");
-      if (disposed || !chartRef.current) return;
-      const node = chartRef.current;
-      chartApi = createChart(node, {
-        layout: { background: { color: "#0b0b0b" }, textColor: "#f2f2f2" },
-        grid: { vertLines: { color: "#1f1f1f" }, horzLines: { color: "#1f1f1f" } },
-        crosshair: { mode: 0 },
-        timeScale: { timeVisible: true, secondsVisible: false },
-      });
-      candleSeries = chartApi.addCandlestickSeries({
-        upColor: "#00e0a6",
-        downColor: "#ff6b6b",
-        borderVisible: false,
-        wickUpColor: "#00e0a6",
-        wickDownColor: "#ff6b6b",
-      });
-      candleSeries.setData(chartData.candles);
-      if (chartData.trades.length) {
-        const markers = chartData.trades.map((trade) => ({
-          time: trade.time as any,
-          position: trade.side === "SHORT" ? "aboveBar" : "belowBar",
-          color: trade.side === "SHORT" ? "#ff6b6b" : "#00e0a6",
-          shape: trade.side === "SHORT" ? "arrowDown" : "arrowUp",
-          text: trade.side ?? "",
-          tooltip: [
-            `Símbolo: ${trade.symbol}`,
-            trade.timeframe ? `TF: ${trade.timeframe}` : "",
-            trade.reason ? `Motivo: ${trade.reason}` : "",
-            typeof trade.confidence === "number" ? `Confianza: ${(trade.confidence * 100).toFixed(1)}%` : "",
-            typeof trade.risk_pct === "number" ? `Riesgo: ${trade.risk_pct.toFixed(2)}%` : "",
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        }));
-        candleSeries.setMarkers(markers);
-      }
-      const resize = () => {
-        if (!chartApi || !chartRef.current) return;
-        const rect = chartRef.current.getBoundingClientRect();
-        const chartWidth = Math.max(0, rect.width);
-        chartApi.applyOptions({ width: chartWidth });
-      };
-      resize();
-      window.addEventListener("resize", resize);
-      chartApi.timeScale().fitContent();
-      const observer = new ResizeObserver(resize);
-      observer.observe(node);
-      candleSeries.subscribeCrosshairMove((param: any) => {
-        if (!param || !param.time) return;
-      });
-      chartApi._cleanup = () => {
-        window.removeEventListener("resize", resize);
-        observer.disconnect();
-      };
-    })();
+  useEffect(() => {
+    loadChart(symbol, timeframe);
+  }, [symbol, timeframe, loadChart]);
 
-    return () => {
-      disposed = true;
-      if (chartApi) {
-        chartApi._cleanup?.();
-        chartApi.remove();
-      }
-    };
-  }, [chartData]);
+  useEffect(() => {
+    loadArena();
+  }, [loadArena]);
+
+  useEffect(() => {
+    loadObservability();
+    const interval = setInterval(loadObservability, 60000);
+    return () => clearInterval(interval);
+  }, [loadObservability]);
+
+  useEffect(() => {
+    if (!PROM_BASE_URL) return;
+    loadPrometheusSeries("sls_bot_drawdown_pct", setPromDrawdown);
+    loadPrometheusSeries("sls_cerebro_decisions_per_min", setPromDecisions);
+    const interval = setInterval(() => {
+      loadPrometheusSeries("sls_bot_drawdown_pct", setPromDrawdown);
+      loadPrometheusSeries("sls_cerebro_decisions_per_min", setPromDecisions);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [loadPrometheusSeries]);
 
   const formattedIssues = summary?.issues ?? [];
   const formattedAlerts = summary?.alerts ?? [];
@@ -271,6 +237,40 @@ useEffect(() => {
   const statusClass = summary ? `status-pill ${summary.level}` : "status-pill ok";
   const updatedAgo = useMemo(() => describeAge(summary?.updated_at), [summary?.updated_at]);
   const observabilityAgo = useMemo(() => describeAge(observability?.timestamp), [observability?.timestamp]);
+  const grafanaLinks = useMemo(() => {
+    if (!GRAFANA_BASE_URL) {
+      return [];
+    }
+    const links: { label: string; href: string }[] = [];
+    if (GRAFANA_ARENA_UID) {
+      links.push({ label: "Grafana Arena", href: `${GRAFANA_BASE_URL}/d/${GRAFANA_ARENA_UID}` });
+    }
+    if (GRAFANA_BOT_UID) {
+      links.push({ label: "Grafana Bot + Cerebro", href: `${GRAFANA_BASE_URL}/d/${GRAFANA_BOT_UID}` });
+    }
+    return links;
+  }, []);
+
+  const observabilityIssues = useMemo(() => {
+    if (!observability) return [] as SummaryIssue[];
+    const issues: SummaryIssue[] = [];
+    const arena = observability.arena || {};
+    const bot = observability.bot || {};
+    const cerebro = observability.cerebro || {};
+    if ((arena.tick_age_seconds || 0) > 600) {
+      issues.push({ severity: "warning", message: "La arena no recibe ticks hace >10 minutos" });
+    }
+    if ((arena.ticks_since_win || 0) > 20) {
+      issues.push({ severity: "warning", message: "Más de 20 ticks sin campeón en la arena" });
+    }
+    if ((bot.drawdown_pct || 0) > 4) {
+      issues.push({ severity: "error", message: `Drawdown del bot ${bot.drawdown_pct?.toFixed(2)}% supera 4%` });
+    }
+    if (typeof cerebro.decisions_per_min === "number" && cerebro.decisions_per_min < 0.3) {
+      issues.push({ severity: "warning", message: "Cerebro genera <0.3 decisiones/min (posible inactividad)" });
+    }
+    return issues;
+  }, [observability]);
 
   const renderArenaRanking = () => {
     if (loadingArena) return <p>Cargando arena...</p>;
@@ -346,6 +346,15 @@ useEffect(() => {
             <h2>Observabilidad</h2>
             {loadingObservability ? <span className="badge muted">Actualizando…</span> : null}
             {!loadingObservability && observabilityAgo ? <span className="pill neutral">{observabilityAgo}</span> : null}
+            {grafanaLinks.length ? (
+              <div className="badges">
+                {grafanaLinks.map((link) => (
+                  <a key={link.href} href={link.href} target="_blank" rel="noreferrer" className="badge muted">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
           {observability ? (
             <div className="metric-grid">
@@ -391,6 +400,35 @@ useEffect(() => {
           ) : (
             <div className="empty small">Sin datos de observabilidad.</div>
           )}
+          {observabilityIssues.length ? (
+            <div className="alert-list" style={{ marginTop: 12 }}>
+              {observabilityIssues.map((issue, idx) => (
+                <div key={`${issue.message}-${idx}`} className={`alert ${issue.severity}`}>
+                  {issue.message}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {PROM_BASE_URL ? (
+            <div className="sparkline-grid">
+              <Sparkline
+                data={promDrawdown}
+                label="Drawdown última hora"
+                color="#ff6b6b"
+                valueFormatter={(value) =>
+                  typeof value === "number" ? `${value.toFixed(2)}%` : "N/D"
+                }
+              />
+              <Sparkline
+                data={promDecisions}
+                label="Decisiones/min última hora"
+                color="#00e0a6"
+                valueFormatter={(value) =>
+                  typeof value === "number" ? value.toFixed(2) : "N/D"
+                }
+              />
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -467,35 +505,16 @@ useEffect(() => {
       </section>
 
       <section className="dashboard-section">
-        <div className="card chart-card">
-          <div className="dashboard-title">
-            <h2>TradingView (Lightweight) – {symbol} {timeframe}</h2>
-            {loadingChart ? <span className="badge muted">Cargando chart…</span> : null}
-          </div>
-          <div className="toolbar">
-            <label>
-              Símbolo
-              <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-                {SYMBOLS.map((sym) => (
-                  <option key={sym} value={sym}>
-                    {sym}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Timeframe
-              <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-                {TIMEFRAMES.map((tf) => (
-                  <option key={tf} value={tf}>
-                    {tf}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div ref={chartRef} className="chart-container" />
-        </div>
+        <ChartCard
+          data={chartData}
+          loading={loadingChart}
+          symbol={symbol}
+          timeframe={timeframe}
+          symbols={SYMBOLS}
+          timeframes={TIMEFRAMES}
+          onSymbolChange={setSymbol}
+          onTimeframeChange={setTimeframe}
+        />
       </section>
 
       <section className="dashboard-section grid2">

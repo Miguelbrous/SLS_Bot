@@ -1,6 +1,7 @@
 ﻿import json
 import os
 import secrets
+import time
 from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional, Literal
@@ -67,6 +68,12 @@ PANEL_API_TOKENS_RAW = ",".join(
 TRUST_PROXY_BASIC = os.getenv("TRUST_PROXY_BASIC", "0").lower() in {"1", "true", "yes"}
 PROXY_BASIC_HEADER = os.getenv("PROXY_BASIC_HEADER", "x-forwarded-user")
 security = HTTPBasic(auto_error=False)
+
+CONTROL_RATE_LIMIT_WINDOW = int(os.getenv("CONTROL_RATE_LIMIT_WINDOW", "60"))
+CONTROL_RATE_LIMIT_MAX_REQUESTS = int(os.getenv("CONTROL_RATE_LIMIT_MAX", "60"))
+PANEL_RATE_LIMIT_WINDOW = int(os.getenv("PANEL_RATE_LIMIT_WINDOW", str(CONTROL_RATE_LIMIT_WINDOW)))
+PANEL_RATE_LIMIT_MAX_REQUESTS = int(os.getenv("PANEL_RATE_LIMIT_MAX", "120"))
+_rate_limit_hits: Dict[str, Tuple[int, float]] = {}
 
 
 def _parse_origins() -> List[str]:
@@ -535,6 +542,30 @@ def _pnl_metrics() -> tuple[List[DashboardMetric], Dict[str, float]]:
     ]
     return metrics, day_map
 
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    client = request.client
+    if client and client.host:
+        return client.host
+    return "unknown"
+
+
+def _check_rate_limit(bucket: str, limit: int, window: int) -> None:
+    if limit <= 0 or window <= 0:
+        return
+    now = time.time()
+    hits, start = _rate_limit_hits.get(bucket, (0, now))
+    if now - start > window:
+        start = now
+        hits = 0
+    hits += 1
+    _rate_limit_hits[bucket] = (hits, start)
+    if hits > limit:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -548,6 +579,8 @@ def require_control_auth(
     request: Request,
     credentials: Optional[HTTPBasicCredentials] = Depends(security),
 ) -> None:
+    client_ip = _client_ip(request)
+    _check_rate_limit(f"control:{client_ip}", CONTROL_RATE_LIMIT_MAX_REQUESTS, CONTROL_RATE_LIMIT_WINDOW)
     proxy_principal = request.headers.get(PROXY_BASIC_HEADER) or request.headers.get(PROXY_BASIC_HEADER.lower())
     if TRUST_PROXY_BASIC and proxy_principal:
         return
@@ -573,9 +606,13 @@ def require_control_auth(
 
 
 def require_panel_token(request: Request) -> None:
+    client_ip = _client_ip(request)
+    _check_rate_limit(f"panel:{client_ip}", PANEL_RATE_LIMIT_MAX_REQUESTS, PANEL_RATE_LIMIT_WINDOW)
     if not PANEL_TOKENS:
         return
     header = request.headers.get("x-panel-token")
+    if header:
+        _check_rate_limit(f"panel-token:{header}", PANEL_RATE_LIMIT_MAX_REQUESTS, PANEL_RATE_LIMIT_WINDOW)
     if not header or not _is_panel_token_valid(header):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

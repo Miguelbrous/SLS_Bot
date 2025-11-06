@@ -112,6 +112,35 @@ def test_monitor_check_command(stub_run):
     ]
 
 
+def test_observability_check_command(stub_run):
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "observability",
+            "check",
+            "--prom-base",
+            "http://prom",
+            "--grafana-base",
+            "http://grafana",
+            "--grafana-user",
+            "admin",
+            "--grafana-password",
+            "secret",
+            "--alertmanager-base",
+            "http://alert",
+        ]
+    )
+    args.func(args)
+    call = stub_run[-1]
+    assert call["cmd"] == ["python", str(ops.OBS_CHECK)]
+    env = call["kwargs"]["env"]
+    assert env["PROM_BASE"] == "http://prom"
+    assert env["GRAFANA_BASE"] == "http://grafana"
+    assert env["GRAFANA_USER"] == "admin"
+    assert env["GRAFANA_PASSWORD"] == "secret"
+    assert env["ALERTMANAGER_BASE"] == "http://alert"
+
+
 def test_arena_promote_command_builds_thresholds(stub_run):
     parser = ops.build_parser()
     args = parser.parse_args(
@@ -201,3 +230,129 @@ def test_cerebro_train_command(stub_run):
         "--dry-run",
         "--no-promote",
     ]
+
+
+def test_arena_promote_real_command(monkeypatch, stub_run, tmp_path):
+    pkg_dir = tmp_path / "pkg"
+    monkeypatch.setattr(ops, "export_strategy", lambda *a, **k: pkg_dir)
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "arena",
+            "promote-real",
+            "strat_q",
+            "--min-trades",
+            "80",
+            "--min-sharpe",
+            "0.5",
+            "--max-drawdown",
+            "25",
+            "--source-mode",
+            "test",
+            "--target-mode",
+            "real",
+            "--min-auc",
+            "0.6",
+            "--min-win-rate",
+            "0.55",
+            "--skip-dataset-rotation",
+        ]
+    )
+    args.func(args)
+    assert stub_run[-1]["cmd"] == [
+        "python",
+        str(ops.PROMOTE_MODEL),
+        "--source-mode",
+        "test",
+        "--target-mode",
+        "real",
+        "--min-auc",
+        "0.6",
+        "--min-win-rate",
+        "0.55",
+        "--skip-dataset-rotation",
+    ]
+
+
+def test_cerebro_ingest_command(stub_run):
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "ingest",
+            "--symbols",
+            "BTCUSDT,ETHUSDT",
+            "--funding-symbols",
+            "BTCUSDT",
+            "--onchain-symbols",
+            "ETHUSDT",
+            "--include-news",
+            "--include-orderflow",
+            "--include-funding",
+            "--include-onchain",
+            "--output",
+            "tmp_logs/ingest.json",
+        ]
+    )
+    args.func(args)
+    assert stub_run[-1]["cmd"] == [
+        "python",
+        str(ops.CEREBRO_INGEST),
+        "--symbols",
+        "BTCUSDT,ETHUSDT",
+        "--funding-symbols",
+        "BTCUSDT",
+        "--onchain-symbols",
+        "ETHUSDT",
+        "--market-limit",
+        "200",
+        "--news-limit",
+        "50",
+        "--macro-limit",
+        "20",
+        "--max-tasks",
+        "50",
+        "--output",
+        "tmp_logs/ingest.json",
+        "--include-news",
+        "--include-orderflow",
+        "--include-funding",
+        "--include-onchain",
+    ]
+
+
+def test_cerebro_autopilot_command_generates_dataset(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--mode",
+            "test",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "5",
+            "--backfill-rows",
+            "10",
+            "--epochs",
+            "100",
+            "--lr",
+            "0.1",
+            "--log-file",
+            str(tmp_path / "autopilot.log"),
+        ]
+    )
+
+    commands: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        commands.append(cmd)
+        if "generate_cerebro_dataset" in str(cmd[1]):
+            dataset_path.write_text("{}\n{}\n{}\n{}\n{}\n{}\n", encoding="utf-8")
+
+    monkeypatch.setattr(ops, "_run", fake_run)
+    args.func(args)
+    assert str(ops.GENERATE_DATASET) in commands[0]
+    assert any("bot.cerebro.train" in part for part in commands[-1])

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8880";
 const PANEL_TOKEN = process.env.NEXT_PUBLIC_PANEL_API_TOKEN?.trim();
@@ -45,6 +46,11 @@ interface ArenaNote {
   ts: string;
 }
 
+const ArenaDetail = dynamic(() => import("../components/ArenaDetail"), {
+  ssr: false,
+  loading: () => <div className="empty">Cargando detalle…</div>,
+});
+
 async function fetchJSON<T>(path: string): Promise<T> {
   const headers: Record<string, string> = {};
   if (PANEL_TOKEN) headers["X-Panel-Token"] = PANEL_TOKEN;
@@ -84,6 +90,14 @@ export default function ArenaPage() {
   const [minSharpe, setMinSharpe] = useState(0.35);
   const [maxDrawdown, setMaxDrawdown] = useState(30);
   const [forcePromotion, setForcePromotion] = useState(false);
+  const handleLedgerExport = useCallback(
+    (entries: LedgerEntry[]) => {
+      if (!entries.length) return;
+      setActionMessage(`Exportaste ${entries.length} operaciones a CSV.`);
+      setTimeout(() => setActionMessage(null), 3500);
+    },
+    []
+  );
 
   const loadData = async () => {
     try {
@@ -170,6 +184,26 @@ export default function ArenaPage() {
   }, [ranking]);
 
   const currentSelection = useMemo(() => ranking.find((row) => row.id === selected), [ranking, selected]);
+
+  const handleAddNote = async () => {
+    if (!selected || !noteMessage.trim()) return;
+    try {
+      setNoteLoading(true);
+      await postJSON("/arena/notes", {
+        strategy_id: selected,
+        note: noteMessage.trim(),
+        author: "panel",
+      });
+      setNoteMessage("");
+      const notesResp = await fetchJSON<{ notes: ArenaNote[] }>(`/arena/notes?strategy_id=${encodeURIComponent(selected)}`);
+      setNotes(notesResp.notes || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error guardando nota";
+      setError(message);
+    } finally {
+      setNoteLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard-container">
@@ -286,80 +320,18 @@ export default function ArenaPage() {
             <h2>Ledger reciente</h2>
             {currentSelection ? <span className="pill neutral">{currentSelection.name}</span> : null}
           </div>
-          {selected && ledger.length ? (
-            <div className="arena-details">
-              <div>
-                <div className="arena-table-wrapper">
-                  <table className="arena-table">
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>PNL</th>
-                        <th>Balance</th>
-                        <th>Motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ledger.map((entry) => (
-                        <tr key={`${entry.ts}-${entry.balance_after}`}>
-                          <td>{new Date(entry.ts).toLocaleString()}</td>
-                          <td className={entry.pnl >= 0 ? "pos" : "neg"}>{entry.pnl.toFixed(4)}</td>
-                          <td>{entry.balance_after.toFixed(4)}</td>
-                          <td>{entry.reason ?? "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="metric-grid" style={{ marginTop: 12 }}>
-                  <div className="metric-card">
-                    <span>Sharpe</span>
-                    <strong>{typeof currentSelection?.sharpe_ratio === "number" ? currentSelection.sharpe_ratio.toFixed(2) : "-"}</strong>
-                    <small>Mayor es mejor</small>
-                  </div>
-                  <div className="metric-card">
-                    <span>Max DD %</span>
-                    <strong>{typeof currentSelection?.max_drawdown_pct === "number" ? currentSelection.max_drawdown_pct.toFixed(1) : "-"}</strong>
-                    <small>Último ciclo</small>
-                  </div>
-                  <div className="metric-card">
-                    <span>Trades</span>
-                    <strong>{currentSelection?.trades ?? "-"}</strong>
-                    <small>Wins/Losses {currentSelection?.wins ?? 0}/{currentSelection?.losses ?? 0}</small>
-                  </div>
-                  <div className="metric-card">
-                    <span>Score</span>
-                    <strong>{currentSelection?.score.toFixed(3)}</strong>
-                    <small>Balance vs meta</small>
-                  </div>
-                </div>
-              </div>
-              <div className="notes-card">
-                <h3>Notas</h3>
-                {notes.length ? (
-                  <ul className="note-list">
-                    {notes.map((note) => (
-                      <li key={`${note.ts}-${note.note}`}>
-                        <div>
-                          <span>{note.note}</span>
-                        </div>
-                        <small>
-                          {new Date(note.ts).toLocaleString()} · {note.author || "anon"}
-                        </small>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="empty small">Sin notas aún.</div>
-                )}
-                <div className="note-form">
-                  <textarea value={noteMessage} onChange={(e) => setNoteMessage(e.target.value)} placeholder="Agregar nota (ej. ajustes pendientes, riesgos, etc.)" />
-                  <button onClick={handleAddNote} disabled={!noteMessage.trim() || noteLoading}>
-                    {noteLoading ? "Guardando..." : "Guardar nota"}
-                  </button>
-                </div>
-              </div>
-            </div>
+          {selected ? (
+            <ArenaDetail
+              selection={currentSelection || undefined}
+              ledger={ledger}
+              notes={notes}
+              noteMessage={noteMessage}
+              onNoteMessageChange={setNoteMessage}
+              onAddNote={handleAddNote}
+              loadingLedger={loadingLedger}
+              noteLoading={noteLoading}
+              onExport={handleLedgerExport}
+            />
           ) : (
             <div className="empty">Selecciona una estrategia del ranking para ver su ledger.</div>
           )}
@@ -368,22 +340,3 @@ export default function ArenaPage() {
     </div>
   );
 }
-  const handleAddNote = async () => {
-    if (!selected || !noteMessage.trim()) return;
-    try {
-      setNoteLoading(true);
-      await postJSON("/arena/notes", {
-        strategy_id: selected,
-        note: noteMessage.trim(),
-        author: "panel",
-      });
-      setNoteMessage("");
-      const notesResp = await fetchJSON<{ notes: ArenaNote[] }>(`/arena/notes?strategy_id=${encodeURIComponent(selected)}`);
-      setNotes(notesResp.notes || []);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error guardando nota";
-      setError(message);
-    } finally {
-      setNoteLoading(false);
-    }
-  };

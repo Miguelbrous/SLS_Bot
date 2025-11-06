@@ -9,6 +9,8 @@ from .datasources.market import MarketDataSource
 from .datasources.macro import MacroDataSource, MacroFeedConfig
 from .datasources.news import RSSNewsDataSource
 from .datasources.orderflow import OrderflowDataSource, OrderflowConfig
+from .datasources.funding import FundingDataSource, FundingFeedConfig
+from .datasources.onchain import OnchainDataSource, OnchainFeedConfig
 
 
 @dataclass
@@ -30,11 +32,15 @@ class DataIngestionManager:
         cache_ttl: int = 30,
         macro_config: dict | None = None,
         orderflow_config: dict | None = None,
+        funding_config: dict | None = None,
+        onchain_config: dict | None = None,
     ):
         self.market = MarketDataSource()
         self.news = RSSNewsDataSource(list(news_feeds))
         self.macro = MacroDataSource(MacroFeedConfig.from_dict(macro_config))
         self.orderflow = OrderflowDataSource(OrderflowConfig.from_dict(orderflow_config))
+        self.funding = FundingDataSource(FundingFeedConfig.from_dict(funding_config))
+        self.onchain = OnchainDataSource(OnchainFeedConfig.from_dict(onchain_config))
         self.cache_ttl = cache_ttl
         self._queue: Deque[IngestionTask] = deque()
         self._cache: Dict[Tuple[str, str, str], Tuple[float, List[dict]]] = {}
@@ -83,6 +89,12 @@ class DataIngestionManager:
             return self._store_cache(key, rows)
         if source == "orderflow":
             rows = self.orderflow.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
+            return self._store_cache(key, rows)
+        if source == "funding":
+            rows = self.funding.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
+            return self._store_cache(key, rows)
+        if source == "onchain":
+            rows = self.onchain.fetch(symbol=symbol, timeframe=timeframe, limit=limit)
             return self._store_cache(key, rows)
         raise ValueError(f"Fuente desconocida: {source}")
 

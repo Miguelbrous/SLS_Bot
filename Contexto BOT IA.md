@@ -1,4 +1,31 @@
-﻿# Contexto BOT IA
+﻿# Contexto BOT IA (versión rápida para el próximo chat)
+
+## Resumen de la idea
+- Bot de futuros Bybit 24/7 con SL/TP obligatorios, autopiloto (mover SL a BE tras TP1) y guardias de riesgo. El Cerebro IA observa mercado/noticias/macro/orderflow/on-chain/funding, aprende de cada trade y ajusta riesgo/órdenes en tiempo real. En paralelo existe la **Arena** con 5 000 estrategias simuladas que compiten para ser promovidas a real.
+
+## Qué tocar / qué no tocar
+- **Sí**: backend FastAPI (`bot/`), Cerebro (`bot/cerebro/` y scripts `ops.py`/`cron`), Arena (`bot/arena/`), panel Next.js (`panel/`), scripts (`scripts/ops.py`, `scripts/cron/*`, `scripts/tools/*`), documentación (`README`, `Contexto BOT IA.md`, `docs/*`). Cualquier cambio funcional debe reflejarse en README + Contexto + doc temática.
+- **No**: credenciales reales (`.env`, `config/config.json`), modelos en `models/cerebro/real`, directorios generados (`logs/`, `excel/`, `tmp_*`), autopiloto/guardias críticos sin pruebas. Respetar tokens/API keys; nunca exponerlos.
+
+## Documentación y estilo
+- Responder siempre en español.
+- Actualizar **README.md**, **Contexto BOT IA.md** y los docs específicos cuando se toquen flujos (arena, Cerebro, observabilidad, etc.).
+- Registrar en `Contexto BOT IA.md` cada cambio relevante para que el siguiente operador tenga visibilidad.
+
+## Estado reciente (2025-11-05)
+- **Observabilidad**: docker compose (`docs/observabilidad/docker-compose.yml`) levanta Prometheus/Grafana/Alertmanager; comandos `make observability-up/down/check`; CI corre un job dedicado con `scripts/tests/observability_check.py`. Panel muestra sparklines basados en `NEXT_PUBLIC_PROMETHEUS_BASE_URL`.
+- **Observabilidad (smoke)**: nuevo `make observability-check` ejecuta `scripts/tests/observability_check.py`, valida reglas críticas y salud de Grafana/Alertmanager con variables `PROM_BASE`, `GRAFANA_BASE`, `ALERTMANAGER_BASE`. Úsalo post-deploy para asegurar que las alertas siguen vivas.
+- **CLI observabilidad**: `python scripts/ops.py observability check --prom-base http://... --grafana-base http://... --alertmanager-base http://...` corre el smoke sin exportar variables y facilita programarlo vía cron/CI.
+- **Cerebro**: feeds de funding y on-chain habilitados (`cerebro.funding_feeds` / `onchain_feeds`), política ajusta riesgo según sesgo de funding/mempool. `python scripts/ops.py cerebro autopilot` valida dataset, genera sintéticos si faltan filas y lanza `bot.cerebro.train`; existe `scripts/cron/cerebro_autopilot.sh` para programarlo (variables `CEREBRO_AUTO_*`).
+- **Cerebro ingest**: `python scripts/ops.py cerebro ingest` ahora acepta `--include-funding/--include-onchain` y overrides `--funding-symbols/--onchain-symbols` para calentar solo los símbolos críticos antes de levantar el servicio. `scripts/tools/run_cerebro_ingest.py` persiste en JSON los resultados incluyendo qué feeds quedaron habilitados.
+- **Arena → producción**: `python scripts/ops.py arena promote-real <id>` exporta paquete + promueve modelo test→real y deja log en `logs/promotions/promotion_log.jsonl`. Mantener validaciones (`min_trades`, `min_sharpe`, `max_drawdown`, `min_auc`, `min_win_rate`).
+- **Panel**: la tarjeta de Observabilidad elimina duplicados (links Grafana y alerts) y concentra los issues derivados de `/observability/summary`; los sparklines de Prometheus se mantienen opcionales via `NEXT_PUBLIC_PROMETHEUS_BASE_URL`.
+- **Panel / Arena**: el detalle del ledger ahora muestra métricas agregadas (PnL total/promedio, win rate), filtros rápidos (todo/ganadoras/perdedoras), exportación a CSV y búsqueda de notas para documentar hallazgos antes de promover.
+- **Seguridad**: rate limiting configurable para `/control/*` y endpoints con `X-Panel-Token` (`CONTROL_RATE_LIMIT_*`, `PANEL_RATE_LIMIT_*`). Recordar configurar CORS y `WEBHOOK_SHARED_SECRET`.
+
+---
+
+# Contexto BOT IA (detalle)
 
 Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve como punto de partida cuando se abre un nuevo chat o cuando alguien más toma el relevo. Cada vez que modifiquemos archivos clave deberíamos regresar aquí y actualizar la sección correspondiente.
 
@@ -29,6 +56,15 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.
 - `config/config.sample.json` ahora incluye `orderflow_feeds` (OFF por defecto) y la doc (`README.md`, `docs/cerebro.md`) explica cómo habilitar el nuevo `OrderflowDataSource` con los parámetros recomendados.
 - Se endureció `bot/app/main.py` para manejar configs sin bloque `paths`, lo que desbloqueó la recarga del módulo en tests (ya no se cuelga `pytest` y la suite completa termina en ~8 s).
+- El panel ahora carga el gráfico (ChartCard) y el ledger/notas (ArenaDetail) como chunks dinámicos, reduciendo el JS inicial y dejando `panel/.next/bundle-report.html` listo tras `ANALYZE=true npm run build`.
+- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow` genera snapshots de ingesta (market/news/macro/orderflow) en `tmp_logs/` para validar feeds sin levantar todo el Cerebro.
+- Dashboards Grafana (`docs/observabilidad/grafana/*.json`) y reglas Prometheus (`docs/observabilidad/prometheus_rules.yml`) listos para importarse; cubren drawdown arena/bot, ticks sin campeón y actividad del Cerebro.
+- API/PANEL cuentan con rate limiting configurable (`CONTROL_RATE_LIMIT_*`, `PANEL_RATE_LIMIT_*`) para frenar intentos en `/control/*` y `X-Panel-Token`.
+- Feed on-chain (Blockchair) y funding granular quedan habilitados en `cerebro.onchain_feeds`/`funding_feeds`; la política ajusta riesgo según mempool/hash rate y sesgo de funding.
+- `python scripts/ops.py cerebro autopilot` valida que el dataset tenga suficientes filas (backfill opcional) antes de disparar `bot.cerebro.train`, pensado para cron/CI; existe `scripts/cron/cerebro_autopilot.sh` para programarlo con `CEREBRO_AUTO_*`.
+- `python scripts/ops.py arena promote-real <id>` exporta el paquete, promueve el modelo de Cerebro test→real y deja log en `logs/promotions/promotion_log.jsonl`; pensado para cerrar el gap test→producción.
+- El panel usa sparklines y alertas derivadas de Prometheus (`NEXT_PUBLIC_PROMETHEUS_BASE_URL`) además de los enlaces a Grafana, así que la tarjeta Observabilidad ya refleja drawdown y decisiones/min en tiempo real.
+- `docs/observabilidad/docker-compose.yml` + `make observability-up|down` levantan Prometheus/Grafana/Alertmanager locales apuntando al stack y usando las reglas del repo.
 
 ---
 

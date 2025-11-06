@@ -73,6 +73,22 @@
         "whale_flow_url": "",
         "cache_dir": "./tmp_logs/macro"
       },
+      "funding_feeds": {
+        "enabled": false,
+        "base_url": "https://api.bybit.com",
+        "category": "linear",
+        "threshold": 0.00025,
+        "history_limit": 24
+      },
+      "onchain_feeds": {
+        "enabled": false,
+        "base_url": "https://api.blockchair.com",
+        "assets": {
+          "BTCUSDT": "bitcoin",
+          "ETHUSDT": "ethereum"
+        },
+        "inflow_threshold": 0.05
+      },
       "orderflow_feeds": {
         "enabled": false,
         "base_url": "https://api.bybit.com",

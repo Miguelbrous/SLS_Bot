@@ -1,0 +1,15 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "default"
+  group_by: ["alertname"]
+
+receivers:
+  - name: "default"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/CHANGE/ME/NOW"
+        channel: "#sls-alerts"
+        send_resolved: true
+        title: "{{ .CommonAnnotations.summary }}"
+        text: "{{ .CommonAnnotations.description }}"
