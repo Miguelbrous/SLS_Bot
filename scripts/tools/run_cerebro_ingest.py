@@ -54,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--require-sources", help="Lista separada por comas (market,news,macro,orderflow,funding,onchain) que deben devolver filas.", default="")
     parser.add_argument("--min-market-rows", type=int, default=0, help="Mínimo de velas obtenidas para aprobar la ingesta (sumando todos los símbolos/timeframes).")
     parser.add_argument("--slack-webhook", help="Webhook opcional para notificar resultados (OK/ERROR)")
+    parser.add_argument("--slack-user", help="Nombre de usuario opcional para Slack", default="cerebro-ingest")
     return parser
 
 
@@ -154,9 +155,12 @@ def _format_slack_message(summary: Dict[str, dict], output: str, success: bool =
     return f"{status} Cerebro ingest ({Path(output).name}): {stats}"
 
 
-def _post_slack(webhook: str, text: str) -> None:
+def _post_slack(webhook: str, text: str, username: str | None = None) -> None:
     try:
-        resp = requests.post(webhook, json={"text": text}, timeout=5)
+        payload = {"text": text}
+        if username:
+            payload["username"] = username
+        resp = requests.post(webhook, json=payload, timeout=5)
         resp.raise_for_status()
     except Exception as exc:
         print(f"[cerebro.ingest] No se pudo notificar a Slack: {exc}", file=sys.stderr)
@@ -168,14 +172,14 @@ def main() -> None:
     try:
         summary = run(args)
         if args.slack_webhook:
-            _post_slack(args.slack_webhook, _format_slack_message(summary, args.output, success=True))
+            _post_slack(args.slack_webhook, _format_slack_message(summary, args.output, success=True), username=args.slack_user)
     except IngestValidationError as exc:
         if getattr(args, "slack_webhook", None):
-            _post_slack(args.slack_webhook, f":x: Cerebro ingest falló: {exc}")
+            _post_slack(args.slack_webhook, f":x: Cerebro ingest falló: {exc}", username=args.slack_user)
         raise SystemExit(f"[cerebro.ingest] {exc}") from exc
     except Exception as exc:
         if getattr(args, "slack_webhook", None):
-            _post_slack(args.slack_webhook, f":x: Cerebro ingest error inesperado: {exc}")
+            _post_slack(args.slack_webhook, f":x: Cerebro ingest error inesperado: {exc}", username=args.slack_user)
         raise
 
 
