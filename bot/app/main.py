@@ -100,6 +100,8 @@ def _resolve_path(value: Any, default: Path) -> Path:
 
 
 PATHS_CFG = BOT_CONFIG.get("paths") if isinstance(BOT_CONFIG, dict) else {}
+if not isinstance(PATHS_CFG, dict):
+    PATHS_CFG = {}
 LOGS_DIR = _resolve_path(PATHS_CFG.get("logs_dir"), PROJECT_ROOT / "logs")
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 BRIDGE_LOG = Path(os.getenv("BRIDGE_LOG", LOGS_DIR / "bridge.log"))

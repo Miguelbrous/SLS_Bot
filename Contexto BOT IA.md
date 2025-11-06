@@ -28,6 +28,7 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Panel `/dashboard` ahora consume `/observability/summary` para mostrar meta de la arena, drawdown actual del bot y decisiones/minuto del Cerebro en tiempo real.
 - `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.
 - `config/config.sample.json` ahora incluye `orderflow_feeds` (OFF por defecto) y la doc (`README.md`, `docs/cerebro.md`) explica cómo habilitar el nuevo `OrderflowDataSource` con los parámetros recomendados.
+- Se endureció `bot/app/main.py` para manejar configs sin bloque `paths`, lo que desbloqueó la recarga del módulo en tests (ya no se cuelga `pytest` y la suite completa termina en ~8 s).
 
 ---
 
