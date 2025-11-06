@@ -13,6 +13,8 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
   - `scripts/tests/cerebro_metrics_smoke.sh`: smoke semanal para validar métricas/textfiles.
 - **Monitor Guard**: `scripts/tools/monitor_guard.py` (ahora con servicio systemd + timer) vigila Arena/Cerebro y notifica incidencias.
 - **Observabilidad**: stack Prometheus + Grafana + Alertmanager (local o remota) + exportación vía textfile collector.
+- **Backups Restic**: servicio/timer `sls-backup.*` invoca `scripts/cron/backup_restic.sh` y aplica políticas `forget/prune`.
+- **Métricas de negocio**: `scripts/tools/prometheus_business_metrics.py` genera `business.prom` con PnL, drawdown y slippage para dashboards/alertas 2V.
 
 ## 2. Sistema operativo / arranque automático
 1. Crear usuario de servicio (por defecto `sls`).
@@ -35,6 +37,23 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
    sudo systemctl enable --now sls-monitor.timer
    ```
    El timer ejecuta `monitor_guard.py` cada 5 minutos y envía alertas a Slack/Telegram.
+
+6. **Provisioning reproducible**:
+   ```bash
+   cp infra/ansible/inventory.sample.ini infra/ansible/inventory.staging.ini
+   # Edita ansible_host, app_root, repo_url, etc.
+   make provision STAGE=staging
+   ```
+   El playbook instala paquetes, crea el usuario `sls`, clona el repo y ejecuta el bootstrap/monitor guard. Usa `EXTRA='-e bootstrap_autorun=false'` para modo dry-run.
+
+7. **Backups Restic**:
+   ```bash
+   sudo install -m 600 /dev/null /etc/sls_bot_backup.env
+   sudo editor /etc/sls_bot_backup.env   # define RESTIC_REPOSITORY, RESTIC_PASSWORD_FILE, etc.
+   sudo systemctl enable --now sls-backup.timer
+   systemctl status sls-backup.timer
+   ```
+   Consulta `docs/operations/backups_restic.md` para variables recomendadas, políticas `forget` y procedimiento de restore en staging.
 
 ## 3. Datos, ingesta y entrenamiento
 - `CEREBRO_INGEST_*` y `CEREBRO_AUTO_*` en `.env` controlan símbolos, límites, textfile collector, webhooks y validaciones.
@@ -62,6 +81,7 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
 ## 4. Monitoreo y alertas
 - Activar Prometheus/Grafana/Alertmanager (ver `docs/observability/`).
 - Asegurar que `node_exporter` consume los `.prom` generados por ingest/autopilot.
+- Programar `make metrics-business API_BASE=https://api.tu-dominio.com PANEL_TOKEN=token` (o integrar en cron/systemd) para alimentar `tmp_metrics/business.prom` con PnL/drawdown/slippage.
 - `monitor_guard.py` requiere `SLACK_WEBHOOK_MONITOR` o Telegram. Configurar en `/etc/sls_bot.env`.
 - Alertmanager: definir rutas a Slack/Email/SMS para eventos críticos (ver `docs/observability/alertmanager.yml`).
 - Panel: habilitar `NEXT_PUBLIC_PROMETHEUS_BASE_URL` para grafos en tiempo real.
@@ -97,6 +117,7 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
    - Ver `journalctl -u sls-*.service`.
    - `make diagnostico` para estado + tail de logs.
    - Si hay degradación de datos, revisar `tmp_logs/cerebro_autopilot_*` y reinstanciar dataset (`scripts/tools/generate_cerebro_dataset.py`).
+   - Ejecutar `make failover-sim` (dry-run) o `sudo make failover-sim EXECUTE=1` para reinicio ordenado y reporte (`docs/operations/failover.md`).
 5. **Maintenance**:
    - `make autopilot-ci` antes de promover cambios.
    - `make rotate-artifacts DAYS=14` semanalmente.

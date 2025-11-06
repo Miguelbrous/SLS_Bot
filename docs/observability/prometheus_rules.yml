@@ -33,3 +33,29 @@ groups:
         annotations:
           summary: "Cerebro generando pocas decisiones"
           description: "Las decisiones por minuto cayeron por debajo de 0.2; revisa logs y feeds."
+  - name: sls-business-alerts
+    rules:
+      - alert: DailyPnlNegative
+        expr: sls_bot_daily_pnl < 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PnL diario negativo"
+          description: "El PnL diario es negativo ({{ $value }}) por más de 15 minutos."
+      - alert: DrawdownExceeded
+        expr: sls_bot_drawdown_pct > 8
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drawdown operativo supera el umbral"
+          description: "Drawdown actual ({{ $value }}%) > 8 %. Revisa guardias de riesgo."
+      - alert: SlippageHigh
+        expr: sls_bot_slippage_bps > 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slippage promedio elevado"
+          description: "Slippage > 15 bps; verifica liquidez o ajustes de órdenes."

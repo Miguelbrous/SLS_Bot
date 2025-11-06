@@ -1,0 +1,10 @@
+{
+  "today": {
+    "pnl": 1250.75,
+    "drawdown_pct": 3.4,
+    "slippage_bps": 8.2
+  },
+  "totals": {
+    "pnl": 48950.12
+  }
+}

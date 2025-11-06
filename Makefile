@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install observability-up observability-down observability-check textfile-smoke autopilot-ci
+.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -99,6 +99,30 @@ monitor-install: ## Copia sls-monitor.service/timer y habilita el watchdog 24/7 
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable --now sls-monitor.timer
 	@sudo systemctl status sls-monitor.timer --no-pager
+
+provision: ## Ejecuta ansible-playbook para provisionar (usa STAGE=staging -> inventory.staging.ini).
+	@if ! command -v ansible-playbook >/dev/null 2>&1; then \
+		echo "Instala ansible primero (pip install ansible)"; \
+		exit 1; \
+	fi
+	@STAGE?=staging; \
+	INVENTORY="infra/ansible/inventory.$${STAGE}.ini"; \
+	if [ ! -f "$$INVENTORY" ]; then \
+		echo "Inventario $$INVENTORY no encontrado. Crea uno a partir de inventory.sample.ini"; \
+		exit 1; \
+	fi; \
+	ansible-playbook -i "$$INVENTORY" infra/ansible/playbooks/site.yml $(EXTRA)
+
+metrics-business: ## Genera métricas de negocio hacia tmp_metrics/business.prom (usa API local).
+	@$(PYTHON_BIN) scripts/tools/prometheus_business_metrics.py --output tmp_metrics/business.prom $(if $(API_BASE),--api-base $(API_BASE),) $(if $(PANEL_TOKEN),--panel-token $(PANEL_TOKEN),)
+
+failover-sim: ## Genera reporte de failover (dry-run por defecto; usa EXECUTE=1 para aplicar).
+	@EXECUTE?=0; \
+	ARGS=""; \
+	if [ "$$EXECUTE" = "1" ]; then ARGS="--execute --restart"; fi; \
+	if [ -n "$(API_BASE)" ]; then ARGS="$$ARGS --api-base $(API_BASE)"; fi; \
+	if [ -n "$(PANEL_TOKEN)" ]; then ARGS="$$ARGS --panel-token $(PANEL_TOKEN)"; fi; \
+	$(PYTHON_BIN) scripts/tools/failover_simulator.py $$ARGS
 
 observability-up: ## Levanta Prometheus+Grafana+Alertmanager locales usando docker compose.
 	docker compose -f docs/observability/docker-compose.yml --project-name sls-observability up -d
