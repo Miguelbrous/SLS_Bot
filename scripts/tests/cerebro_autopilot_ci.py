@@ -69,6 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-win-rate", type=float, default=0.8)
     parser.add_argument("--min-symbols", type=int, default=1)
     parser.add_argument("--max-age-hours", type=float, default=0.0, help="0 = no validar antigüedad.")
+    parser.add_argument("--min-rows-per-symbol", type=int, default=0)
+    parser.add_argument("--max-symbol-share", type=float, default=1.0)
+    parser.add_argument("--min-long-rate", type=float, default=0.0)
+    parser.add_argument("--min-short-rate", type=float, default=0.0)
+    parser.add_argument("--max-invalid-lines", type=int, default=-1)
+    parser.add_argument("--max-zero-rate", type=float, default=-1.0, help="Máximo ratio permitido de pnl=0 (-1 = sin validar).")
+    parser.add_argument("--max-loss-rate", type=float, default=-1.0, help="Máximo ratio permitido de pnl<0 (-1 = sin validar).")
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument("--train-ratio", type=float, default=0.8)
@@ -138,6 +145,13 @@ def main() -> None:
             max_win_rate=min(1.0, args.max_win_rate),
             min_symbols=max(1, args.min_symbols),
             max_age_hours=max(0.0, args.max_age_hours),
+            min_rows_per_symbol=args.min_rows_per_symbol or None,
+            max_symbol_share=(args.max_symbol_share if 0 < args.max_symbol_share < 1 else None),
+            min_long_rate=args.min_long_rate or None,
+            min_short_rate=args.min_short_rate or None,
+            max_invalid_lines=args.max_invalid_lines if args.max_invalid_lines >= 0 else None,
+            max_zero_rate=args.max_zero_rate if args.max_zero_rate >= 0 else None,
+            max_loss_rate=args.max_loss_rate if args.max_loss_rate >= 0 else None,
         )
         payload = _run_train(args.mode, dataset, epochs=args.epochs, lr=args.lr, train_ratio=args.train_ratio)
         metrics = payload.get("metrics") or {}
@@ -153,6 +167,20 @@ def main() -> None:
             "dataset": stats_obj.to_dict(),
             "metrics": metrics,
             "mode": args.mode,
+            "thresholds": {
+                "min_rows": args.min_rows,
+                "min_win_rate": args.min_win_rate,
+                "max_win_rate": args.max_win_rate,
+                "min_symbols": args.min_symbols,
+                "max_age_hours": args.max_age_hours,
+                "min_rows_per_symbol": args.min_rows_per_symbol,
+                "max_symbol_share": args.max_symbol_share,
+                "min_long_rate": args.min_long_rate,
+                "min_short_rate": args.min_short_rate,
+                "max_invalid_lines": args.max_invalid_lines,
+                "max_zero_rate": args.max_zero_rate,
+                "max_loss_rate": args.max_loss_rate,
+            },
         }
     except DatasetValidationError as exc:
         summary = {
@@ -160,6 +188,20 @@ def main() -> None:
             "reason": str(exc),
             "dataset": stats_obj.to_dict() if "stats_obj" in locals() else {"path": str(dataset)},
             "mode": args.mode,
+            "thresholds": {
+                "min_rows": args.min_rows,
+                "min_win_rate": args.min_win_rate,
+                "max_win_rate": args.max_win_rate,
+                "min_symbols": args.min_symbols,
+                "max_age_hours": args.max_age_hours,
+                "min_rows_per_symbol": args.min_rows_per_symbol,
+                "max_symbol_share": args.max_symbol_share,
+                "min_long_rate": args.min_long_rate,
+                "min_short_rate": args.min_short_rate,
+                "max_invalid_lines": args.max_invalid_lines,
+                "max_zero_rate": args.max_zero_rate,
+                "max_loss_rate": args.max_loss_rate,
+            },
         }
         text = format_slack_text(False, args.mode, summary["dataset"], summary.get("metrics", {}), str(exc))
         if args.slack_webhook:

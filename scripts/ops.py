@@ -116,6 +116,30 @@ def _write_summary_file(path: Optional[str], summary: Dict[str, object], append:
         target.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _load_latest_summary(path: Path) -> Dict[str, object] | None:
+    if not path.exists():
+        return None
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not content:
+        return None
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    for line in reversed(content.splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
 def _autopilot_prometheus_lines(
     success: bool,
     promoted: bool,
@@ -147,6 +171,33 @@ def _autopilot_prometheus_lines(
         age_hours = dataset_stats.get("file_age_hours")
         if isinstance(age_hours, (int, float)):
             lines.append(f"cerebro_autopilot_dataset_age_hours {round(age_hours, 6)}")
+        long_rate = dataset_stats.get("long_rate")
+        if isinstance(long_rate, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_long_rate {round(long_rate, 6)}")
+        short_rate = dataset_stats.get("short_rate")
+        if isinstance(short_rate, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_short_rate {round(short_rate, 6)}")
+        invalid_lines = dataset_stats.get("invalid_lines")
+        if isinstance(invalid_lines, int):
+            lines.append(f"cerebro_autopilot_dataset_invalid_lines {invalid_lines}")
+        dominant_symbol = dataset_stats.get("dominant_symbol")
+        dominant_share = dataset_stats.get("dominant_symbol_share")
+        if dominant_symbol and isinstance(dominant_share, (int, float)):
+            lines.append(
+                f'cerebro_autopilot_dataset_symbol_share{{symbol="{dominant_symbol}"}} {round(dominant_share, 6)}'
+            )
+        zero_rate = dataset_stats.get("zero_rate")
+        if isinstance(zero_rate, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_zero_rate {round(zero_rate, 6)}")
+        loss_rate = dataset_stats.get("loss_rate") or dataset_stats.get("negative_rate")
+        if isinstance(loss_rate, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_loss_rate {round(loss_rate, 6)}")
+        median_pnl = dataset_stats.get("pnl_median")
+        if isinstance(median_pnl, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_pnl_median {round(median_pnl, 6)}")
+        stddev_pnl = dataset_stats.get("pnl_stddev")
+        if isinstance(stddev_pnl, (int, float)):
+            lines.append(f"cerebro_autopilot_dataset_pnl_stddev {round(stddev_pnl, 6)}")
     return lines
 
 
@@ -510,7 +561,24 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
     summary_append = bool(getattr(args, "summary_append", False))
     max_age_minutes = max(0, int(args.max_dataset_age_minutes or 0))
     dataset_max_age_hours = max(args.dataset_max_age_hours or 0.0, max_age_minutes / 60 if max_age_minutes else 0.0)
+    compare_file = Path(getattr(args, "summary_compare_file", "")).expanduser() if getattr(args, "summary_compare_file", None) else None
+    previous_summary = _load_latest_summary(compare_file) if compare_file else None
+    if compare_file:
+        summary["summary_compare_file"] = str(compare_file)
+    if previous_summary and not isinstance(previous_summary, dict):
+        previous_summary = None
+    if previous_summary:
+        summary["previous_summary_ts"] = previous_summary.get("ts")
+    dataset_max_zero_rate = getattr(args, "dataset_max_zero_rate", -1.0)
+    dataset_max_loss_rate = getattr(args, "dataset_max_loss_rate", -1.0)
+    max_zero_rate = dataset_max_zero_rate if dataset_max_zero_rate is not None and dataset_max_zero_rate >= 0 else None
+    max_loss_rate = dataset_max_loss_rate if dataset_max_loss_rate is not None and dataset_max_loss_rate >= 0 else None
+    summary_max_win_rate_delta = max(0.0, getattr(args, "summary_max_win_rate_delta", 0.0) or 0.0)
+    summary_max_loss_rate_delta = max(0.0, getattr(args, "summary_max_loss_rate_delta", 0.0) or 0.0)
+    summary_max_rows_drop = max(0.0, getattr(args, "summary_max_rows_drop", 0.0) or 0.0)
     dataset_stats = None
+    drift_alerts: list[str] = []
+    drift_checks: Dict[str, float] = {}
     rows = _count_dataset_rows(dataset)
     metrics: Dict[str, float] = {}
     promoted = False
@@ -541,6 +609,66 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
         dataset_stats = autopilot_dataset.analyze_dataset(dataset)
         summary["dataset_stats"] = dataset_stats.to_dict()
         summary["dataset_age_minutes"] = round(dataset_stats.file_age_hours * 60, 2)
+        summary["dataset_thresholds"] = {
+            "min_rows": min_rows,
+            "min_win_rate": args.dataset_min_win_rate,
+            "max_win_rate": args.dataset_max_win_rate,
+            "min_symbols": max(1, args.dataset_min_symbols),
+            "min_rows_per_symbol": args.dataset_min_rows_per_symbol,
+            "max_symbol_share": args.dataset_max_symbol_share,
+            "min_long_rate": args.dataset_min_long_rate,
+            "min_short_rate": args.dataset_min_short_rate,
+            "max_age_hours": max(0.0, dataset_max_age_hours),
+            "max_invalid_lines": args.dataset_max_invalid_lines,
+            "max_zero_rate": max_zero_rate,
+            "max_loss_rate": max_loss_rate,
+            "summary_max_win_rate_delta": summary_max_win_rate_delta,
+            "summary_max_loss_rate_delta": summary_max_loss_rate_delta,
+            "summary_max_rows_drop": summary_max_rows_drop,
+        }
+        if previous_summary:
+            prev_dataset = (
+                previous_summary.get("dataset_stats")
+                or previous_summary.get("dataset")
+                or (previous_summary.get("summary") or {}).get("dataset_stats")
+            )
+            if isinstance(prev_dataset, dict):
+                prev_rows = prev_dataset.get("rows")
+                prev_win = prev_dataset.get("positive_rate", prev_dataset.get("win_rate"))
+                prev_loss = prev_dataset.get("loss_rate", prev_dataset.get("negative_rate"))
+                snapshot = {
+                    key: value
+                    for key, value in {
+                        "rows": prev_rows,
+                        "positive_rate": prev_win,
+                        "loss_rate": prev_loss,
+                        "ts": previous_summary.get("ts"),
+                    }.items()
+                    if value is not None
+                }
+                if snapshot:
+                    summary["previous_dataset_snapshot"] = snapshot
+                if summary_max_rows_drop > 0 and isinstance(prev_rows, (int, float)) and prev_rows > 0 and rows:
+                    drop = max(0.0, (float(prev_rows) - float(rows)) / float(prev_rows))
+                    drift_checks["rows_drop"] = round(drop, 6)
+                    if drop > summary_max_rows_drop:
+                        drift_alerts.append(f"rows drop {drop:.2%} (> {summary_max_rows_drop:.2%})")
+                if summary_max_win_rate_delta > 0 and isinstance(prev_win, (int, float)):
+                    diff = abs(dataset_stats.positive_rate - float(prev_win))
+                    drift_checks["win_rate_delta"] = round(diff, 6)
+                    if diff > summary_max_win_rate_delta:
+                        drift_alerts.append(f"win_rate delta {diff:.2%} (> {summary_max_win_rate_delta:.2%})")
+                if summary_max_loss_rate_delta > 0 and isinstance(prev_loss, (int, float)):
+                    diff_loss = abs(dataset_stats.loss_rate - float(prev_loss))
+                    drift_checks["loss_rate_delta"] = round(diff_loss, 6)
+                    if diff_loss > summary_max_loss_rate_delta:
+                        drift_alerts.append(f"loss_rate delta {diff_loss:.2%} (> {summary_max_loss_rate_delta:.2%})")
+        if drift_checks:
+            summary["drift_checks"] = drift_checks
+        if drift_alerts:
+            summary["drift_alerts"] = drift_alerts
+            error_message = " ; ".join(drift_alerts)
+            raise autopilot_dataset.DatasetValidationError(f"Dataset drift detectado: {error_message}")
         if not args.skip_dataset_check:
             autopilot_dataset.ensure_dataset_quality(
                 dataset_stats,
@@ -549,6 +677,15 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
                 max_win_rate=args.dataset_max_win_rate,
                 min_symbols=max(1, args.dataset_min_symbols),
                 max_age_hours=max(0.0, dataset_max_age_hours),
+                min_rows_per_symbol=args.dataset_min_rows_per_symbol or None,
+                max_symbol_share=(
+                    args.dataset_max_symbol_share if 0 < args.dataset_max_symbol_share < 1 else None
+                ),
+                min_long_rate=args.dataset_min_long_rate or None,
+                min_short_rate=args.dataset_min_short_rate or None,
+                max_invalid_lines=args.dataset_max_invalid_lines if args.dataset_max_invalid_lines >= 0 else None,
+                max_zero_rate=max_zero_rate,
+                max_loss_rate=max_loss_rate,
             )
         print(f"[autopilot] Dataset listo ({rows} filas). Lanzando entrenamiento...")
         train_cmd = [
@@ -612,6 +749,9 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
         summary["success"] = success
         summary["promoted"] = promoted
         summary.setdefault("status", "ok" if success else "error")
+        if "drift_checks" not in summary and drift_checks:
+            summary["drift_checks"] = drift_checks
+        summary.setdefault("drift_alerts", drift_alerts)
         try:
             with log_file.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(summary, ensure_ascii=False) + "\n")
@@ -647,10 +787,35 @@ def cmd_cerebro_autopilot(args: argparse.Namespace) -> None:
             age_hours = dataset_dict.get("file_age_hours")
             if isinstance(age_hours, (int, float)):
                 dataset_text += f" age={age_hours:.1f}h"
+            long_rate = dataset_dict.get("long_rate")
+            if isinstance(long_rate, (int, float)):
+                dataset_text += f" long={long_rate*100:.1f}%"
+            short_rate = dataset_dict.get("short_rate")
+            if isinstance(short_rate, (int, float)):
+                dataset_text += f" short={short_rate*100:.1f}%"
+            zero_rate = dataset_dict.get("zero_rate")
+            if isinstance(zero_rate, (int, float)):
+                dataset_text += f" zero={zero_rate*100:.1f}%"
+            loss_rate = dataset_dict.get("loss_rate", dataset_dict.get("negative_rate"))
+            if isinstance(loss_rate, (int, float)):
+                dataset_text += f" loss={loss_rate*100:.1f}%"
+            dominant_symbol = dataset_dict.get("dominant_symbol")
+            dominant_share = dataset_dict.get("dominant_symbol_share")
+            if dominant_symbol and isinstance(dominant_share, (int, float)):
+                dataset_text += f" top={dominant_symbol}:{dominant_share*100:.1f}%"
+            median_pnl = dataset_dict.get("pnl_median")
+            if isinstance(median_pnl, (int, float)):
+                dataset_text += f" median={median_pnl:.2f}"
+            stddev_pnl = dataset_dict.get("pnl_stddev")
+            if isinstance(stddev_pnl, (int, float)):
+                dataset_text += f" std={stddev_pnl:.2f}"
             dataset_text = dataset_text.strip()
             text = f"{status_emoji} Cerebro autopilot ({args.mode}, filas={rows}, {promoted_text}): {stats}"
             if dataset_text:
                 text += f" | dataset:{dataset_text}"
+            drift_msgs = summary.get("drift_alerts") or []
+            if drift_msgs:
+                text += " [drift " + " ; ".join(str(item) for item in drift_msgs) + "]"
             if error_message:
                 text += f" :: {error_message}"
             _post_slack(slack_webhook, text, slack_user)
@@ -941,9 +1106,20 @@ def build_parser() -> argparse.ArgumentParser:
     cerebro_autopilot.add_argument("--dataset-max-win-rate", type=float, default=0.8, help="Win rate máximo aceptado (evita datasets sesgados)")
     cerebro_autopilot.add_argument("--dataset-min-symbols", type=int, default=1, help="Cantidad mínima de símbolos representados en el dataset")
     cerebro_autopilot.add_argument("--dataset-max-age-hours", type=float, default=0.0, help="Antigüedad máxima en horas (0 = sin validar). Se combina con --max-dataset-age-minutes si se especifica")
+    cerebro_autopilot.add_argument("--dataset-min-rows-per-symbol", type=int, default=0, help="Filas mínimas por símbolo (0 = deshabilitado)")
+    cerebro_autopilot.add_argument("--dataset-max-symbol-share", type=float, default=1.0, help="Máximo share permitido del símbolo dominante (1 = deshabilitado)")
+    cerebro_autopilot.add_argument("--dataset-min-long-rate", type=float, default=0.0, help="Porcentaje mínimo de decisiones LONG (0 = deshabilitado)")
+    cerebro_autopilot.add_argument("--dataset-min-short-rate", type=float, default=0.0, help="Porcentaje mínimo de decisiones SHORT (0 = deshabilitado)")
+    cerebro_autopilot.add_argument("--dataset-max-invalid-lines", type=int, default=-1, help="Máximo de líneas inválidas toleradas (-1 = deshabilitado)")
+    cerebro_autopilot.add_argument("--dataset-max-zero-rate", type=float, default=-1.0, help="Máximo ratio permitido de pnl=0 (0.35 = 35%%, -1 deshabilita)")
+    cerebro_autopilot.add_argument("--dataset-max-loss-rate", type=float, default=-1.0, help="Máximo ratio permitido de pérdidas (0.6 = 60%%, -1 deshabilita)")
     cerebro_autopilot.add_argument("--skip-dataset-check", action="store_true", help="Omite la validación avanzada del dataset antes de entrenar")
     cerebro_autopilot.add_argument("--summary-json", help="Ruta opcional para guardar el resumen de la ejecución (JSON o JSONL)")
     cerebro_autopilot.add_argument("--summary-append", action="store_true", help="Si se indica, agrega como JSONL en lugar de sobrescribir")
+    cerebro_autopilot.add_argument("--summary-compare-file", help="Resumen previo (JSON o JSONL) para comparar métricas antes de entrenar")
+    cerebro_autopilot.add_argument("--summary-max-win-rate-delta", type=float, default=0.0, help="Cambio absoluto máximo tolerado del win rate vs resumen previo (0 = deshabilitado)")
+    cerebro_autopilot.add_argument("--summary-max-loss-rate-delta", type=float, default=0.0, help="Cambio absoluto máximo tolerado del loss rate vs resumen previo (0 = deshabilitado)")
+    cerebro_autopilot.add_argument("--summary-max-rows-drop", type=float, default=0.0, help="Caída máxima tolerada en filas respecto al resumen previo (0 = deshabilitado, 0.2 = -20%%)")
     cerebro_autopilot.set_defaults(func=cmd_cerebro_autopilot)
 
     monitor = sub.add_parser("monitor", help="Monitoreo activo de /metrics y /arena/state")

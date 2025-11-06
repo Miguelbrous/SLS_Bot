@@ -112,6 +112,11 @@ autopilot-ci: ## Valida dataset + dry-run del autopilot (usa MODE=test, DATASET=
 	 MAX_WIN=$${MAX_WIN_RATE:-0.8}; \
 	 MIN_SYMBOLS=$${MIN_SYMBOLS:-1}; \
 	 MAX_AGE=$${MAX_AGE_HOURS:-0}; \
+	 MIN_ROWS_SYMBOL=$${MIN_ROWS_PER_SYMBOL:-0}; \
+	 MAX_SYMBOL_SHARE=$${MAX_SYMBOL_SHARE:-1}; \
+	 MIN_LONG_RATE=$${MIN_LONG_RATE:-0}; \
+	 MIN_SHORT_RATE=$${MIN_SHORT_RATE:-0}; \
+	 MAX_INVALID=$${MAX_INVALID_LINES:--1}; \
 	 MIN_AUC=$${MIN_CI_AUC:-0.52}; \
 	 MIN_WIN_CI=$${MIN_CI_WIN_RATE:-0.5}; \
 	 SLACK=$${SLACK_WEBHOOK:-}; \
@@ -126,6 +131,11 @@ autopilot-ci: ## Valida dataset + dry-run del autopilot (usa MODE=test, DATASET=
 	 	--max-win-rate $$MAX_WIN \
 	 	--min-symbols $$MIN_SYMBOLS \
 	 	--max-age-hours $$MAX_AGE \
+	 	--min-rows-per-symbol $$MIN_ROWS_SYMBOL \
+	 	--max-symbol-share $$MAX_SYMBOL_SHARE \
+	 	--min-long-rate $$MIN_LONG_RATE \
+	 	--min-short-rate $$MIN_SHORT_RATE \
+	 	--max-invalid-lines $$MAX_INVALID \
 	 	--min-ci-auc $$MIN_AUC \
 	 	--min-ci-win-rate $$MIN_WIN_CI \
 	 	$$EXTRA

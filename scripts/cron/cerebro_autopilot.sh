@@ -38,6 +38,19 @@ DATASET_MAX_WIN_RATE="${CEREBRO_AUTO_DATASET_MAX_WIN_RATE:-}"
 DATASET_MIN_SYMBOLS="${CEREBRO_AUTO_DATASET_MIN_SYMBOLS:-}"
 DATASET_MAX_AGE_HOURS="${CEREBRO_AUTO_DATASET_MAX_AGE_HOURS:-}"
 SKIP_DATASET_CHECK="${CEREBRO_AUTO_SKIP_DATASET_CHECK:-}"
+DATASET_MIN_ROWS_PER_SYMBOL="${CEREBRO_AUTO_DATASET_MIN_ROWS_PER_SYMBOL:-}"
+DATASET_MAX_SYMBOL_SHARE="${CEREBRO_AUTO_DATASET_MAX_SYMBOL_SHARE:-}"
+DATASET_MIN_LONG_RATE="${CEREBRO_AUTO_DATASET_MIN_LONG_RATE:-}"
+DATASET_MIN_SHORT_RATE="${CEREBRO_AUTO_DATASET_MIN_SHORT_RATE:-}"
+DATASET_MAX_INVALID_LINES="${CEREBRO_AUTO_DATASET_MAX_INVALID_LINES:-}"
+DATASET_MAX_ZERO_RATE="${CEREBRO_AUTO_DATASET_MAX_ZERO_RATE:-}"
+DATASET_MAX_LOSS_RATE="${CEREBRO_AUTO_DATASET_MAX_LOSS_RATE:-}"
+SUMMARY_FILE="${CEREBRO_AUTO_SUMMARY_FILE:-}"
+SUMMARY_APPEND="${CEREBRO_AUTO_SUMMARY_APPEND:-}"
+SUMMARY_COMPARE_FILE="${CEREBRO_AUTO_SUMMARY_COMPARE:-}"
+SUMMARY_MAX_WIN_DELTA="${CEREBRO_AUTO_SUMMARY_MAX_WIN_DELTA:-}"
+SUMMARY_MAX_LOSS_DELTA="${CEREBRO_AUTO_SUMMARY_MAX_LOSS_DELTA:-}"
+SUMMARY_MAX_ROWS_DROP="${CEREBRO_AUTO_SUMMARY_MAX_ROWS_DROP:-}"
 
 CMD=("${PYTHON_BIN:-python}" "$ROOT/scripts/ops.py" "cerebro" "autopilot" "--mode" "$MODE" "--min-rows" "$MIN_ROWS" "--backfill-rows" "$BACKFILL_ROWS" "--epochs" "$EPOCHS" "--lr" "$LR" "--train-ratio" "$TRAIN_RATIO" "--min-auc" "$MIN_AUC" "--min-win-rate" "$MIN_WIN_RATE" "--log-file" "$LOG_FILE")
 if [[ -n "$DATASET" ]]; then
@@ -81,6 +94,45 @@ if [[ -n "$DATASET_MAX_AGE_HOURS" ]]; then
 fi
 if [[ -n "$SKIP_DATASET_CHECK" ]]; then
   CMD+=("--skip-dataset-check")
+fi
+if [[ -n "$DATASET_MIN_ROWS_PER_SYMBOL" ]]; then
+  CMD+=("--dataset-min-rows-per-symbol" "$DATASET_MIN_ROWS_PER_SYMBOL")
+fi
+if [[ -n "$DATASET_MAX_SYMBOL_SHARE" ]]; then
+  CMD+=("--dataset-max-symbol-share" "$DATASET_MAX_SYMBOL_SHARE")
+fi
+if [[ -n "$DATASET_MIN_LONG_RATE" ]]; then
+  CMD+=("--dataset-min-long-rate" "$DATASET_MIN_LONG_RATE")
+fi
+if [[ -n "$DATASET_MIN_SHORT_RATE" ]]; then
+  CMD+=("--dataset-min-short-rate" "$DATASET_MIN_SHORT_RATE")
+fi
+if [[ -n "$DATASET_MAX_INVALID_LINES" ]]; then
+  CMD+=("--dataset-max-invalid-lines" "$DATASET_MAX_INVALID_LINES")
+fi
+if [[ -n "$DATASET_MAX_ZERO_RATE" ]]; then
+  CMD+=("--dataset-max-zero-rate" "$DATASET_MAX_ZERO_RATE")
+fi
+if [[ -n "$DATASET_MAX_LOSS_RATE" ]]; then
+  CMD+=("--dataset-max-loss-rate" "$DATASET_MAX_LOSS_RATE")
+fi
+if [[ -n "$SUMMARY_FILE" ]]; then
+  CMD+=("--summary-json" "$SUMMARY_FILE")
+fi
+if [[ -n "$SUMMARY_APPEND" ]]; then
+  CMD+=("--summary-append")
+fi
+if [[ -n "$SUMMARY_COMPARE_FILE" ]]; then
+  CMD+=("--summary-compare-file" "$SUMMARY_COMPARE_FILE")
+fi
+if [[ -n "$SUMMARY_MAX_WIN_DELTA" ]]; then
+  CMD+=("--summary-max-win-rate-delta" "$SUMMARY_MAX_WIN_DELTA")
+fi
+if [[ -n "$SUMMARY_MAX_LOSS_DELTA" ]]; then
+  CMD+=("--summary-max-loss-rate-delta" "$SUMMARY_MAX_LOSS_DELTA")
+fi
+if [[ -n "$SUMMARY_MAX_ROWS_DROP" ]]; then
+  CMD+=("--summary-max-rows-drop" "$SUMMARY_MAX_ROWS_DROP")
 fi
 
 echo "[cerebro-autopilot] $(date --iso-8601=seconds) :: ${CMD[*]}" | tee -a "$LOG_FILE"

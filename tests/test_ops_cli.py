@@ -4,7 +4,6 @@ import json
 import os
 import time
 from types import SimpleNamespace
-import json
 from typing import List
 
 import pytest
@@ -586,15 +585,27 @@ def test_cerebro_autopilot_prometheus_and_slack(monkeypatch, tmp_path):
     content = prom_file.read_text(encoding="utf-8")
     assert "cerebro_autopilot_success 1" in content
     assert 'cerebro_autopilot_metric{name="auc"} 0.71' in content
+    assert "cerebro_autopilot_dataset_long_rate" in content
+    assert "cerebro_autopilot_dataset_symbol_share" in content
+    assert "cerebro_autopilot_dataset_invalid_lines" in content
     assert "cerebro_autopilot_dataset_win_rate" in content
     assert "cerebro_autopilot_dataset_age_hours" in content
+    assert "cerebro_autopilot_dataset_zero_rate" in content
+    assert "cerebro_autopilot_dataset_loss_rate" in content
+    assert "cerebro_autopilot_dataset_pnl_median" in content
+    assert "cerebro_autopilot_dataset_pnl_stddev" in content
     summary_lines = summary_file.read_text(encoding="utf-8").strip().splitlines()
     assert summary_lines
     summary_payload = json.loads(summary_lines[-1])
     assert summary_payload["dataset_stats"]["positives"] > 0
+    assert "dataset_thresholds" in summary_payload
+    assert summary_payload["drift_alerts"] == []
     assert slack_calls
     assert ":white_check_mark:" in slack_calls[0][1]
     assert "dataset:" in slack_calls[0][1]
+    assert "top=" in slack_calls[0][1]
+    assert "zero=" in slack_calls[0][1]
+    assert "median=" in slack_calls[0][1]
     assert slack_calls[0][2] == "autopilot-bot"
 
 
@@ -633,3 +644,70 @@ def test_cerebro_autopilot_require_promote(monkeypatch, tmp_path):
         args.func(args)
     content = prom_file.read_text(encoding="utf-8")
     assert "cerebro_autopilot_success 0" in content
+
+
+def test_cerebro_autopilot_zero_rate_threshold(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    rows = []
+    for idx in range(30):
+        pnl = 0.0 if idx < 24 else 1.0
+        rows.append(json.dumps({"symbol": "BTCUSDT", "decision": "LONG", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "10",
+            "--dataset-max-zero-rate",
+            "0.5",
+        ]
+    )
+    monkeypatch.setattr(ops, "_run_capture_output", lambda cmd: (_ for _ in ()).throw(AssertionError("no training")))
+    with pytest.raises(SystemExit):
+        args.func(args)
+
+
+def test_cerebro_autopilot_summary_drift_guard(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.jsonl"
+    rows = []
+    for idx in range(40):
+        pnl = -0.3 if idx < 35 else 1.0
+        rows.append(json.dumps({"symbol": "ETHUSDT", "decision": "SHORT", "pnl": pnl, "features": {}}))
+    dataset_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    prev_summary = tmp_path / "prev_summary.json"
+    prev_summary.write_text(
+        json.dumps(
+            {
+                "ts": int(time.time()) - 3600,
+                "dataset_stats": {
+                    "rows": 200,
+                    "positive_rate": 0.65,
+                    "loss_rate": 0.3,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    parser = ops.build_parser()
+    args = parser.parse_args(
+        [
+            "cerebro",
+            "autopilot",
+            "--dataset",
+            str(dataset_path),
+            "--min-rows",
+            "10",
+            "--summary-compare-file",
+            str(prev_summary),
+            "--summary-max-win-rate-delta",
+            "0.1",
+        ]
+    )
+    monkeypatch.setattr(ops, "_run_capture_output", lambda cmd: (_ for _ in ()).throw(AssertionError("no training")))
+    with pytest.raises(SystemExit):
+        args.func(args)
