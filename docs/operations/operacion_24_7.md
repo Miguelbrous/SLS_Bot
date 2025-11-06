@@ -38,13 +38,23 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
    ```
    El timer ejecuta `monitor_guard.py` cada 5 minutos y envía alertas a Slack/Telegram.
 
-6. **Provisioning reproducible**:
-   ```bash
-   cp infra/ansible/inventory.sample.ini infra/ansible/inventory.staging.ini
-   # Edita ansible_host, app_root, repo_url, etc.
-   make provision STAGE=staging
-   ```
-   El playbook instala paquetes, crea el usuario `sls`, clona el repo y ejecuta el bootstrap/monitor guard. Usa `EXTRA='-e bootstrap_autorun=false'` para modo dry-run.
+6. **Provisioning reproducible (Ansible)**:
+   1. Instala Ansible en tu máquina de control (`pip install ansible`).
+   2. Duplica el inventario de ejemplo:
+      ```bash
+      cp infra/ansible/inventory.sample.ini infra/ansible/inventory.staging.ini
+      ```
+      Edita `ansible_host`, `ansible_user`, `app_root`, `repo_url` y añade cualquier override necesario.
+   3. Opcional: cifra el inventario con `ansible-vault encrypt infra/ansible/inventory.staging.ini`.
+   4. Ejecuta un dry-run:
+      ```bash
+      ANSIBLE_CONFIG=infra/ansible/ansible.cfg ansible-playbook --syntax-check infra/ansible/playbooks/site.yml
+      ```
+   5. Provisión real:
+      ```bash
+      make provision STAGE=staging
+      ```
+      El rol instala paquetes base, crea el usuario `sls`, clona el repositorio y lanza el bootstrap/monitor guard. Usa `EXTRA='-e bootstrap_autorun=false'` para revisar antes de arrancar servicios.
 
 7. **Backups Restic**:
    ```bash
