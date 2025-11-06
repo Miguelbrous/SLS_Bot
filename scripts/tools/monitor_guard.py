@@ -57,6 +57,8 @@ def evaluate_issues(
     lag_threshold: int,
     drawdown_threshold: float,
     ticks_threshold: int,
+    min_sharpe: float | None,
+    min_decisions: float | None,
 ) -> List[Dict[str, str]]:
     issues: List[Dict[str, str]] = []
 
@@ -96,6 +98,24 @@ def evaluate_issues(
             }
         )
 
+    avg_sharpe = metrics.get("sls_arena_avg_sharpe")
+    if min_sharpe is not None and isinstance(avg_sharpe, (int, float)) and avg_sharpe < min_sharpe:
+        issues.append(
+            {
+                "key": "arena_sharpe",
+                "message": f"Sharpe promedio {avg_sharpe:.2f} < {min_sharpe}.",
+            }
+        )
+
+    decisions = metrics.get("sls_cerebro_decisions_per_min")
+    if min_decisions is not None and isinstance(decisions, (int, float)) and decisions < min_decisions:
+        issues.append(
+            {
+                "key": "cerebro_decisions",
+                "message": f"Cerebro genera {decisions:.2f} decisiones/min (< {min_decisions}).",
+            }
+        )
+
     return issues
 
 
@@ -124,6 +144,18 @@ def main() -> int:
     parser.add_argument("--max-arena-lag", type=int, default=600)
     parser.add_argument("--max-drawdown", type=float, default=30.0)
     parser.add_argument("--max-ticks-since-win", type=int, default=20)
+    parser.add_argument(
+        "--min-arena-sharpe",
+        type=float,
+        default=0.25,
+        help="Sharpe promedio mínimo antes de alertar (usa 0 o valor negativo para desactivar)",
+    )
+    parser.add_argument(
+        "--min-decisions-per-min",
+        type=float,
+        default=0.3,
+        help="Decisiones/min mínima del Cerebro antes de alertar (usa 0 para desactivar)",
+    )
     parser.add_argument("--slack-webhook")
     parser.add_argument("--telegram-token")
     parser.add_argument("--telegram-chat-id")
@@ -157,6 +189,8 @@ def main() -> int:
         lag_threshold=args.max_arena_lag,
         drawdown_threshold=args.max_drawdown,
         ticks_threshold=args.max_ticks_since_win,
+        min_sharpe=args.min_arena_sharpe if args.min_arena_sharpe > 0 else None,
+        min_decisions=args.min_decisions_per_min if args.min_decisions_per_min > 0 else None,
     )
 
     if not issues:

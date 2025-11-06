@@ -90,6 +90,17 @@ export default function ArenaPage() {
   const [minSharpe, setMinSharpe] = useState(0.35);
   const [maxDrawdown, setMaxDrawdown] = useState(30);
   const [forcePromotion, setForcePromotion] = useState(false);
+  const [rankingSearch, setRankingSearch] = useState("");
+  const [rankingMinTrades, setRankingMinTrades] = useState(0);
+  const [rankingMinScore, setRankingMinScore] = useState(0);
+  const handleLedgerExport = useCallback(
+    (entries: LedgerEntry[]) => {
+      if (!entries.length) return;
+      setActionMessage(`Exportaste ${entries.length} operaciones a CSV.`);
+      setTimeout(() => setActionMessage(null), 3500);
+    },
+    []
+  );
   const handleLedgerExport = useCallback(
     (entries: LedgerEntry[]) => {
       if (!entries.length) return;
@@ -174,9 +185,40 @@ export default function ArenaPage() {
   }, []);
 
   const filteredRanking = useMemo(() => {
-    if (categoryFilter === "all") return ranking;
-    return ranking.filter((row) => row.category === categoryFilter);
-  }, [ranking, categoryFilter]);
+    let rows = ranking;
+    if (categoryFilter !== "all") {
+      rows = rows.filter((row) => row.category === categoryFilter);
+    }
+    if (rankingSearch.trim()) {
+      const term = rankingSearch.trim().toLowerCase();
+      rows = rows.filter((row) => row.name.toLowerCase().includes(term) || row.id.toLowerCase().includes(term));
+    }
+    if (rankingMinTrades > 0) {
+      rows = rows.filter((row) => (row.trades ?? 0) >= rankingMinTrades);
+    }
+    if (rankingMinScore > 0) {
+      rows = rows.filter((row) => row.score >= rankingMinScore);
+    }
+    return rows;
+  }, [ranking, categoryFilter, rankingSearch, rankingMinTrades, rankingMinScore]);
+
+  const rankingAggregates = useMemo(() => {
+    const total = ranking.length;
+    if (!total) {
+      return { total: 0, avgSharpe: 0, avgScore: 0, topWins: 0 };
+    }
+    const sharpeSum = ranking.reduce((acc, row) => acc + (row.sharpe_ratio || 0), 0);
+    const scoreSum = ranking.reduce((acc, row) => acc + (row.score || 0), 0);
+    const topWins = ranking
+      .slice(0, 10)
+      .reduce((acc, row) => acc + (row.wins ?? 0), 0);
+    return {
+      total,
+      avgSharpe: sharpeSum / total,
+      avgScore: scoreSum / total,
+      topWins,
+    };
+  }, [ranking]);
 
   const categories = useMemo(() => {
     const unique = new Set(ranking.map((row) => row.category));
@@ -257,6 +299,12 @@ export default function ArenaPage() {
               <span className="pill neutral">Meta actual €{state.current_goal?.toFixed(2)} · Victorias: {state.wins ?? 0}</span>
             ) : null}
           </div>
+          <div className="badges" style={{ flexWrap: "wrap", marginBottom: 12 }}>
+            <span className="badge muted">Estrategias activas {rankingAggregates.total}</span>
+            <span className="badge muted">Sharpe promedio {rankingAggregates.avgSharpe.toFixed(2)}</span>
+            <span className="badge muted">Score promedio {rankingAggregates.avgScore.toFixed(3)}</span>
+            <span className="badge muted">Wins top 10 {rankingAggregates.topWins}</span>
+          </div>
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <label>
               Categoría
@@ -267,6 +315,18 @@ export default function ArenaPage() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label>
+              Buscar
+              <input type="search" value={rankingSearch} onChange={(e) => setRankingSearch(e.target.value)} placeholder="Nombre o ID" />
+            </label>
+            <label>
+              Min trades (ranking)
+              <input type="number" min={0} value={rankingMinTrades} onChange={(e) => setRankingMinTrades(Number(e.target.value) || 0)} />
+            </label>
+            <label>
+              Min score
+              <input type="number" min={0} step={0.01} value={rankingMinScore} onChange={(e) => setRankingMinScore(Number(e.target.value) || 0)} />
             </label>
           </div>
           <div className="arena-table-wrapper">

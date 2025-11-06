@@ -11,9 +11,17 @@
       "id": 1,
       "type": "stat",
       "title": "Drawdown actual",
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sls_bot_drawdown_pct", "refId": "A" }
+        {
+          "expr": "sls_bot_drawdown_pct",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -21,9 +29,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 3 },
-              { "color": "red", "value": 6 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 6
+              }
             ]
           }
         }
@@ -33,18 +50,35 @@
       "id": 2,
       "type": "stat",
       "title": "Decisiones/min",
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sls_cerebro_decisions_per_min", "refId": "A" }
+        {
+          "expr": "sls_cerebro_decisions_per_min",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 0.2 },
-              { "color": "green", "value": 0.5 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.2
+              },
+              {
+                "color": "green",
+                "value": 0.5
+              }
             ]
           }
         }
@@ -53,62 +87,114 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "HTTP 5xx último minuto",
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "title": "HTTP 5xx \u00faltimo minuto",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(rate(fastapi_requests_total{status=~\"5..\"}[1m]))", "refId": "A" }
+        {
+          "expr": "sum(rate(fastapi_requests_total{status=~\"5..\"}[1m]))",
+          "refId": "A"
+        }
       ]
     },
     {
       "id": 4,
       "type": "stat",
       "title": "Latencia promedio /health",
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(fastapi_response_duration_seconds_bucket{path=\"/health\"}[5m])) by (le))", "refId": "A" }
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(fastapi_response_duration_seconds_bucket{path=\"/health\"}[5m])) by (le))",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s" }
+        "defaults": {
+          "unit": "s"
+        }
       }
     },
     {
       "id": 5,
       "type": "timeseries",
       "title": "Drawdown",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
       "targets": [
-        { "expr": "sls_bot_drawdown_pct", "refId": "A" }
+        {
+          "expr": "sls_bot_drawdown_pct",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percentunit" }
+        "defaults": {
+          "unit": "percentunit"
+        }
       }
     },
     {
       "id": 6,
       "type": "timeseries",
       "title": "Decisiones/min",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
       "targets": [
-        { "expr": "sls_cerebro_decisions_per_min", "refId": "A" }
+        {
+          "expr": "sls_cerebro_decisions_per_min",
+          "refId": "A"
+        }
       ]
     },
     {
       "id": 7,
       "type": "timeseries",
       "title": "Errores HTTP",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
       "targets": [
-        { "expr": "sum(rate(fastapi_requests_total{status=~\"5..\"}[5m])) by (path)", "refId": "A" }
+        {
+          "expr": "sum(rate(fastapi_requests_total{status=~\"5..\"}[5m])) by (path)",
+          "refId": "A"
+        }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "bottom" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
       }
     },
     {
       "id": 8,
       "type": "timeseries",
       "title": "Latencia /cerebro/decide P95",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(fastapi_response_duration_seconds_bucket{path=\"/cerebro/decide\"}[5m])) by (le))",
@@ -116,12 +202,77 @@
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s" }
+        "defaults": {
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": null,
+      "type": "timeseries",
+      "title": "Decisiones/min Cerebro",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "targets": [
+        {
+          "expr": "sls_cerebro_decisions_per_min",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "displayName": "dec/min"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": null,
+      "type": "timeseries",
+      "title": "Sharpe promedio (panel)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "targets": [
+        {
+          "expr": "sls_arena_avg_sharpe",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "displayName": "Sharpe"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true
+        }
       }
     }
   ],
-  "templating": { "list": [] },
-  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "annotations": {
     "list": [
       {

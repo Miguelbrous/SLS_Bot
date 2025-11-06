@@ -162,11 +162,13 @@ npm run build
 - `python scripts/ops.py cerebro train --mode test --epochs 300 --min-auc 0.6 --dry-run` entrena/evalúa el modelo ligero (usa `--no-promote` para solo guardar artefactos o `--dataset`/`--output-dir` para rutas personalizadas).
 - `python scripts/ops.py deploy bootstrap --install-systemd` corre `scripts/deploy/bootstrap.sh` con las variables apropiadas (`APP_ROOT`, `SVC_USER`) y recompila backend + panel en un solo paso.
 - `python scripts/ops.py deploy rollout --restart --services sls-api.service sls-bot.service` reinicia las unidades systemd clave (opcionalmente con `--daemon-reload`).
-- `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook https://hooks.slack...` ejecuta el monitor que valida `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando hay drawdown o ticks pegados.
+- `python scripts/ops.py monitor check --api-base https://api --panel-token XXX --slack-webhook https://hooks.slack...` ejecuta el monitor que valida `/arena/state` + `/metrics` y envía alertas (Slack o Telegram) cuando hay drawdown o ticks pegados. Puedes ajustar los nuevos umbrales `--min-arena-sharpe` y `--min-decisions-per-min` para monitorear también la salud del panel/Cerebro.
 - `make monitor-check PANEL_TOKEN=token SLACK_WEBHOOK=...` sirve como wrapper listo para cron/CI; reutiliza `python scripts/ops.py monitor check` respetando los umbrales (`MAX_ARENA_LAG`, `MAX_DRAWDOWN`, `MAX_TICKS`).
 - `python scripts/ops.py arena promote strat_42 --min-trades 80 --min-sharpe 0.4 --max-drawdown 25` exporta ganadores solo si superan las validaciones de Sharpe/drawdown/trades (usa `--force` para ignorarlas).
 - `python scripts/ops.py arena promote-real strat_42 --min-trades 80 --min-sharpe 0.4 --max-drawdown 25 --source-mode test --target-mode real` genera el paquete de revisión y, si pasa las validaciones, promueve el modelo de Cerebro a real (usa `--skip-dataset-rotation` cuando no quieras archivar el dataset de test).
 - `python scripts/ops.py arena notes add strat_42 --message "Afinar TP a 1.5R"` registra notas de experimento (usa `arena notes list` para consultarlas desde CLI sin abrir la DB).
+- `python scripts/ops.py arena ledger strat_42 --limit 200 --csv tmp_logs/ledger.csv` lista el ledger directo desde `arena.db` y opcionalmente lo exporta a CSV, alineado con el filtro/export que ahora ofrece el panel `/arena`.
+- `python scripts/ops.py arena stats strat_42 --json` devuelve un resumen estadístico (trades, wins/losses, win rate, PnL, max DD) del ledger local; útil para comparar contra los agregados del panel o automatizar reportes.
 - `/metrics` expone métricas Prometheus de la API (instrumentadas con `prometheus-fastapi-instrumentator`).
 - `venv\Scripts\python -m uvicorn sls_bot.app:app --reload` para desarrollo rapido.
 - `npm run build && npm run start` para revisar el bundle productivo.
@@ -206,7 +208,7 @@ npm run build
 - Promueve ganadores con `python scripts/promote_arena_strategy.py <strategy_id> --min-trades 60 --min-sharpe 0.4 --max-drawdown 25`; la exportación se bloquea si no pasa los umbrales (usa `--force` para omitirlos). El paquete incluye `validation.json` con los métricos usados.
 - Registra bitácoras rápidas con `python scripts/ops.py arena notes add <id> --message "..."` o vía `POST /arena/notes`; consúltalas con `arena notes list` o `GET /arena/notes?strategy_id=<id>`.
 - Panel `/arena` muestra ranking completo (incluye Sharpe/MaxDD), ledger, notas y expone acciones rápidas para forzar ticks (`POST /arena/tick`) y exportar paquetes (`POST /arena/promote`).
-- El detalle del ledger dentro del panel permite filtrar operaciones (todo/ganadoras/perdedoras), exportar el histórico a CSV con un clic y buscar notas por autor o texto, así puedes documentar hallazgos antes de promover.
+- El detalle del ledger dentro del panel permite filtrar operaciones (todo/ganadoras/perdedoras), exportar el histórico a CSV con un clic y buscar notas por autor o texto, así puedes documentar hallazgos antes de promover. El ranking incluye filtros adicionales (categoría, búsqueda por ID/nombre, mínimos de trades/score) y muestra agregados (Sharpe/score promedio, wins del top 10).
 
 ## Operación controlada y automatizaciones
 - `scripts/run_testnet_session.sh` levanta el stack completo en modo testnet (`SLSBOT_MODE=test`, `STRATEGY_ID=scalp_rush_v1`) y deja log en `tmp_logs/testnet_session.log`. Ideal para sesiones de recolección de datos antes de usar capital real.

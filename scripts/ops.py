@@ -41,6 +41,7 @@ if str(ROOT) not in sys.path:
 
 from bot.arena.service import ArenaService
 from bot.arena.promote import export_strategy
+from bot.arena.storage import ArenaStorage
 
 
 def _run(
@@ -188,6 +189,60 @@ def cmd_arena_ranking(args: argparse.Namespace) -> None:
 def cmd_arena_state(args: argparse.Namespace) -> None:
     data = json.loads(ARENA_STATE.read_text(encoding="utf-8")) if ARENA_STATE.exists() else {}
     print(json.dumps(data, indent=2))
+
+
+def cmd_arena_ledger(args: argparse.Namespace) -> None:
+    storage = ArenaStorage()
+    entries = storage.ledger_for(args.strategy_id, limit=max(1, args.limit))
+    if not entries:
+        print(f"[arena] Sin registros para {args.strategy_id}")
+        return
+    if args.csv:
+        dest = Path(args.csv)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with dest.open("w", encoding="utf-8") as fh:
+            fh.write("ts,pnl,balance_after,reason\n")
+            for entry in entries:
+                reason = entry.get("reason") or ""
+                safe_reason = json.dumps(reason, ensure_ascii=False)
+                fh.write(f"{entry['ts']},{entry['pnl']:.6f},{entry['balance_after']:.6f},{safe_reason}\n")
+        print(f"[arena] Ledger exportado a {dest}")
+        return
+    for entry in entries:
+        reason = entry.get("reason") or "-"
+        print(f"{entry['ts']} | pnl={entry['pnl']:.4f} | balance={entry['balance_after']:.4f} | motivo={reason}")
+
+
+def cmd_arena_stats(args: argparse.Namespace) -> None:
+    storage = ArenaStorage()
+    summary = storage.ledger_summary(args.strategy_id, limit=args.limit)
+    if not summary:
+        print(f"[arena] Sin registros para {args.strategy_id}")
+        return
+    if args.json:
+        print(json.dumps(summary, indent=2))
+        return
+    print(f"Estrategia: {summary['strategy_id']}")
+    print(
+        "Trades: {total} | Wins: {wins} | Losses: {losses} | Win rate: {win_rate:.2f}%".format(
+            total=summary["total_trades"],
+            wins=summary["wins"],
+            losses=summary["losses"],
+            win_rate=summary["win_rate"],
+        )
+    )
+    print(
+        "PnL total: {total:.4f} | PnL promedio: {avg:.4f}".format(
+            total=summary["total_pnl"],
+            avg=summary["avg_pnl"],
+        )
+    )
+    print(
+        "Balance final: {balance:.4f} | Max DD: {dd:.2f}%".format(
+            balance=summary["final_balance"],
+            dd=summary["max_drawdown_pct"],
+        )
+    )
 
 
 def cmd_arena_note_add(args: argparse.Namespace) -> None:
@@ -541,6 +596,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     arena_state = arena_sub.add_parser("state", help="Muestra el estado actual de la copa")
     arena_state.set_defaults(func=cmd_arena_state)
+
+    arena_ledger = arena_sub.add_parser("ledger", help="Muestra o exporta el ledger de una estrategia")
+    arena_ledger.add_argument("strategy_id")
+    arena_ledger.add_argument("--limit", type=int, default=100, help="Filas a mostrar/exportar (default 100)")
+    arena_ledger.add_argument("--csv", help="Ruta destino para exportar CSV")
+    arena_ledger.set_defaults(func=cmd_arena_ledger)
+
+    arena_stats = arena_sub.add_parser("stats", help="Resumen estadístico del ledger")
+    arena_stats.add_argument("strategy_id")
+    arena_stats.add_argument("--limit", type=int, help="Filas a considerar (default = todas)")
+    arena_stats.add_argument("--json", action="store_true", help="Imprime el resumen en formato JSON")
+    arena_stats.set_defaults(func=cmd_arena_stats)
 
     arena_notes = arena_sub.add_parser("notes", help="Gestiona notas de estrategias")
     arena_notes_sub = arena_notes.add_subparsers(dest="notes_cmd", required=True)

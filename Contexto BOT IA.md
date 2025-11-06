@@ -20,7 +20,8 @@
 - **Cerebro ingest**: `python scripts/ops.py cerebro ingest` ahora acepta `--include-funding/--include-onchain` y overrides `--funding-symbols/--onchain-symbols` para calentar solo los símbolos críticos antes de levantar el servicio. `scripts/tools/run_cerebro_ingest.py` persiste en JSON los resultados incluyendo qué feeds quedaron habilitados.
 - **Arena → producción**: `python scripts/ops.py arena promote-real <id>` exporta paquete + promueve modelo test→real y deja log en `logs/promotions/promotion_log.jsonl`. Mantener validaciones (`min_trades`, `min_sharpe`, `max_drawdown`, `min_auc`, `min_win_rate`).
 - **Panel**: la tarjeta de Observabilidad elimina duplicados (links Grafana y alerts) y concentra los issues derivados de `/observability/summary`; los sparklines de Prometheus se mantienen opcionales via `NEXT_PUBLIC_PROMETHEUS_BASE_URL`.
-- **Panel / Arena**: el detalle del ledger ahora muestra métricas agregadas (PnL total/promedio, win rate), filtros rápidos (todo/ganadoras/perdedoras), exportación a CSV y búsqueda de notas para documentar hallazgos antes de promover.
+- **Panel / Arena**: el detalle del ledger ahora muestra métricas agregadas (PnL total/promedio, win rate), filtros rápidos (todo/ganadoras/perdedoras), exportación a CSV y búsqueda de notas para documentar hallazgos antes de promover. El ranking también ofrece filtros por categoría, búsqueda libre y mínimos de trades/score con agregados promedio.
+- **CLI Arena**: `python scripts/ops.py arena ledger <id> --limit 200 --csv tmp/ledger.csv` lista/exporta el ledger directamente desde arena.db (paridad con el panel). Complementalo con `python scripts/ops.py arena stats <id> --json` para obtener win rate, PnL acumulado/promedio y max drawdown desde CLI.
 - **Seguridad**: rate limiting configurable para `/control/*` y endpoints con `X-Panel-Token` (`CONTROL_RATE_LIMIT_*`, `PANEL_RATE_LIMIT_*`). Recordar configurar CORS y `WEBHOOK_SHARED_SECRET`.
 
 ---
@@ -46,11 +47,11 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - API expone `/arena/ledger` y el panel cuenta con `/arena` para consumir ranking + ledger con filtros directamente desde la UI.
 - Nuevos endpoints `POST /arena/tick` y `POST /arena/promote` permiten operar la arena (forzar tick/exportar) desde el panel vía botones dedicados.
 - `/metrics` ahora expone métricas (Prometheus) gracias a `prometheus-fastapi-instrumentator`, útil para observabilidad externa.
-- `scripts/ops.py` ahora incluye comandos `deploy bootstrap/rollout` y `monitor check` para orquestar systemd + enviar alertas Slack/Telegram cuando la arena se estanca o supera el drawdown configurado (ver `scripts/tools/monitor_guard.py`).
+- `scripts/ops.py` ahora incluye comandos `deploy bootstrap/rollout` y `monitor check` para orquestar systemd + enviar alertas Slack/Telegram cuando la arena se estanca o supera el drawdown configurado (ver `scripts/tools/monitor_guard.py`). Ahora también vigila Sharpe promedio (`--min-arena-sharpe`) y decisiones/min del Cerebro (`--min-decisions-per-min`).
 - `cup_state.json` registra `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y los endpoints `/arena/state` actualizan métricas `sls_arena_*` que se consumen vía `/metrics`.
 - Promover una estrategia ahora ejecuta validaciones (mínimo de trades, Sharpe y drawdown); el CLI/endpoint aceptan `--force`/`force=true` y generan `validation.json` con los métricos utilizados.
 - `python scripts/ops.py arena notes add/list` y los endpoints `/arena/notes` registran bitácoras para cada estrategia directamente en `arena.db`, útil antes de moverlas a real.
-- `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct` y `sls_cerebro_decisions_per_min`, ideales para cron/CI y dashboards Grafana.
+- `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`, `sls_arena_avg_sharpe`, etc., ideales para cron/CI y dashboards Grafana.
 - Nuevos scripts: `scripts/run_testnet_session.sh` (sesión controlada testnet), `scripts/cron/cerebro_train.sh` (hook cron) y `scripts/tools/arena_candidate_report.py` (selección de campeones); CI con `.github/workflows/ci.yml` y guía `docs/observability.md` para Prometheus/Grafana.
 - Panel `/dashboard` ahora consume `/observability/summary` para mostrar meta de la arena, drawdown actual del bot y decisiones/minuto del Cerebro en tiempo real.
 - `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.

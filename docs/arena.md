@@ -43,12 +43,14 @@ PYTHONPATH=. python scripts/arena_bootstrap.py --total 5000
 - `python scripts/ops.py arena promote <id> --min-trades 80 --min-sharpe 0.4 --max-drawdown 25` bloquea la exportación si los umbrales no se cumplen (usa `--force` para omitirlos); se genera `validation.json` con los motivos.
 - `python scripts/ops.py arena promote-real <id> --source-mode test --target-mode real` genera el paquete y promueve automáticamente el modelo de Cerebro si supera los umbrales (`--min-auc`, `--min-win-rate`). Deja registro en `logs/promotions/promotion_log.jsonl`.
 - `python scripts/ops.py arena notes add/list` registra notas de experimento directamente en `arena.db`, útiles para compartir hallazgos antes de promover.
+- `python scripts/ops.py arena ledger <id> --limit 200 --csv out.csv` inspecciona el ledger histórico (los mismos datos que consume el panel) y permite exportarlo a CSV para auditorías/backup rápido.
+- `python scripts/ops.py arena stats <id> --json` calcula estadísticas clave del ledger (PnL acumulado/promedio, win rate, max drawdown, balance final) para compararlas con los gráficos del panel o automatizar alertas.
 
 Todos estos comandos comparten la misma configuración (`bot/core/settings.py`), así que el CLI respeta tus `.env` y rutas.
 
 ## Notas y workflow de promoción
 - `POST /arena/notes` y `GET /arena/notes?strategy_id=...` permiten registrar/leer bitácoras desde el panel o scripts (las notas se guardan en SQLite y también están disponibles vía `ops arena notes *`).
-- El panel `/arena` ahora permite filtrar el ledger (todas/ganadoras/perdedoras), ver métricas agregadas (PnL total/promedio, win rate) y exportar las operaciones a CSV directamente desde la UI, además de buscar notas por autor/texto.
+- El panel `/arena` ahora permite filtrar el ledger (todas/ganadoras/perdedoras), ver métricas agregadas (PnL total/promedio, win rate) y exportar las operaciones a CSV directamente desde la UI, además de buscar notas por autor/texto. El ranking también tiene filtros por categoría, búsqueda libre y mínimos de trades/score, junto con indicadores promedio para tomar decisiones más rápido.
 - La promoción ejecuta validaciones automáticas (`min_trades`, `min_sharpe`, `max_drawdown`). Si falla, la API/CLI devuelve un `400` explicando los motivos; puedes usar `force=true` o `--force` para omitirlas, aunque se registrará igualmente `validation.json`.
 
 ## Pruebas

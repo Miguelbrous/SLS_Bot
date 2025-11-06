@@ -14,9 +14,9 @@
 
 ## Dashboards Grafana
 - Importa los dashboards JSON ubicados en `docs/observability/grafana/`:
-  - `arena_dashboard.json`: muestra drawdown, meta y estado de la arena (ticks sin campeón, envejecimiento del tick, decisiones/min del Cerebro).
+  - `arena_dashboard.json`: muestra drawdown, meta y estado de la arena (ticks sin campeón, envejecimiento del tick, decisiones/min del Cerebro) y ahora también métricas extra expuestas por el panel (Sharpe/score promedio, count de estrategias).
   - `bot_cerebro_dashboard.json`: monitorea drawdown del bot, latencias HTTP y actividad del Cerebro.
-- Desde Grafana: *Dashboards → Import → Upload JSON* y selecciona el archivo. Usa el datasource Prometheus configurado para `/metrics`.
+- Desde Grafana: *Dashboards → Import → Upload JSON* y selecciona el archivo (si no usas el provisioning). Usa el datasource Prometheus configurado para `/metrics`.
 - Si quieres exponer enlaces rápidos desde el panel, define `NEXT_PUBLIC_GRAFANA_BASE_URL` y los UIDs (`NEXT_PUBLIC_GRAFANA_ARENA_UID`, `NEXT_PUBLIC_GRAFANA_BOT_UID`) en `panel/.env`.
 - Para que el panel pinte sparklines directamente desde Prometheus, completa también `NEXT_PUBLIC_PROMETHEUS_BASE_URL` con la URL de tu Prom (`http://localhost:9090`, etc.).
 
@@ -25,6 +25,7 @@
 - Ejecuta `make observability-up` para arrancar el stack (usa `host.docker.internal:8880` como target por defecto). Para detenerlo: `make observability-down`.
 - Ajusta variables antes de levantar (ej. `SLS_PROM_TARGET_HOST`, `GRAFANA_PORT`, `GRAFANA_ADMIN_PASSWORD`) o añade tus credenciales Slack en `alertmanager.yml` para probar alertas reales.
 - `docs/observability/alertmanager.yml` trae un webhook Slack de ejemplo (`https://hooks.slack.com/services/CHANGE/ME/NOW`). Cámbialo por tu URL real antes de habilitar alertas o de correr el smoke test.
+- Grafana se levanta con provisioning (`docs/observability/grafana/provisioning/*`) para que el datasource Prometheus y los dashboards Arena/Bot se importen automáticamente tras `make observability-up`.
 
 ## Smoke automático
 - `scripts/tests/observability_check.py` valida que Prometheus exponga `/api/v1/rules`, que existan las reglas críticas (`ArenaLagHigh`, `BotDrawdownCritical`, etc.) y, opcionalmente, que Grafana/Alertmanager respondan (`GRAFANA_BASE`, `GRAFANA_USER/PASSWORD`, `ALERTMANAGER_BASE`). Devuelve `SystemExit` con un mensaje claro si falta alguno.
@@ -36,6 +37,7 @@
 
 ## Monitor activo (`ops monitor check`)
 - `python scripts/ops.py monitor check --api-base https://api... --panel-token XXX --slack-webhook ...` valida lag de arena, drawdown y ticks sin campeones.
+- Ajusta los umbrales `--min-arena-sharpe` y `--min-decisions-per-min` para recibir alertas cuando el Sharpe promedio del panel o las decisiones/min del Cerebro caen por debajo de lo esperado.
 - Programa cron o systemd timer para ejecutarlo cada 5-10 minutos (usa `--dry-run` para pruebas). Revisa `tmp_logs/monitor_guard.log` si lo rediriges.
 
 ## CI/CD

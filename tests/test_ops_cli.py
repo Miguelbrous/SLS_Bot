@@ -176,6 +176,78 @@ def test_arena_promote_command_builds_thresholds(stub_run):
     ]
 
 
+def test_arena_ledger_command_prints(monkeypatch, capsys):
+    class DummyStorage:
+        def ledger_for(self, strategy_id, limit):
+            assert strategy_id == "strat_x"
+            assert limit == 5
+            return [
+                {"ts": "2025-01-01T00:00:00Z", "pnl": 1.2345, "balance_after": 101.5, "reason": "ok"},
+            ]
+
+    monkeypatch.setattr(ops, "ArenaStorage", lambda: DummyStorage())
+    parser = ops.build_parser()
+    args = parser.parse_args(["arena", "ledger", "strat_x", "--limit", "5"])
+    args.func(args)
+    out = capsys.readouterr().out
+    assert "1.2345" in out
+    assert "motivo=ok" in out
+
+
+def test_arena_ledger_command_exports_csv(monkeypatch, tmp_path):
+    class DummyStorage:
+        def ledger_for(self, strategy_id, limit):
+            return [
+                {"ts": "2025-01-01T00:00:00Z", "pnl": 2.5, "balance_after": 200.0, "reason": "export"},
+            ]
+
+    monkeypatch.setattr(ops, "ArenaStorage", lambda: DummyStorage())
+    parser = ops.build_parser()
+    dest = tmp_path / "ledger.csv"
+    args = parser.parse_args(["arena", "ledger", "strat_x", "--csv", str(dest)])
+    args.func(args)
+    content = dest.read_text(encoding="utf-8")
+    assert "export" in content
+    assert "2.500000" in content
+
+
+def test_arena_stats_command_text(monkeypatch, capsys):
+    class DummyStorage:
+        def ledger_summary(self, strategy_id, limit):
+            return {
+                "strategy_id": strategy_id,
+                "total_trades": 10,
+                "wins": 6,
+                "losses": 4,
+                "win_rate": 60.0,
+                "total_pnl": 12.345,
+                "avg_pnl": 1.2345,
+                "final_balance": 112.34,
+                "max_drawdown_pct": 8.5,
+            }
+
+    monkeypatch.setattr(ops, "ArenaStorage", lambda: DummyStorage())
+    parser = ops.build_parser()
+    args = parser.parse_args(["arena", "stats", "strat_x"])
+    args.func(args)
+    out = capsys.readouterr().out
+    assert "Trades: 10" in out
+    assert "Win rate: 60.00%" in out
+
+
+def test_arena_stats_command_json(monkeypatch, capsys):
+    class DummyStorage:
+        def ledger_summary(self, strategy_id, limit):
+            return {"strategy_id": strategy_id, "total_trades": 2}
+
+    monkeypatch.setattr(ops, "ArenaStorage", lambda: DummyStorage())
+    parser = ops.build_parser()
+    args = parser.parse_args(["arena", "stats", "strat_y", "--json"])
+    args.func(args)
+    out = capsys.readouterr().out
+    assert '"total_trades": 2' in out
+
+
 def test_cerebro_train_command(stub_run):
     parser = ops.build_parser()
     args = parser.parse_args(

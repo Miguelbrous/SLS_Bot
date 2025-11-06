@@ -117,23 +117,55 @@ class ArenaStorage:
             ).fetchall()
             return [dict(row) for row in rows]
 
-    def ledger_for(self, strategy_id: str, limit: int = 50) -> List[dict]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
+    def ledger_for(self, strategy_id: str, limit: int | None = 50) -> List[dict]:
+        query = """
+            SELECT strategy_id, ts, pnl, balance_after, reason
+            FROM (
                 SELECT strategy_id, ts, pnl, balance_after, reason
-                FROM (
-                    SELECT strategy_id, ts, pnl, balance_after, reason
-                    FROM ledger
-                    WHERE strategy_id = ?
-                    ORDER BY id DESC
-                    LIMIT ?
-                )
-                ORDER BY ts ASC
-                """,
-                (strategy_id, limit),
-            ).fetchall()
+                FROM ledger
+                WHERE strategy_id = ?
+                ORDER BY id DESC
+                {limit_clause}
+            )
+            ORDER BY ts ASC
+        """
+        limit_clause = "LIMIT ?" if limit else ""
+        sql = query.format(limit_clause=limit_clause)
+        params: tuple = (strategy_id,) if not limit else (strategy_id, limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
             return [dict(row) for row in rows]
+
+    def ledger_summary(self, strategy_id: str, limit: int | None = None) -> dict:
+        rows = self.ledger_for(strategy_id, limit=limit)
+        if not rows:
+            return {}
+        total = len(rows)
+        total_pnl = sum(entry["pnl"] for entry in rows)
+        wins = sum(1 for entry in rows if entry["pnl"] > 0)
+        losses = total - wins
+        avg_pnl = total_pnl / total if total else 0.0
+        win_rate = (wins / total) * 100 if total else 0.0
+        balances = [entry["balance_after"] for entry in rows]
+        final_balance = balances[-1]
+        peak = -float("inf")
+        max_drawdown = 0.0
+        for bal in balances:
+            peak = max(peak, bal)
+            if peak > 0:
+                drawdown = (peak - bal) / peak * 100
+                max_drawdown = max(max_drawdown, drawdown)
+        return {
+            "strategy_id": strategy_id,
+            "total_trades": total,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": win_rate,
+            "total_pnl": total_pnl,
+            "avg_pnl": avg_pnl,
+            "final_balance": final_balance,
+            "max_drawdown_pct": max_drawdown,
+        }
 
     def add_note(self, strategy_id: str, note: str, author: str | None = None) -> dict:
         ts = datetime.now(timezone.utc).isoformat()
