@@ -45,32 +45,9 @@ SLS_Bot/
 │  ├─ public/
 │  ├─ package.json
 │  └─ tsconfig.json
-├─ docs/
-│  ├─ cerebro.md
-│  ├─ STACK.md
-│  ├─ observabilidad/
-│     ├─ README.md
-│     ├─ alertmanager.yml
-│     ├─ prometheus_rules.yml
-│     └─ grafana/
-│        └─ sls_bot_control_center.json
-│  └─ operations/
-│     └─ failover.md
 ├─ config/
 │  ├─ config.sample.json
 │  └─ config.json
-├─ .github/
-│  └─ workflows/
-│     └─ ci.yml
-├─ infra/
-│  └─ ansible/
-│     ├─ README.md
-│     ├─ inventory.example.ini
-│     ├─ provision.yml
-│     └─ templates/
-│        ├─ sls-api.service.j2
-│        ├─ sls-bot.service.j2
-│        └─ sls-cerebro.service.j2
 ├─ scripts/\n│  ├─ manage.sh\n│  ├─ deploy/
 │  │  ├─ bootstrap.sh
 │  │  ├─ README.md
@@ -82,8 +59,6 @@ SLS_Bot/
 │  │  └─ e2e_smoke.py
 │  └─ tools/
 │     ├─ infra_check.py
-│     ├─ metrics_business.py
-│     ├─ failover_sim.py
 │     └─ promote_strategy.py
 ├─ excel/           (generado; crear subcarpetas `excel/test` y `excel/real`)
 ├─ logs/            (generado; crear `logs/test` y `logs/real`)
@@ -128,3 +103,6 @@ SLS_Bot/
    - Crea `panel/.env` usando `panel/.env.example` con `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN`, etc.
 
 5. **Confirmación final:** si después de estos pasos vuelve a faltar cualquier archivo, estás en otro repositorio o la rama remota no coincide; repite desde el paso 1 hasta que el árbol sea idéntico al listado.
+
+
+

@@ -77,3 +77,4 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - Workflow `ci.yml` (GitHub Actions) ejecuta `make test`, `npm run lint`, `npm run build` y publica el artefacto del panel en cada push/PR a `main`.
 - `infra/ansible/` contiene `inventory.example.ini`, `provision.yml` y las plantillas systemd (`templates/*.service.j2`). El playbook instala paquetes base, clona el repo en `sls_bot_root`, crea el venv, instala deps IA/panel y registra los servicios.
 - Usa `ansible-playbook -i inventory.ini provision.yml -e sls_bot_repo=git@...` para personalizar repo, rama, usuario o ruta. Completa `/etc/sls_bot.env` y `config/config.json` antes de arrancar servicios.
+- Configura en GitHub los secrets `DEPLOY_HOST`, `DEPLOY_USER` y `DEPLOY_SSH_KEY` para habilitar el job de despliegue en Actions (si no existen, el job se omite automáticamente).

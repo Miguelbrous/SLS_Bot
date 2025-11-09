@@ -69,3 +69,31 @@ jobs:
       - name: Report success
         run: |
           echo "Backend + panel pipelines finished."
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [summary]
+    if: ${{ secrets.DEPLOY_HOST != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download panel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: panel-build
+          path: panel-build
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cat >> ~/.ssh/config <<CONF
+          Host sls-deploy
+            HostName ${{ secrets.DEPLOY_HOST }}
+            User ${{ secrets.DEPLOY_USER }}
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking no
+CONF
+      - name: Placeholder deploy
+        run: |
+          echo "Connecting to ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}..."
+          echo "Aquí podrías ejecutar rsync/ssh para desplegar artefactos."

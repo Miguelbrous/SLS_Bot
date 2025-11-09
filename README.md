@@ -175,6 +175,7 @@ npm run build
 - **GitHub Actions**: `.github/workflows/ci.yml` ejecuta `make test`, `npm run lint`, `npm run build` y publica el build del panel como artefacto. Se dispara en `push`/`pull_request` a `main` y cancela ejecuciones previas para la misma rama.
 - **Provisioning Ansible**: `infra/ansible/provision.yml` instala paquetes base, clona el repo, crea el venv, instala dependencias (incluyendo IA), genera un `.env` placeholder y despliega los servicios systemd. Edita `inventory.example.ini` con tu host y ejecuta `ansible-playbook`.
 - Las plantillas de systemd (`infra/ansible/templates/*.service.j2`) usan las mismas rutas que los servicios productivos: personaliza `sls_bot_root`, `sls_bot_user` y `sls_bot_env_file` vía variables o `-e`.
+- Para habilitar despliegues desde Actions, configura los secrets `DEPLOY_HOST`, `DEPLOY_USER` y `DEPLOY_SSH_KEY` (clave privada con acceso SSH). El job `deploy` sólo se ejecuta si esos valores existen.
 
 ## Estructura
 ```
