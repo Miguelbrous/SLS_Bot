@@ -35,6 +35,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
    - `cooldown_loss_streak` / `cooldown_loss_window_minutes` / `cooldown_loss_minutes`: nuevo cooldown inteligente que cuenta las pérdidas de la ventana móvil y detiene el bot durante `cooldown_loss_minutes` si se supera la racha.
    - `pnl_epsilon`: umbral mínimo para considerar una operación como ganadora/perdedora (evita que resultados muy pequeños rompan la racha).
    - `dynamic_risk`: habilita multiplicadores autom?ticos seg?n drawdown/equity (define `drawdown_tiers`, `min_multiplier`, `max_multiplier`, `equity_ceiling_pct`).
+   - `guardrails`: límites adicionales para autopilot (`min_confidence`, `max_risk_pct`, `volatility.max_atr_pct` y `per_symbol.{max_risk_pct,max_leverage}`). Si una guardia se dispara, el bot ajusta el riesgo/leverage o bloquea la señal antes de enviar la orden.
 
 ## Modos prueba vs real
 - Define `SLSBOT_MODE` (`test` o `real`) en cada servicio. Ambos procesos pueden ejecutarse en paralelo usando el mismo `config.json` gracias a los perfiles (`modes.*`).
@@ -113,6 +114,45 @@ cd C:/Users/migue/Desktop/SLS_Bot/bot
 set SLSBOT_MODE=test
 python -m cerebro.train --mode test --min-auc 0.55 --min-win-rate 0.55
 ```
+Antes de entrenar valida la calidad del dataset:
+```
+python scripts/tools/cerebro_dataset_check.py ^
+  --dataset logs/test/cerebro_experience.jsonl ^
+  --min-rows 200 ^
+  --min-win-rate 0.45 ^
+  --require-symbols BTCUSDT,ETHUSDT
+```
+`cerebro.train` también acepta `--dataset-min-rows`, `--dataset-min-win-rate`, `--dataset-require-symbols` y `--dataset-max-dominant-share` para forzar estos controles automáticamente.
+
+## Arena / Autopilot Ranking
+```
+python scripts/tools/arena_rank.py runs/ \
+  --min-trades 100 \
+  --max-drawdown 5 \
+  --target-sharpe 1.6 \
+  --target-calmar 2.2 \
+  --json
+```
+El script acepta archivos `.json` o `.jsonl` con `stats` (pnl, max_drawdown, trades, returns_avg/std, etc.), calcula Sharpe/Calmar/Profit Factor, aplica guardias (`min_trades`, `max_drawdown`, `max_drift`) y devuelve la tabla ordenada por score. Guarda los descartados con la razón para documentar por qué no calificaron.
+
+## Autopilot summary / CI
+```
+python scripts/tools/autopilot_summary.py ^
+  --dataset logs/test/cerebro_experience.jsonl ^
+  --runs arena/runs/*.jsonl ^
+  --min-trades 120 ^
+  --max-drawdown 4.5 ^
+  --output-json metrics/autopilot_summary.json ^
+  --markdown metrics/autopilot_summary.md ^
+  --prometheus-file metrics/autopilot.prom
+```
+La salida contiene:
+- `dataset.summary/violations`: mismas métricas del dataset check (filas, win_rate, símbolos dominantes).
+- `arena.accepted / rejected`: ranking multi-métrica usando `arena_rank`.
+- Slack opcional (`SLACK_WEBHOOK_AUTOPILOT`) para avisar resultados al canal de trading.
+- Markdown opcional (`--markdown`) para incluir el resumen directo en PR/Notion.
+- `--prometheus-file` genera métricas (`sls_autopilot_dataset_rows`, `..._win_rate`, `..._top_score`, etc.) listas para el textfile collector.
+- Puedes automatizarlo con `make autopilot-summary` (ajusta `AUTOPILOT_*` env vars) o vía `scripts/cron/autopilot_summary.sh` en systemd/cron.
 El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con `models/cerebro/<mode>` por defecto, por lo que no necesitas pasar rutas cuando sigues la convenci�n de carpetas. Solo promueve `active_model.json` si supera los umbrales y mejora la m�trica previa; al terminar puedes ejecutar `scripts/tools/promote_strategy.py` para copiar el modelo al modo real y reiniciar el dataset de pruebas.
 
 ## Servicio Cerebro IA (systemd)

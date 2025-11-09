@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+from .dataset_utils import load_rows, summarize_rows
 
 
 def _default_mode() -> str:
@@ -33,24 +34,6 @@ FEATURES = [
     "ml_score",
     "session_guard_penalty",
 ]
-
-
-def load_rows(dataset_path: Path) -> List[dict]:
-    rows: List[dict] = []
-    if not dataset_path.exists():
-        raise FileNotFoundError(f"No existe el dataset en {dataset_path}")
-    with dataset_path.open("r", encoding="utf-8", errors="ignore") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return rows
-
-
 def preprocess(rows: Sequence[dict], stats: Tuple[List[float], List[float]] | None = None) -> Tuple[List[List[float]], List[int], List[float], List[float]]:
     vectors: List[List[float]] = []
     labels: List[int] = []
@@ -210,6 +193,10 @@ def build_argparser() -> argparse.ArgumentParser:
     parser.add_argument("--min-auc", type=float, default=0.52)
     parser.add_argument("--min-win-rate", type=float, default=0.52)
     parser.add_argument("--train-ratio", type=float, default=0.8)
+    parser.add_argument("--dataset-min-rows", type=int, default=100, help="Mínimo de experiencias necesarias antes de entrenar.")
+    parser.add_argument("--dataset-min-win-rate", type=float, default=0.4, help="Win rate mínimo aceptado para el dataset crudo.")
+    parser.add_argument("--dataset-require-symbols", type=str, default="", help="Lista de símbolos obligatorios, separados por coma.")
+    parser.add_argument("--dataset-max-dominant-share", type=float, default=0.75, help="Máximo porcentaje que puede concentrar un símbolo (0-1).")
     return parser
 
 
@@ -220,8 +207,19 @@ def main() -> None:
     dataset_path = args.dataset or _dataset_for_mode(mode)
     output_dir = args.output_dir or _output_for_mode(mode)
     rows = load_rows(dataset_path)
-    if len(rows) < 50:
-        raise SystemExit(f"Se necesitan al menos 50 experiencias, solo hay {len(rows)}")
+    summary = summarize_rows(rows)
+    if summary["total"] < args.dataset_min_rows:
+        raise SystemExit(f"Dataset insuficiente: {summary['total']} < {args.dataset_min_rows}")
+    if summary["win_rate"] < args.dataset_min_win_rate:
+        raise SystemExit(f"Win rate del dataset {summary['win_rate']:.2f} < {args.dataset_min_win_rate:.2f}")
+    required_symbols = [s.strip().upper() for s in args.dataset_require_symbols.split(",") if s.strip()]
+    missing = [s for s in required_symbols if s not in summary["symbols"]]
+    if missing:
+        raise SystemExit(f"El dataset no contiene símbolos obligatorios: {', '.join(missing)}")
+    if summary["dominant_symbol_share"] > args.dataset_max_dominant_share:
+        raise SystemExit(
+            f"Un símbolo domina {summary['dominant_symbol_share']:.2f}, supera el máximo {args.dataset_max_dominant_share:.2f}"
+        )
     random.Random(42).shuffle(rows)
     split_idx = max(1, int(len(rows) * min(max(args.train_ratio, 0.1), 0.9)))
     train_rows = rows[:split_idx]

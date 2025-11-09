@@ -110,6 +110,15 @@ Cada vez que el bot cierra una operación se escribe `logs/cerebro_experience.js
 cd bot
 python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir ../models/cerebro
 ```
+Antes de lanzar el entrenamiento ejecuta el validador:
+```
+python scripts/tools/cerebro_dataset_check.py \
+  --dataset ../logs/cerebro_experience.jsonl \
+  --min-rows 200 \
+  --min-win-rate 0.45 \
+  --require-symbols BTCUSDT,ETHUSDT
+```
+El validador detecta desbalance (símbolo dominante, win rate muy bajo, etc.) y aborta con una lista de violaciones.
 
 1. Limpia/normaliza las features numéricas.
 2. Entrena una regresión logística ligera (gradiente descendente puro-Python).

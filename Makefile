@@ -13,6 +13,11 @@ FAILOVER_LOG_DIR ?= $(ROOT)/logs/failover
 FAILOVER_MAX_WAIT ?= 45
 FAILOVER_JOURNAL_LINES ?= 50
 FAILOVER_EXECUTE ?= $(EXECUTE)
+AUTOPILOT_DATASET ?= $(ROOT)/logs/test/cerebro_experience.jsonl
+AUTOPILOT_RUNS ?= $(ROOT)/arena/runs/*.jsonl
+AUTOPILOT_OUTPUT_JSON ?= $(ROOT)/metrics/autopilot_summary.json
+AUTOPILOT_MARKDOWN ?= $(ROOT)/metrics/autopilot_summary.md
+AUTOPILOT_PROM_FILE ?= $(ROOT)/metrics/autopilot.prom
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -21,7 +26,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico metrics-business failover-sim
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico metrics-business failover-sim autopilot-summary
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -81,3 +86,11 @@ failover-sim: ## Ejecuta el simulador de failover (usar EXECUTE=1 para reiniciar
 		--max-wait $(FAILOVER_MAX_WAIT) \
 		--journal-lines $(FAILOVER_JOURNAL_LINES) \
 		$(if $(filter 1 true yes on,$(FAILOVER_EXECUTE)),--execute)
+
+autopilot-summary: ## Genera resumen Autopilot/Arena 2V (dataset+ranking). Ajusta AUTOPILOT_* vars.
+	$(PYTHON_BIN) scripts/tools/autopilot_summary.py \
+		--dataset $(AUTOPILOT_DATASET) \
+		--runs $(AUTOPILOT_RUNS) \
+		--output-json $(AUTOPILOT_OUTPUT_JSON) \
+		--markdown $(AUTOPILOT_MARKDOWN) \
+		--prometheus-file $(AUTOPILOT_PROM_FILE)

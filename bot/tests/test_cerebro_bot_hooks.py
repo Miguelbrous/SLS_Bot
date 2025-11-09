@@ -97,3 +97,37 @@ def test_notify_cerebro_learn_pushes_features(monkeypatch):
     assert features["news_sentiment"] == 0.2
     assert features["session_guard_state"] == "news_ready"
     assert features["ml_score"] == 0.65
+
+
+def test_guardrails_block_low_confidence(monkeypatch):
+    guard_cfg = {"risk": {"guardrails": {"min_confidence": 0.9}}}
+    monkeypatch.setattr(sls_app, "cfg", guard_cfg, raising=False)
+    sig = sls_app.Signal(signal="LONG", symbol="BTCUSDT", tf="15m", risk_score=0.4, risk_pct=1.5, leverage=5)
+    state = {}
+
+    result = sls_app._apply_guardrails(sig, 30000.0, state)
+
+    assert result and result["blocked"]
+    assert state["guardrail_hits"]
+
+
+def test_guardrails_cap_symbol(monkeypatch):
+    guard_cfg = {
+        "risk": {
+            "guardrails": {
+                "per_symbol": {
+                    "BTCUSDT": {"max_risk_pct": 1.0, "max_leverage": 8}
+                }
+            }
+        }
+    }
+    monkeypatch.setattr(sls_app, "cfg", guard_cfg, raising=False)
+    sig = sls_app.Signal(signal="LONG", symbol="BTCUSDT", tf="15m", risk_pct=2.5, leverage=15)
+    state = {}
+
+    result = sls_app._apply_guardrails(sig, 30000.0, state)
+
+    assert not result or not result.get("blocked")
+    assert sig.risk_pct == 1.0
+    assert sig.leverage == 8
+    assert state["guardrail_hits"]

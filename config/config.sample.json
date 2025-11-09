@@ -28,6 +28,17 @@
         "max_multiplier": 1.6,
         "equity_ceiling_pct": 8,
         "multiplier_above_ceiling": 1.2
+      },
+      "guardrails": {
+        "min_confidence": 0.55,
+        "max_risk_pct": 2.0,
+        "volatility": {
+          "max_atr_pct": 3.5
+        },
+        "per_symbol": {
+          "BTCUSDT": {"max_risk_pct": 1.5, "max_leverage": 15},
+          "ETHUSDT": {"max_risk_pct": 1.2, "max_leverage": 12}
+        }
       }
     },
     "server": {
@@ -139,6 +150,17 @@
           "min_multiplier": 0.2,
           "max_multiplier": 1.0,
           "equity_ceiling_pct": 5
+        },
+        "guardrails": {
+          "min_confidence": 0.6,
+          "max_risk_pct": 1.5,
+          "volatility": {
+            "max_atr_pct": 3.0
+          },
+          "per_symbol": {
+            "BTCUSDT": {"max_risk_pct": 1.2, "max_leverage": 12},
+            "ETHUSDT": {"max_risk_pct": 1.0, "max_leverage": 10}
+          }
         }
       },
       "cerebro": {

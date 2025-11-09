@@ -693,6 +693,56 @@ def _apply_dynamic_risk(sig: Signal, balance: float, st: dict) -> None:
         "applied_ts": _now_ts(),
     }
 
+
+def _apply_guardrails(sig: Signal, price_live: float, st: dict) -> dict | None:
+    guard_cfg = (cfg.get("risk", {}).get("guardrails") or {})
+    if not guard_cfg:
+        return None
+    symbol = sig.symbol.upper()
+    guard_state = {"hits": []}
+    st_hits = st.setdefault("guardrail_hits", [])
+
+    def _record(hit: dict) -> None:
+        hit["ts"] = _now_ts()
+        st_hits.append(hit)
+        guard_state["hits"].append(hit)
+
+    max_global = float(guard_cfg.get("max_risk_pct") or 0)
+    if max_global and sig.risk_pct and sig.risk_pct > max_global:
+        sig.risk_pct = max_global
+        _record({"type": "cap_global_risk", "value": max_global})
+
+    per_symbol = (guard_cfg.get("per_symbol") or {}).get(symbol, {})
+    max_symbol_risk = per_symbol.get("max_risk_pct")
+    if max_symbol_risk and sig.risk_pct and sig.risk_pct > max_symbol_risk:
+        sig.risk_pct = max_symbol_risk
+        _record({"type": "cap_symbol_risk", "symbol": symbol, "value": max_symbol_risk})
+    max_symbol_lev = per_symbol.get("max_leverage")
+    if max_symbol_lev and sig.leverage and sig.leverage > max_symbol_lev:
+        sig.leverage = max_symbol_lev
+        _record({"type": "cap_symbol_leverage", "symbol": symbol, "value": max_symbol_lev})
+
+    min_conf = float(guard_cfg.get("min_confidence") or 0)
+    confidence = float(sig.risk_score or 0)
+    if min_conf and confidence < min_conf:
+        hit = {"type": "block_confidence", "required": min_conf, "value": confidence}
+        _record(hit)
+        return {"blocked": True, "reason": "guardrails.confidence", "details": hit}
+
+    vol_cfg = guard_cfg.get("volatility") or {}
+    atr = getattr(getattr(sig, "confirmations", None) or object(), "atr", None)
+    max_atr_pct = float(vol_cfg.get("max_atr_pct") or 0)
+    if max_atr_pct and atr and price_live:
+        atr_pct = (atr / price_live) * 100
+        if atr_pct > max_atr_pct:
+            hit = {"type": "block_volatility", "atr_pct": round(atr_pct, 3), "max_atr_pct": max_atr_pct}
+            _record(hit)
+            return {"blocked": True, "reason": "guardrails.volatility", "details": hit}
+
+    if guard_state["hits"]:
+        return guard_state
+    return None
+
 # ----- ENDPOINTS BÁSICOS -----
 @app.get("/health")
 def health():
@@ -889,6 +939,10 @@ def webhook(sig: Signal):
         if cere_decision and cere_decision.get("blocked"):
             return {"status": "filtered", "reason": cere_decision.get("reason", "cerebro")}
         _apply_dynamic_risk(sig, balance, st)
+        guardrail = _apply_guardrails(sig, price_live, st)
+        if guardrail and guardrail.get("blocked"):
+            _save_state(st)
+            return {"status": "filtered", "reason": guardrail.get("reason", "guardrails"), "details": guardrail}
         _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
