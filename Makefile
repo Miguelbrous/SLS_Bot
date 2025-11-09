@@ -8,6 +8,11 @@ ENV_FILE ?= $(ROOT)/.env
 MANAGER := $(ROOT)/scripts/manage_bot.py
 METRICS_OUTPUT ?= $(ROOT)/metrics/business.prom
 METRICS_MODE ?= $(SLSBOT_MODE)
+FAILOVER_SERVICES ?= sls-api.service,sls-cerebro.service,sls-bot.service
+FAILOVER_LOG_DIR ?= $(ROOT)/logs/failover
+FAILOVER_MAX_WAIT ?= 45
+FAILOVER_JOURNAL_LINES ?= 50
+FAILOVER_EXECUTE ?= $(EXECUTE)
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -16,7 +21,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico metrics-business
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico metrics-business failover-sim
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -68,3 +73,11 @@ metrics-business: ## Genera metrics/business.prom (usar METRICS_MODE y METRICS_O
 	$(PYTHON_BIN) scripts/tools/metrics_business.py \
 		$(if $(METRICS_MODE),--mode $(METRICS_MODE),) \
 		--output $(METRICS_OUTPUT)
+
+failover-sim: ## Ejecuta el simulador de failover (usar EXECUTE=1 para reiniciar realmente los servicios).
+	$(PYTHON_BIN) scripts/tools/failover_sim.py \
+		--services "$(FAILOVER_SERVICES)" \
+		--log-dir $(FAILOVER_LOG_DIR) \
+		--max-wait $(FAILOVER_MAX_WAIT) \
+		--journal-lines $(FAILOVER_JOURNAL_LINES) \
+		$(if $(filter 1 true yes on,$(FAILOVER_EXECUTE)),--execute)

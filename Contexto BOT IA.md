@@ -66,3 +66,9 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - **Dashboard Grafana**: `docs/observability/grafana/sls_bot_control_center.json` muestra KPIs (PnL acumulado, win rate, PnL diario, alertas) con variable `$mode`. Importarlo apuntando al datasource Prometheus (`DS_PROMETHEUS`).
 - **Procedimiento detallado**: `docs/observability/README.md` documenta el stack (textfile collector, promtool/alertmanager dry-run, systemd unit/timer).
 
+## Resiliencia y failover
+- `scripts/tools/failover_sim.py` orquesta el simulacro: por defecto recorre `sls-api.service`, `sls-cerebro.service` y `sls-bot.service`, captura `systemctl status` + `journalctl` y genera `logs/failover/failover_report_<timestamp>.log`.
+- `make failover-sim` → dry-run. `sudo make failover-sim EXECUTE=1` reinicia realmente. Personaliza la lista con `FAILOVER_SERVICES="svc1,svc2"` y los tiempos con `FAILOVER_MAX_WAIT`.
+- Ajusta `FAILOVER_LOG_DIR` si quieres guardar los reportes fuera de `/root/SLS_Bot/logs/failover`.
+- Documenta cada ejercicio siguiendo `docs/operations/failover.md` (checklist y puntos del post-mortem).
+

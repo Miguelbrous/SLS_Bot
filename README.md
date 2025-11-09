@@ -165,6 +165,12 @@ npm run build
 - **Grafana**: importa `docs/observabilidad/grafana/sls_bot_control_center.json`, selecciona el datasource (`DS_PROMETHEUS`) y usa la variable `$mode` para cambiar entre `test` y `real`.
 - Consulta `docs/observabilidad/README.md` para ver el timer de ejemplo y comandos de validación (`promtool`, `alertmanager --dry.run`, etc.).
 
+## Resiliencia / Failover
+- `make failover-sim` ejecuta el simulador en modo dry-run: no reinicia nada, pero genera `logs/failover/failover_report_<ts>.log` con `systemctl status` y `journalctl`.
+- Para un ejercicio real, ejecuta `sudo make failover-sim EXECUTE=1`. Personaliza la lista con `FAILOVER_SERVICES="sls-api.service,sls-bot.service"` y ajusta tiempos con `FAILOVER_MAX_WAIT`.
+- Cambia la ruta del reporte con `FAILOVER_LOG_DIR=/var/log/sls_bot/failover`.
+- Sigue el checklist descrito en `docs/operations/failover.md` para documentar hallazgos/post-mortem.
+
 ## Estructura
 ```
 bot/
