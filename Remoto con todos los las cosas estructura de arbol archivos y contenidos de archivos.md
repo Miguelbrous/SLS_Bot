@@ -56,11 +56,21 @@ SLS_Bot/
 │        └─ sls_bot_control_center.json
 │  └─ operations/
 │     └─ failover.md
-│  └─ operations/
-│     └─ failover.md
 ├─ config/
 │  ├─ config.sample.json
 │  └─ config.json
+├─ .github/
+│  └─ workflows/
+│     └─ ci.yml
+├─ infra/
+│  └─ ansible/
+│     ├─ README.md
+│     ├─ inventory.example.ini
+│     ├─ provision.yml
+│     └─ templates/
+│        ├─ sls-api.service.j2
+│        ├─ sls-bot.service.j2
+│        └─ sls-cerebro.service.j2
 ├─ scripts/\n│  ├─ manage.sh\n│  ├─ deploy/
 │  │  ├─ bootstrap.sh
 │  │  ├─ README.md

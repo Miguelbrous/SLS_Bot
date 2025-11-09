@@ -71,4 +71,9 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `make failover-sim` → dry-run. `sudo make failover-sim EXECUTE=1` reinicia realmente. Personaliza la lista con `FAILOVER_SERVICES="svc1,svc2"` y los tiempos con `FAILOVER_MAX_WAIT`.
 - Ajusta `FAILOVER_LOG_DIR` si quieres guardar los reportes fuera de `/root/SLS_Bot/logs/failover`.
 - Documenta cada ejercicio siguiendo `docs/operations/failover.md` (checklist y puntos del post-mortem).
+- **Ejecución 2025-11-09**: inicialmente `sls-cerebro` falló por `ModuleNotFoundError: pandas` y `sls-bot` por un ExecStart apuntando a `/root/SLS_Bot/SLS_Bot/...`. Se corrigió reinstalando las deps IA en el venv y actualizando `/etc/systemd/system/sls-bot.service` (ahora ambos reportan `active`). Ver `logs/failover/failover_report_20251109_144707.log`.
 
+## CI/CD y provisioning
+- Workflow `ci.yml` (GitHub Actions) ejecuta `make test`, `npm run lint`, `npm run build` y publica el artefacto del panel en cada push/PR a `main`.
+- `infra/ansible/` contiene `inventory.example.ini`, `provision.yml` y las plantillas systemd (`templates/*.service.j2`). El playbook instala paquetes base, clona el repo en `sls_bot_root`, crea el venv, instala deps IA/panel y registra los servicios.
+- Usa `ansible-playbook -i inventory.ini provision.yml -e sls_bot_repo=git@...` para personalizar repo, rama, usuario o ruta. Completa `/etc/sls_bot.env` y `config/config.json` antes de arrancar servicios.

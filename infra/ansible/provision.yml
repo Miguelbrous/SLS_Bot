@@ -1,0 +1,121 @@
+---
+- hosts: sls
+  become: true
+  vars:
+    sls_bot_root: /opt/sls_bot
+    sls_bot_repo: https://github.com/your-org/SLS_Bot.git
+    sls_bot_revision: main
+    sls_bot_user: slsbot
+    sls_bot_group: slsbot
+    sls_bot_env_file: /etc/sls_bot.env
+    sls_bot_config_path: "{{ sls_bot_root }}/config/config.json"
+  tasks:
+    - name: Instalar paquetes base
+      ansible.builtin.apt:
+        name:
+          - git
+          - python3
+          - python3-pip
+          - python3-venv
+          - nodejs
+          - npm
+          - nginx
+        update_cache: true
+        state: present
+
+    - name: Crear grupo de sistema
+      ansible.builtin.group:
+        name: "{{ sls_bot_group }}"
+        system: true
+
+    - name: Crear usuario de servicio
+      ansible.builtin.user:
+        name: "{{ sls_bot_user }}"
+        group: "{{ sls_bot_group }}"
+        create_home: false
+        system: true
+        shell: /usr/sbin/nologin
+
+    - name: Crear árbol de directorios
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ sls_bot_user }}"
+        group: "{{ sls_bot_group }}"
+        mode: "0755"
+      loop:
+        - "{{ sls_bot_root }}"
+        - "{{ sls_bot_root }}/logs"
+        - "{{ sls_bot_root }}/excel"
+
+    - name: Clonar o actualizar repositorio
+      ansible.builtin.git:
+        repo: "{{ sls_bot_repo }}"
+        dest: "{{ sls_bot_root }}/app"
+        version: "{{ sls_bot_revision }}"
+        update: true
+      become_user: "{{ sls_bot_user }}"
+
+    - name: Crear virtualenv
+      ansible.builtin.command: python3 -m venv {{ sls_bot_root }}/venv
+      args:
+        creates: "{{ sls_bot_root }}/venv/bin/activate"
+      become_user: "{{ sls_bot_user }}"
+
+    - name: Instalar dependencias Python base
+      ansible.builtin.pip:
+        requirements: "{{ sls_bot_root }}/app/bot/requirements-dev.txt"
+        virtualenv: "{{ sls_bot_root }}/venv"
+      become_user: "{{ sls_bot_user }}"
+
+    - name: Instalar dependencias IA
+      ansible.builtin.pip:
+        requirements: "{{ sls_bot_root }}/app/bot/requirements-ia.txt"
+        virtualenv: "{{ sls_bot_root }}/venv"
+      become_user: "{{ sls_bot_user }}"
+
+    - name: Instalar dependencias del panel
+      ansible.builtin.command: npm ci
+      args:
+        chdir: "{{ sls_bot_root }}/app/panel"
+      become_user: "{{ sls_bot_user }}"
+
+    - name: Asegurar archivo .env (placeholder)
+      ansible.builtin.copy:
+        dest: "{{ sls_bot_env_file }}"
+        content: |
+          # Completa estas variables antes de arrancar servicios
+          SLSBOT_MODE=test
+          PANEL_API_TOKENS=dummy-token
+        owner: "{{ sls_bot_user }}"
+        group: "{{ sls_bot_group }}"
+        mode: "0640"
+        force: false
+
+    - name: Plantillas systemd
+      ansible.builtin.template:
+        src: "templates/{{ item }}"
+        dest: "/etc/systemd/system/{{ item | regex_replace('\\.j2$', '') }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - sls-api.service.j2
+        - sls-cerebro.service.j2
+        - sls-bot.service.j2
+      vars:
+        tpl_root: "{{ sls_bot_root }}/app"
+
+    - name: Recargar systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: habilitar servicios
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - sls-api.service
+        - sls-cerebro.service
+        - sls-bot.service

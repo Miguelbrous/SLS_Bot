@@ -49,3 +49,14 @@ Adjunta el archivo al post-mortem de cada simulacro/incidente.
 - [ ] Revisar el panel `/health` y `/status`.
 - [ ] Confirmar que el bot continúa recibiendo señales o cronjobs siguen ejecutándose.
 - [ ] Documentar en `Contexto BOT IA.md` / runbook correspondiente la fecha y hallazgos.
+
+## 6. Ejecución 2025-11-09
+
+| Servicio | Resultado | Notas |
+|----------|-----------|-------|
+| `sls-api.service` | ✅ vuelve a `active` inmediato. | Un restart previo falló por `logs_dir` vacío, pero el simulador lo dejó estable. |
+| `sls-cerebro.service` | ⚠️ (resuelto) | Fallaba por `ModuleNotFoundError: pandas`; se resolvió reinstalando `bot/requirements-ia.txt` en el venv (`pip install -r bot/requirements-ia.txt`). |
+| `sls-bot.service` | ⚠️ (resuelto) | El ExecStart apuntaba a `/root/SLS_Bot/SLS_Bot/...`; actualizado a `/root/SLS_Bot/...` y se recargó systemd. Actualmente `systemctl status sls-bot` muestra `active (running)`. |
+
+Reporte: `logs/failover/failover_report_20251109_144707.log`.
+Próximo simulacro: volver a ejecutar `sudo make failover-sim EXECUTE=1` para verificar en frío que ambos servicios siguen en verde.

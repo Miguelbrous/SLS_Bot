@@ -1,0 +1,19 @@
+[Unit]
+Description=SLS Cerebro IA Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ sls_bot_user }}
+Group={{ sls_bot_group }}
+WorkingDirectory={{ sls_bot_root }}/app
+EnvironmentFile=-{{ sls_bot_env_file }}
+Environment="PYTHONPATH={{ sls_bot_root }}:{{ sls_bot_root }}/app/bot:{{ sls_bot_root }}/venv/lib/python3.12/site-packages"
+Environment="SLSBOT_CONFIG={{ sls_bot_config_path }}"
+ExecStart={{ sls_bot_root }}/venv/bin/python -m bot.cerebro.service
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
