@@ -158,6 +158,13 @@ npm run build
 - `venv\Scripts\python -m pip install -r bot/requirements-ia.txt` para habilitar el motor IA.
 - El bot escribe datos reales en `logs/decisions.jsonl`, `logs/bridge.log` y `logs/pnl.jsonl`, que el panel consume en vivo.
 
+## Observabilidad y alertas
+- **Métricas de negocio**: `make metrics-business MODE=real METRICS_OUTPUT=/var/lib/node_exporter/textfile_collector/sls_bot_business.prom` ejecuta `scripts/tools/metrics_business.py` y genera el textfile compatible con el collector de Node Exporter. Programa el target con systemd/cron para refrescarlo cada 5 min.
+- **Prometheus**: copia `docs/observability/prometheus_rules.yml` a tu `rules.d` y recarga Prometheus. Se incluyen alerts para “sin trades”, “win rate bajo”, “drawdown alto” y “resumen diario ausente”.
+- **Alertmanager**: parte de `docs/observabilidad/alertmanager.yml`, reemplaza el webhook y recarga. Los labels `{mode,service}` permiten rutear por entorno.
+- **Grafana**: importa `docs/observabilidad/grafana/sls_bot_control_center.json`, selecciona el datasource (`DS_PROMETHEUS`) y usa la variable `$mode` para cambiar entre `test` y `real`.
+- Consulta `docs/observabilidad/README.md` para ver el timer de ejemplo y comandos de validación (`promtool`, `alertmanager --dry.run`, etc.).
+
 ## Estructura
 ```
 bot/

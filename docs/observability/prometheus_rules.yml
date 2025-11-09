@@ -1,0 +1,62 @@
+groups:
+  - name: sls-bot-business
+    interval: 30s
+    rules:
+      - record: sls_bot_business_sharpe_proxy
+        expr: |
+          sls_bot_business_pnl_total_eur
+            /
+          (sls_bot_business_pnl_std_eur + 0.0001)
+      - alert: SLSBotNoTrades30m
+        expr: |
+          (sls_bot_business_last_trade_age_seconds{mode="real"} > 1800)
+            and
+          (sls_bot_business_trades_total{mode="real"} > 0)
+        for: 5m
+        labels:
+          severity: warning
+          service: sls-bot
+          team: trading
+        annotations:
+          summary: "SLS Bot sin operaciones recientes ({{ $labels.mode }})"
+          description: >
+            No se registran trades en los últimos 30 minutos. Revisar conectividad con Bybit o si
+            hay un cooldown activo.
+      - alert: SLSBotPnLDailyMissing
+        expr: sls_bot_business_last_daily_summary_age_seconds{mode="real"} > 90000
+        for: 10m
+        labels:
+          severity: warning
+          service: sls-bot
+          team: trading
+        annotations:
+          summary: "No hay resumen diario de PnL"
+          description: >
+            El resumen diario automático no se ha actualizado en las últimas 25 h.
+            Verificar scheduler de /daily/summary o cron correspondiente.
+      - alert: SLSBotWinRateLow
+        expr: |
+          (sls_bot_business_win_rate{mode="real"} < 0.45)
+            and
+          (sls_bot_business_trades_total{mode="real"} > 15)
+        for: 30m
+        labels:
+          severity: warning
+          service: sls-bot
+          team: quant
+        annotations:
+          summary: "Win rate degradado ({{ $value | printf \"%.2f\" }})"
+          description: >
+            El win rate móvil cayó por debajo de 45 % con al menos 15 trades en ventana.
+            Revisar Cerebro, autopilot y filtros de riesgo.
+      - alert: SLSBotDrawdownHigh
+        expr: sls_bot_business_max_drawdown_pct{mode="real"} > 4
+        for: 10m
+        labels:
+          severity: critical
+          service: sls-bot
+          team: risk
+        annotations:
+          summary: "Drawdown excedido ({{ $value | printf \"%.2f\" }} %)"
+          description: >
+            El drawdown móvil superó el umbral de 4 %. Considerar reducir riesgo o parar el bot.

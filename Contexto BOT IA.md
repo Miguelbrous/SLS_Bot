@@ -55,4 +55,14 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - **Formato**: Markdown plano para mantener compatibilidad con cualquier editor. Añade secciones/separadores si crece el alcance.  
 - **Versionado**: incluye este archivo en cualquier PR/commit que modifique la arquitectura o instructivos operativos. De ese modo siempre estará sincronizado con la base de código.
 
+---
+
+## Observabilidad y alertas (SLS_Bot 2V)
+- **Generador de métricas**: `scripts/tools/metrics_business.py` consolida `logs/{mode}/pnl.jsonl` (trades + cierres diarios) y expone métricas Prometheus (`sls_bot_business_*`). Hay target directo:  
+  `make metrics-business MODE=real METRICS_OUTPUT=/var/lib/node_exporter/textfile_collector/sls_bot_business.prom`.  
+  Úsalo con un timer systemd (`sls-metrics-business.timer`) cada 5 min para actualizar el textfile collector de Node Exporter.
+- **Reglas y alertas**: `docs/observability/prometheus_rules.yml` contiene recording/alert rules para detectar: falta de trades (30 min), resumen diario atrasado (>25 h), win rate <45 % (>=15 trades) y drawdown >4 %.  
+  `docs/observability/alertmanager.yml` es la plantilla de rutas Slack (`#sls-alertas`) con labels `mode/service` listos para rutear por entorno.
+- **Dashboard Grafana**: `docs/observability/grafana/sls_bot_control_center.json` muestra KPIs (PnL acumulado, win rate, PnL diario, alertas) con variable `$mode`. Importarlo apuntando al datasource Prometheus (`DS_PROMETHEUS`).
+- **Procedimiento detallado**: `docs/observability/README.md` documenta el stack (textfile collector, promtool/alertmanager dry-run, systemd unit/timer).
 

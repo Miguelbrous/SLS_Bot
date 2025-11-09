@@ -2,9 +2,10 @@
   "default_mode": "test",
   "shared": {
     "paths": {
-      "root": "./",
-      "excel_dir": "./excel/{mode}",
-      "logs_dir": "./logs/{mode}"
+      "root": "/root/SLS_Bot",
+      "excel_dir": "/root/SLS_Bot/excel/{mode}",
+      "logs_dir": "/root/SLS_Bot/logs/{mode}",
+      "models_dir": "/root/SLS_Bot/models/{mode}"
     },
     "risk": {
       "daily_max_dd_pct": 4.0,
@@ -108,8 +109,9 @@
         "default_leverage": 20
       },
       "paths": {
-        "excel_dir": "./excel/test",
-        "logs_dir": "./logs/test"
+        "excel_dir": "/root/SLS_Bot/excel/test",
+        "logs_dir": "/root/SLS_Bot/logs/test",
+        "models_dir": "/root/SLS_Bot/models/test"
       }
     },
     "real": {
@@ -144,8 +146,9 @@
         "min_confidence": 0.6
       },
       "paths": {
-        "excel_dir": "./excel/real",
-        "logs_dir": "./logs/real"
+        "excel_dir": "/root/SLS_Bot/excel/real",
+        "logs_dir": "/root/SLS_Bot/logs/real",
+        "models_dir": "/root/SLS_Bot/models/real"
       }
     }
   }

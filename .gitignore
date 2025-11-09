@@ -25,6 +25,8 @@ logs/
 *.jsonl
 risk_state.json
 run/
+backups/
+metrics/
 
 # --- Datos financieros ---
 excel/

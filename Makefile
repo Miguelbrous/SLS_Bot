@@ -6,6 +6,8 @@ PIP_BIN := $(VENV)/bin/pip
 NPM_BIN ?= npm
 ENV_FILE ?= $(ROOT)/.env
 MANAGER := $(ROOT)/scripts/manage_bot.py
+METRICS_OUTPUT ?= $(ROOT)/metrics/business.prom
+METRICS_MODE ?= $(SLSBOT_MODE)
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -14,7 +16,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico
+.PHONY: bootstrap deps backend-deps panel-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico metrics-business
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -61,3 +63,8 @@ reiniciar: ## Reinicia servicios y muestra diagnostico resumido (requiere VPS). 
 
 diagnostico: ## Obtiene estado y ultimos logs de cada servicio (requiere VPS).
 	@python3 $(MANAGER) diagnostico
+
+metrics-business: ## Genera metrics/business.prom (usar METRICS_MODE y METRICS_OUTPUT si aplica).
+	$(PYTHON_BIN) scripts/tools/metrics_business.py \
+		$(if $(METRICS_MODE),--mode $(METRICS_MODE),) \
+		--output $(METRICS_OUTPUT)
