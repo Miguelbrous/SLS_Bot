@@ -18,6 +18,7 @@ AUTOPILOT_RUNS ?= $(ROOT)/arena/runs/*.jsonl
 AUTOPILOT_OUTPUT_JSON ?= $(ROOT)/metrics/autopilot_summary.json
 AUTOPILOT_MARKDOWN ?= $(ROOT)/metrics/autopilot_summary.md
 AUTOPILOT_PROM_FILE ?= $(ROOT)/metrics/autopilot.prom
+LOGS_DIR ?= $(ROOT)/logs/$(SLSBOT_MODE)
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -94,3 +95,17 @@ autopilot-summary: ## Genera resumen Autopilot/Arena 2V (dataset+ranking). Ajust
 		--output-json $(AUTOPILOT_OUTPUT_JSON) \
 		--markdown $(AUTOPILOT_MARKDOWN) \
 		--prometheus-file $(AUTOPILOT_PROM_FILE)
+
+DEPLOY_PLAN_AUTOPILOT ?= $(AUTOPILOT_OUTPUT_JSON)
+DEPLOY_PLAN_OUTPUT ?= $(ROOT)/metrics/deploy_plan.md
+DEPLOY_PLAN_RISK_STATE ?= $(LOGS_DIR)/risk_state.json
+DEPLOY_PLAN_AUDIT_LOG ?= $(LOGS_DIR)/audit.log
+DEPLOY_PLAN_SERVICES ?= sls-bot=unknown sls-api=unknown sls-cerebro=unknown
+
+deploy-plan: ## Genera reporte Go/No-Go (Markdown). Usa deploy summary existente.
+	$(PYTHON_BIN) scripts/tools/deploy_plan.py \
+		--autopilot-summary $(DEPLOY_PLAN_AUTOPILOT) \
+		--risk-state $(DEPLOY_PLAN_RISK_STATE) \
+		--audit-log $(DEPLOY_PLAN_AUDIT_LOG) \
+		$(foreach svc,$(DEPLOY_PLAN_SERVICES),--service-status $(svc)) \
+		--output $(DEPLOY_PLAN_OUTPUT)

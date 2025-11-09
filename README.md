@@ -160,6 +160,7 @@ El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con
 - `AUDIT_LOG`: todas las llamadas a `/control/{service}/{action}` se registran como JSON (`actor`, `acción`, resultado). Cambia la ruta en `.env` y replica el archivo en un storage persistente.
 - Rate limiting configurable (`RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW`) protege los endpoints de control; un exceso devuelve `429`.
 - Consulta `docs/security/politicas.md` para recomendaciones de secretos (Vault/SOPS), rotación de tokens y monitoreo del resumen Autopilot.
+- Antes de poner credenciales reales, revisa `docs/operations/credentials_checklist.md`: resume cada secreto/env necesario por frente (Bybit, Slack, backups, Alertmanager, panel, Vault).
 
 ## Go-Live escalonado (Fase F5)
 - Ejecuta `make autopilot-summary` antes de cada ventana piloto; revisa el Markdown generado (`metrics/autopilot_summary.md`) y comparte el enlace/archivo con el comité Go/No-Go.
@@ -169,6 +170,7 @@ El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con
   3. `AUTOPILOT_SUMMARY_JSON` sin violaciones (dataset sano + ≥1 candidato aprobado).
   4. `AUDIT_LOG` limpio; no hay intentos fallidos recientes en `/control/*`.
 - El panel muestra la tarjeta **Autopilot 2V** (dataset health + ranking) y la sección de Estado (cooldown/risk). Usa estos indicadores como parte del Go/No-Go.
+- `scripts/tools/deploy_plan.py` genera el Markdown para cada ventana piloto a partir del resumen autopilot y la checklist (`--output-md docs/operations/deploy_plan.md`). Úsalo desde CI/cron (`make deploy-plan`) para tener el reporte listo antes del comité.
 
 ## Servicio Cerebro IA (systemd)
 ```
