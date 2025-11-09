@@ -180,7 +180,7 @@ npm install
 ```
 npm run dev
 ```
-El panel leerá `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`. La tarjeta **Cerebro IA** permite filtrar por s�mbolo/timeframe, forzar una decisi�n (POST `/cerebro/decide`) y graficar la confianza usando el historial expuesto por `/cerebro/status`.
+El panel leerá `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN` y `NEXT_PUBLIC_CONTROL_AUTH_MODE` desde `panel/.env`. La tarjeta **Cerebro IA** permite filtrar por s�mbolo/timeframe, forzar una decisi�n (POST `/cerebro/decide`) y graficar la confianza usando el historial expuesto por `/cerebro/status`. Además, la tarjeta **Autopilot 2V** consume `/autopilot/summary` y muestra la salud del dataset + top estrategias calculadas por `scripts/tools/autopilot_summary.py` (ejecuta `make autopilot-summary` o `scripts/cron/autopilot_summary.sh` para mantenerlo actualizado).
 ### Lint / Build
 ```
 npm run lint

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Card from "./components/Card";
 import Controls from "./components/Controls";
+import AutopilotSummaryCard, { AutopilotSummary } from "./components/AutopilotSummaryCard";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8880";
 const PANEL_TOKEN = process.env.NEXT_PUBLIC_PANEL_API_TOKEN?.trim();
@@ -137,6 +138,7 @@ export default function Page() {
   const [logs, setLogs] = useState<string[]>([]);
   const [pnl, setPnl] = useState<PnlItem[]>([]);
   const [cerebro, setCerebro] = useState<CerebroStatus | null>(null);
+  const [autopilotSummary, setAutopilotSummary] = useState<AutopilotSummary | null>(null);
   const [symbolFilter, setSymbolFilter] = useState<string>("ALL");
   const [timeframeFilter, setTimeframeFilter] = useState<string>("ALL");
   const [confidenceHistory, setConfidenceHistory] = useState<CerebroHistoryEntry[]>([]);
@@ -149,12 +151,17 @@ export default function Page() {
       const headers: Record<string, string> = {};
       if (PANEL_TOKEN) headers["X-Panel-Token"] = PANEL_TOKEN;
       const init = Object.keys(headers).length ? { headers } : undefined;
-      const [s, d, l, p, ce] = await Promise.all([
+      const autopPromise = fetch(`${API_BASE}/autopilot/summary`, init)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+
+      const [s, d, l, p, ce, auto] = await Promise.all([
         fetch(`${API_BASE}/status`, init).then((r) => r.json()),
         fetch(`${API_BASE}/decisiones?limit=25`, init).then((r) => r.json()),
         fetch(`${API_BASE}/logs/bridge?limit=200`, init).then((r) => r.json()),
         fetch(`${API_BASE}/pnl/diario?days=7`, init).then((r) => r.json()),
         fetch(`${API_BASE}/cerebro/status`, init).then((r) => r.json()).catch(() => null),
+        autopPromise,
       ]);
       setStatus(s);
       setDecisiones((d as DecisionsResp).rows || []);
@@ -163,6 +170,11 @@ export default function Page() {
       if (ce) {
         setCerebro(ce);
         setConfidenceHistory((prev) => mergeHistory(prev, ce.history));
+      }
+      if (auto) {
+        setAutopilotSummary(auto);
+      } else {
+        setAutopilotSummary(null);
       }
     } catch {
       // silencioso para no antagonizar la UI
@@ -362,6 +374,8 @@ export default function Page() {
             </div>
           ) : null}
         </Card>
+
+        <AutopilotSummaryCard summary={autopilotSummary} />
 
         <Card title="Cerebro IA">
           {cerebro?.enabled ? (
@@ -597,4 +611,3 @@ export default function Page() {
     </>
   );
 }
-

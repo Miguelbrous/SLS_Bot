@@ -85,6 +85,9 @@ BRIDGE_LOG = Path(os.getenv("BRIDGE_LOG", LOGS_DIR / "bridge.log"))
 DECISIONS_LOG = Path(os.getenv("DECISIONS_LOG", LOGS_DIR / "decisions.jsonl"))
 PNL_LOG = Path(os.getenv("PNL_LOG", LOGS_DIR / "pnl.jsonl"))
 PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", LOGS_DIR / "pnl_daily_symbols.json"))
+AUTOPILOT_SUMMARY_JSON = Path(
+    os.getenv("AUTOPILOT_SUMMARY_JSON", LOGS_DIR / "autopilot_summary.json")
+)
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -160,6 +163,15 @@ def _load_symbol_breakdowns() -> Dict[str, dict]:
         return json.loads(PNL_SYMBOLS_JSON.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def _load_autopilot_summary() -> Optional[dict]:
+    try:
+        if AUTOPILOT_SUMMARY_JSON.exists():
+            return json.loads(AUTOPILOT_SUMMARY_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    return None
 
 app.add_middleware(
     CORSMiddleware,
@@ -373,6 +385,9 @@ def pnl_diario(days: int = Query(7, ge=1, le=30), _: None = Depends(require_pane
         )
     return PnLDailyResponse(days=out)
 
-
-
-
+@app.get("/autopilot/summary")
+def autopilot_summary(_: None = Depends(require_panel_token)):
+    data = _load_autopilot_summary()
+    if not data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No hay resumen autopilot disponible")
+    return data

@@ -68,6 +68,13 @@ button:hover { border-color: var(--accent); }
 .risk-dynamic { font-size:11px; margin-top:6px; color:var(--muted); }
 .risk-dynamic.muted { opacity:.7; }
 
+.autopilot-dataset { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; margin-bottom:8px; }
+.autopilot-dataset span { color:var(--muted); margin-right:4px; }
+.autopilot-violations { font-size:11px; margin-bottom:6px; }
+.autopilot-violations.ok { color:#89ffce; }
+.autopilot-violations:not(.ok) { color:#ffb6b6; }
+.autopilot-rejected { font-size:11px; color:var(--muted); margin-top:8px; }
+
 .cerebro-decisions { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; font-size:12px; }
 .cerebro-decisions li { border:1px solid #1f1f1f; border-radius:10px; padding:8px 10px; background:#111; }
 .cerebro-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }

@@ -45,6 +45,32 @@ SLS_Bot/
 │  ├─ public/
 │  ├─ package.json
 │  └─ tsconfig.json
+├─ .github/
+│  └─ workflows/
+│     └─ ci.yml
+├─ sample_data/
+│  ├─ cerebro_experience_sample.jsonl
+│  └─ arena_runs_sample.jsonl
+├─ infra/
+│  └─ ansible/
+│     ├─ README.md
+│     ├─ inventory.example.ini
+│     ├─ provision.yml
+│     └─ templates/
+│        ├─ sls-api.service.j2
+│        ├─ sls-bot.service.j2
+│        └─ sls-cerebro.service.j2
+├─ docs/
+│  ├─ cerebro.md
+│  ├─ STACK.md
+│  ├─ observabilidad/
+│     ├─ README.md
+│     ├─ alertmanager.yml
+│     ├─ prometheus_rules.yml
+│     └─ grafana/
+│        └─ sls_bot_control_center.json
+│  └─ operations/
+│     └─ failover.md
 ├─ config/
 │  ├─ config.sample.json
 │  └─ config.json

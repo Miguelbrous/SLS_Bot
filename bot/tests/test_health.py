@@ -161,4 +161,24 @@ def test_status_exposes_risk_state_details(mock_status) -> None:
     assert len(details["recent_results"]) == 2
 
 
+def test_autopilot_summary_endpoint(tmp_path) -> None:
+    summary_file = tmp_path / "autopilot.json"
+    summary_file.write_text(
+        json.dumps(
+            {
+                "dataset": {"summary": {"total": 3, "win_rate": 0.5, "dominant_symbol_share": 0.4}, "violations": []},
+                "arena": {"accepted": [{"name": "alpha", "score": 1.2, "stats": {"sharpe": 1.5, "max_drawdown": 3, "profit_factor": 2.0, "win_rate": 0.6, "trades": 120, "feature_drift": 0.1}}], "rejected": []},
+            }
+        ),
+        encoding="utf-8",
+    )
+    prev = api_main.AUTOPILOT_SUMMARY_JSON
+    api_main.AUTOPILOT_SUMMARY_JSON = summary_file
+    try:
+        response = client.get("/autopilot/summary", headers=_panel_headers())
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["arena"]["accepted"][0]["name"] == "alpha"
+    finally:
+        api_main.AUTOPILOT_SUMMARY_JSON = prev
 
