@@ -1,6 +1,8 @@
 ﻿import json
 import os
 import secrets
+import time
+from collections import defaultdict, deque
 from datetime import datetime, timedelta, date, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
@@ -88,6 +90,10 @@ PNL_SYMBOLS_JSON = Path(os.getenv("PNL_SYMBOLS_JSON", LOGS_DIR / "pnl_daily_symb
 AUTOPILOT_SUMMARY_JSON = Path(
     os.getenv("AUTOPILOT_SUMMARY_JSON", LOGS_DIR / "autopilot_summary.json")
 )
+AUDIT_LOG_PATH = Path(os.getenv("AUDIT_LOG", LOGS_DIR / "audit.log"))
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
+_RATE_LIMIT_BUCKETS: Dict[str, deque[float]] = defaultdict(deque)
 
 app = FastAPI(title="SLS Bot API", version="1.0.0")
 
@@ -173,6 +179,56 @@ def _load_autopilot_summary() -> Optional[dict]:
         return None
     return None
 
+
+def _append_audit_event(actor: str, action: str, success: bool, details: Optional[dict] = None) -> None:
+    payload = {
+        "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "actor": actor,
+        "action": action,
+        "success": bool(success),
+        "details": details or {},
+    }
+    try:
+        AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with AUDIT_LOG_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def _rate_limit_key(request: Request, bucket: str) -> str:
+    client = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    ip = forwarded.split(",")[0].strip() if forwarded else client
+    return f"{bucket}:{ip}"
+
+
+def _enforce_rate_limit(request: Request, bucket: str) -> None:
+    if RATE_LIMIT_REQUESTS <= 0 or RATE_LIMIT_WINDOW <= 0:
+        return
+    key = _rate_limit_key(request, bucket)
+    dq = _RATE_LIMIT_BUCKETS[key]
+    now = time.time()
+    while dq and now - dq[0] > RATE_LIMIT_WINDOW:
+        dq.popleft()
+    if len(dq) >= RATE_LIMIT_REQUESTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded",
+        )
+    dq.append(now)
+
+
+def reset_rate_limits() -> None:
+    _RATE_LIMIT_BUCKETS.clear()
+
+
+def _set_audit_actor(request: Request, actor: str) -> None:
+    try:
+        request.state.audit_actor = actor
+    except Exception:
+        pass
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -188,6 +244,7 @@ def require_control_auth(
 ) -> None:
     proxy_principal = request.headers.get(PROXY_BASIC_HEADER) or request.headers.get(PROXY_BASIC_HEADER.lower())
     if TRUST_PROXY_BASIC and proxy_principal:
+        _set_audit_actor(request, proxy_principal)
         return
     if not CONTROL_USER or not CONTROL_PASSWORD:
         raise HTTPException(
@@ -208,6 +265,7 @@ def require_control_auth(
             detail="Credenciales inválidas",
             headers={"WWW-Authenticate": "Basic"},
         )
+    _set_audit_actor(request, credentials.username)
 
 
 def require_panel_token(request: Request) -> None:
@@ -280,8 +338,12 @@ def get_status(_: None = Depends(require_panel_token)):
 
 
 @app.post("/control/{service}/{action}")
-def control_service(service: str, action: str, _: None = Depends(require_control_auth)):
+def control_service(service: str, action: str, request: Request, _: None = Depends(require_control_auth)):
+    _enforce_rate_limit(request, "control")
     ok, detail = service_action(service, action)
+    actor = getattr(request.state, "audit_actor", "unknown")
+    action_name = f"{service}.{action}"
+    _append_audit_event(actor, action_name, ok, {"detail": detail})
     return {"ok": ok, "detail": detail}
 
 

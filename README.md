@@ -134,6 +134,7 @@ python scripts/tools/arena_rank.py runs/ \
   --json
 ```
 El script acepta archivos `.json` o `.jsonl` con `stats` (pnl, max_drawdown, trades, returns_avg/std, etc.), calcula Sharpe/Calmar/Profit Factor, aplica guardias (`min_trades`, `max_drawdown`, `max_drift`) y devuelve la tabla ordenada por score. Guarda los descartados con la razón para documentar por qué no calificaron.
+- Si quieres un resumen integrado (dataset + ranking + métricas Prometheus + Markdown), usa `autopilot_summary.py` o `make autopilot-summary` como se explica más abajo.
 
 ## Autopilot summary / CI
 ```
@@ -154,6 +155,20 @@ La salida contiene:
 - `--prometheus-file` genera métricas (`sls_autopilot_dataset_rows`, `..._win_rate`, `..._top_score`, etc.) listas para el textfile collector.
 - Puedes automatizarlo con `make autopilot-summary` (ajusta `AUTOPILOT_*` env vars) o vía `scripts/cron/autopilot_summary.sh` en systemd/cron.
 El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con `models/cerebro/<mode>` por defecto, por lo que no necesitas pasar rutas cuando sigues la convenci�n de carpetas. Solo promueve `active_model.json` si supera los umbrales y mejora la m�trica previa; al terminar puedes ejecutar `scripts/tools/promote_strategy.py` para copiar el modelo al modo real y reiniciar el dataset de pruebas.
+
+## Security & Compliance
+- `AUDIT_LOG`: todas las llamadas a `/control/{service}/{action}` se registran como JSON (`actor`, `acción`, resultado). Cambia la ruta en `.env` y replica el archivo en un storage persistente.
+- Rate limiting configurable (`RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW`) protege los endpoints de control; un exceso devuelve `429`.
+- Consulta `docs/security/politicas.md` para recomendaciones de secretos (Vault/SOPS), rotación de tokens y monitoreo del resumen Autopilot.
+
+## Go-Live escalonado (Fase F5)
+- Ejecuta `make autopilot-summary` antes de cada ventana piloto; revisa el Markdown generado (`metrics/autopilot_summary.md`) y comparte el enlace/archivo con el comité Go/No-Go.
+- Checklist de producción:
+  1. `systemctl status sls-bot sls-api sls-cerebro` en verde.
+  2. `make failover-sim EXECUTE=1` completado en las últimas 24 h.
+  3. `AUTOPILOT_SUMMARY_JSON` sin violaciones (dataset sano + ≥1 candidato aprobado).
+  4. `AUDIT_LOG` limpio; no hay intentos fallidos recientes en `/control/*`.
+- El panel muestra la tarjeta **Autopilot 2V** (dataset health + ranking) y la sección de Estado (cooldown/risk). Usa estos indicadores como parte del Go/No-Go.
 
 ## Servicio Cerebro IA (systemd)
 ```

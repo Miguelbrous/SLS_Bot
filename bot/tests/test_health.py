@@ -89,11 +89,18 @@ def test_control_endpoint_requires_basic_auth(mock_action) -> None:
 
 
 @patch("app.main.service_action", return_value=(True, "mocked"))
-def test_control_endpoint_accepts_valid_basic_auth(mock_action) -> None:
-    response = client.post("/control/sls-bot/status", headers=_auth_headers())
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    mock_action.assert_called_once()
+def test_control_endpoint_accepts_valid_basic_auth(mock_action, tmp_path) -> None:
+    prev = api_main.AUDIT_LOG_PATH
+    api_main.AUDIT_LOG_PATH = tmp_path / "audit.log"
+    try:
+        response = client.post("/control/sls-bot/status", headers=_auth_headers())
+        assert response.status_code == 200
+        assert response.json()["ok"] is True
+        mock_action.assert_called_once()
+        lines = api_main.AUDIT_LOG_PATH.read_text(encoding="utf-8").strip().splitlines()
+        assert lines and "sls-bot.status" in lines[-1]
+    finally:
+        api_main.AUDIT_LOG_PATH = prev
 
 
 @patch("app.main.service_action", return_value=(True, "mocked"))
@@ -101,6 +108,24 @@ def test_control_endpoint_accepts_forwarded_user_header(mock_action) -> None:
     response = client.post("/control/sls-bot/status", headers={"x-forwarded-user": "nginx"})
     assert response.status_code == 200
     mock_action.assert_called_once()
+
+
+@patch("app.main.service_action", return_value=(True, "mocked"))
+def test_control_endpoint_rate_limited(mock_action) -> None:
+    prev_req = api_main.RATE_LIMIT_REQUESTS
+    prev_win = api_main.RATE_LIMIT_WINDOW
+    api_main.RATE_LIMIT_REQUESTS = 1
+    api_main.RATE_LIMIT_WINDOW = 60
+    api_main.reset_rate_limits()
+    try:
+        first = client.post("/control/sls-bot/status", headers=_auth_headers())
+        assert first.status_code == 200
+        second = client.post("/control/sls-bot/status", headers=_auth_headers())
+        assert second.status_code == 429
+    finally:
+        api_main.RATE_LIMIT_REQUESTS = prev_req
+        api_main.RATE_LIMIT_WINDOW = prev_win
+        api_main.reset_rate_limits()
 
 
 def test_pnl_endpoint_aggregates_daily_entries() -> None:
@@ -181,4 +206,3 @@ def test_autopilot_summary_endpoint(tmp_path) -> None:
         assert payload["arena"]["accepted"][0]["name"] == "alpha"
     finally:
         api_main.AUTOPILOT_SUMMARY_JSON = prev
-

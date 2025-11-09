@@ -69,8 +69,10 @@ SLS_Bot/
 │     ├─ prometheus_rules.yml
 │     └─ grafana/
 │        └─ sls_bot_control_center.json
-│  └─ operations/
+│  ├─ operations/
 │     └─ failover.md
+│  └─ security/
+│     └─ politicas.md
 ├─ config/
 │  ├─ config.sample.json
 │  └─ config.json
