@@ -108,11 +108,11 @@
   },
   "modes": {
     "test": {
-      "env": "TESTNET",
+      "env": "DEMO",
       "bybit": {
-        "api_key": "TESTNET_API_KEY",
-        "api_secret": "TESTNET_API_SECRET",
-        "base_url": "https://api-testnet.bybit.com",
+        "api_key": "TtIN8vBvXOo8fDSULz",
+        "api_secret": "VnWHZ44Lfeb6cNj5Nx48r90WfLrwhvp2MeYt",
+        "base_url": "https://api-demo.bybit.com",
         "account_type": "UNIFIED",
         "category": "linear",
         "symbols": ["BTCUSDT", "ETHUSDT"],
@@ -128,8 +128,8 @@
     "real": {
       "env": "MAINNET",
       "bybit": {
-        "api_key": "MAINNET_API_KEY",
-        "api_secret": "MAINNET_API_SECRET",
+        "api_key": "SWzVHs7Ehl9soXX0Kp",
+        "api_secret": "vHczjq91nqbw7oxSmoFfCiuQeTSy88JonIJP",
         "base_url": "https://api.bybit.com",
         "account_type": "UNIFIED",
         "category": "linear",

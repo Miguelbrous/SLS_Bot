@@ -13,7 +13,7 @@ Documento vivo para guiar la evolución hacia **SLS_Bot 2V**: una versión robus
 | F2 | **Estrategia & IA** | Elevar performance del Cerebro y estrategias evaluadas. | Dataset QoS > 90%, backtests reproducibles, autopilot con salvaguardas y explainability extendida. |
 | F3 | **Experiencia & Panel** | Herramientas para operar y auditar en tiempo real. | Panel “Control Center” con KPIs, flujos promote/rollback self-service, reporting diario automatizado. |
 | F4 | **Security & Compliance** | Cerrar gaps de seguridad, auditoría y gobernanza. | Control de acceso centralizado, auditoría de acciones, políticas de llaves y rotación. |
-| F5 | **Go-live escalonado** | Pasar de testnet a real con criterios objetivos. | Checklist de producción cumplida, métricas de profit/risk en ventana piloto, firma de Go/No-Go. |
+| F5 | **Go-live escalonado** | Pasar del modo demo/paper trading a real con criterios objetivos. | Checklist de producción cumplida, métricas de profit/risk en ventana piloto, firma de Go/No-Go. |
 
 ## Backlog por frente
 

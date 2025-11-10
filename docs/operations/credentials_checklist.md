@@ -6,6 +6,7 @@ Este documento resume **todo lo que debes completar una vez tengas credenciales 
 
 - `.env` (copia de `.env.example`):
   - `BYBIT_API_KEY` / `BYBIT_API_SECRET`
+  - `BYBIT_BASE_URL`: usa `https://api-demo.bybit.com` para paper trading (demo mainnet) o `https://api.bybit.com` para producción.
   - `PANEL_API_TOKENS` o `PANEL_API_TOKEN`
   - `CONTROL_USER` / `CONTROL_PASSWORD`
   - `AUDIT_LOG` (ruta definitiva, idealmente en disco persistente)

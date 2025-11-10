@@ -1,16 +1,32 @@
 from typing import Dict, Optional
+
 from pybit.unified_trading import HTTP
 
 
 class BybitClient:
     """
     Cliente Bybit (Unified Trading v5) usando el SDK oficial `pybit`.
-    Detecta testnet por base_url y evita problemas de firma/timestamp.
+    Acepta endpoints custom (demo/paper trading) además de testnet/mainnet.
     """
 
     def __init__(self, api_key: str, api_secret: str, base_url: str, account_type: str = "UNIFIED"):
-        is_testnet = "testnet" in (base_url or "").lower()
-        self.session = HTTP(testnet=is_testnet, api_key=api_key, api_secret=api_secret)
+        normalized = (base_url or "").strip()
+        lowered = normalized.lower()
+        is_testnet = "testnet" in lowered
+        http_kwargs = {
+            "api_key": api_key,
+            "api_secret": api_secret,
+            "testnet": is_testnet,
+        }
+
+        if normalized:
+            init_params = HTTP.__init__.__code__.co_varnames  # type: ignore[attr-defined]
+            if "endpoint" in init_params:
+                http_kwargs["endpoint"] = normalized  # pybit >= 5.12 permite endpoint custom
+            elif "domain" in init_params:
+                http_kwargs["domain"] = normalized
+
+        self.session = HTTP(**http_kwargs)
         self.account_type = account_type
 
     # ----------------- UTIL: PRECIO -----------------

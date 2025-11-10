@@ -131,7 +131,7 @@ SLS_Bot/
    ```
 
 4. **Configurar archivos sensibles:**
-   - Copia `config/config.sample.json` → `config/config.json` y rellena credenciales para `modes.test.bybit` (testnet) y `modes.real.bybit` (mainnet).  
+  - Copia `config/config.sample.json` → `config/config.json` y rellena credenciales para `modes.test.bybit` (modo demo/paper trading, endpoint `https://api-demo.bybit.com`) y `modes.real.bybit` (mainnet `https://api.bybit.com`).  
    - Crea `./.env` (o `/etc/sls_bot.env` en VPS) a partir de `.env.example` con `SLSBOT_MODE`, `BYBIT_*`, `CONTROL_USER`, `CONTROL_PASSWORD`, `PANEL_API_TOKENS`, etc.  \n   - Ejecuta chmod +x scripts/manage.sh para poder usar el gestor de servicios (encender-api, pagar-todo, estado, etc.).
    - Crea `panel/.env` usando `panel/.env.example` con `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_PANEL_API_TOKEN`, etc.
 
