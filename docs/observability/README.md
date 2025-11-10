@@ -10,28 +10,14 @@ Esta guía resume cómo dejar operativo el stack de métricas/alertas para el bo
    # Ejemplo manual
    make metrics-business MODE=real METRICS_OUTPUT=/var/lib/node_exporter/textfile_collector/sls_bot_business.prom
    ```
-3. Automatiza con systemd/cron. Ejemplo unit:
-   ```ini
-   # /etc/systemd/system/sls-metrics-business.service
-   [Unit]
-   Description=Genera métricas de negocio SLS Bot
-
-   [Service]
-   Type=oneshot
-   WorkingDirectory=/root/SLS_Bot
-   Environment=SLSBOT_MODE=real
-   ExecStart=/usr/bin/make metrics-business MODE=real \
-       METRICS_OUTPUT=/var/lib/node_exporter/textfile_collector/sls_bot_business.prom
-
-   # /etc/systemd/system/sls-metrics-business.timer
-   [Timer]
-   OnCalendar=*:0/5
-   Unit=sls-metrics-business.service
-
-   [Install]
-   WantedBy=timers.target
-   ```
-   Recarga con `systemctl daemon-reload && systemctl enable --now sls-metrics-business.timer`.
+3. Automatiza con systemd/cron. Ya incluimos las unidades en `docs/observability/systemd/`:
+  ```bash
+  sudo cp docs/observability/systemd/sls-metrics-business.service /etc/systemd/system/
+  sudo cp docs/observability/systemd/sls-metrics-business.timer /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now sls-metrics-business.timer
+  ```
+  *Tip:* ajusta `Environment=SLSBOT_MODE` y `Environment=METRICS_OUTPUT` dentro del `.service` antes de copiarlo.
 
 ## 2. Reglas de Prometheus
 
