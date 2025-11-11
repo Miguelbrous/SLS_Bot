@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+from urllib.parse import urlparse
 
 from pybit.unified_trading import HTTP
 
@@ -12,19 +13,17 @@ class BybitClient:
     def __init__(self, api_key: str, api_secret: str, base_url: str, account_type: str = "UNIFIED"):
         normalized = (base_url or "").strip()
         lowered = normalized.lower()
-        is_testnet = "testnet" in lowered
+        is_demo = "api-demo" in lowered
+        is_testnet = "testnet" in lowered and not is_demo
+
         http_kwargs = {
             "api_key": api_key,
             "api_secret": api_secret,
             "testnet": is_testnet,
         }
 
-        if normalized:
-            init_params = HTTP.__init__.__code__.co_varnames  # type: ignore[attr-defined]
-            if "endpoint" in init_params:
-                http_kwargs["endpoint"] = normalized  # pybit >= 5.12 permite endpoint custom
-            elif "domain" in init_params:
-                http_kwargs["domain"] = normalized
+        if is_demo:
+            http_kwargs["demo"] = True
 
         self.session = HTTP(**http_kwargs)
         self.account_type = account_type
