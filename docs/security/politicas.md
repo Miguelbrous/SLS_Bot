@@ -38,3 +38,4 @@ Este documento resume las prácticas recomendadas para operar **SLS_Bot** de for
 - [ ] `AUDIT_LOG` apuntando a directorio persistente y revisado semanalmente.
 - [ ] Rate limit configurado (`RATE_LIMIT_REQUESTS/WINDOW`) acorde al entorno.
 - [ ] `make autopilot-summary` en cron/systemd y su salida monitorizada en el panel/Prometheus.
+- [ ] `make security-check` ejecutado antes de cada despliegue para asegurarse de que `.env`/`config.json` cumplen los requisitos mínimos (AUDIT_LOG, tokens vigentes, rate-limit, rutas válidas).

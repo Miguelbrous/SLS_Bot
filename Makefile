@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 ROOT := $(CURDIR)
-VENV ?= $(ROOT)/.venv
+VENV ?= $(ROOT)/venv
 PYTHON_BIN := $(VENV)/bin/python
 PIP_BIN := $(VENV)/bin/pip
 NPM_BIN ?= npm
@@ -19,6 +19,12 @@ AUTOPILOT_OUTPUT_JSON ?= $(ROOT)/metrics/autopilot_summary.json
 AUTOPILOT_MARKDOWN ?= $(ROOT)/metrics/autopilot_summary.md
 AUTOPILOT_PROM_FILE ?= $(ROOT)/metrics/autopilot.prom
 LOGS_DIR ?= $(ROOT)/logs/$(SLSBOT_MODE)
+GO_NOGO_AUTOPILOT_DATASET ?= $(ROOT)/logs/real/cerebro_experience.jsonl
+GO_NOGO_AUTOPILOT_RUNS ?= $(ROOT)/arena/runs/*.jsonl
+GO_NOGO_RISK_STATE ?= $(ROOT)/logs/real/risk_state.json
+GO_NOGO_AUDIT_LOG ?= $(ROOT)/logs/real/audit.log
+GO_NOGO_SERVICES ?= sls-bot=active sls-api=active sls-cerebro=active
+GO_NOGO_OUTPUT ?= $(ROOT)/metrics/deploy_plan.md
 
 ifeq ($(wildcard $(PYTHON_BIN)),)
 	PYTHON_BIN := python3
@@ -109,3 +115,17 @@ deploy-plan: ## Genera reporte Go/No-Go (Markdown). Usa deploy summary existente
 		--audit-log $(DEPLOY_PLAN_AUDIT_LOG) \
 		$(foreach svc,$(DEPLOY_PLAN_SERVICES),--service-status $(svc)) \
 		--output $(DEPLOY_PLAN_OUTPUT)
+
+security-check: ## Valida .env/config y rutas sensibles (frente F4).
+	$(PYTHON_BIN) scripts/tools/security_check.py \
+		--env-file $(ENV_FILE) \
+		--config-json $(ROOT)/config/config.json
+
+go-nogo: ## Ejecuta autopilot-summary + deploy-plan apuntando a los datasets reales.
+	$(MAKE) AUTOPILOT_DATASET=$(GO_NOGO_AUTOPILOT_DATASET) AUTOPILOT_RUNS=$(GO_NOGO_AUTOPILOT_RUNS) autopilot-summary
+	$(PYTHON_BIN) scripts/tools/deploy_plan.py \
+		--autopilot-summary $(AUTOPILOT_OUTPUT_JSON) \
+		--risk-state $(GO_NOGO_RISK_STATE) \
+		--audit-log $(GO_NOGO_AUDIT_LOG) \
+		$(foreach svc,$(GO_NOGO_SERVICES),--service-status $(svc)) \
+		--output $(GO_NOGO_OUTPUT)

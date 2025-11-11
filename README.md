@@ -160,6 +160,7 @@ El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con
 - `AUDIT_LOG`: todas las llamadas a `/control/{service}/{action}` se registran como JSON (`actor`, `acción`, resultado). Cambia la ruta en `.env` y replica el archivo en un storage persistente.
 - Rate limiting configurable (`RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW`) protege los endpoints de control; un exceso devuelve `429`.
 - Consulta `docs/security/politicas.md` para recomendaciones de secretos (Vault/SOPS), rotación de tokens y monitoreo del resumen Autopilot.
+- Ejecuta `make security-check` para validar que `.env` y `config/config.json` tienen los secretos mínimos (AUDIT_LOG, tokens rotatorios, rate limit, rutas válidas). El comando imprime advertencias y falla si falta algún requisito crítico.
 - Antes de poner credenciales reales, revisa `docs/operations/credentials_checklist.md`: resume cada secreto/env necesario por frente (Bybit, Slack, backups, Alertmanager, panel, Vault).
 
 ## Go-Live escalonado (Fase F5)
@@ -169,6 +170,14 @@ El script detecta el modo y usa `logs/<mode>/cerebro_experience.jsonl` junto con
   2. `make failover-sim EXECUTE=1` completado en las últimas 24 h.
   3. `AUTOPILOT_SUMMARY_JSON` sin violaciones (dataset sano + ≥1 candidato aprobado).
   4. `AUDIT_LOG` limpio; no hay intentos fallidos recientes en `/control/*`.
+- `make go-nogo` automatiza el ritual: genera el resumen Autopilot con los datasets reales (`GO_NOGO_AUTOPILOT_DATASET/RUNS`) y produce `metrics/deploy_plan.md` con el estado de servicios, riesgo y auditoría. Sobre-escribe las rutas vía variables si necesitas un modo distinto (ejemplo local):
+  ```bash
+  make go-nogo \
+    GO_NOGO_AUTOPILOT_DATASET=sample_data/cerebro_experience_sample.jsonl \
+    GO_NOGO_AUTOPILOT_RUNS=sample_data/arena_runs_sample.jsonl \
+    GO_NOGO_RISK_STATE=logs/test/risk_state.json \
+    GO_NOGO_AUDIT_LOG=logs/test/audit.log
+  ```
 - El panel muestra la tarjeta **Autopilot 2V** (dataset health + ranking) y la sección de Estado (cooldown/risk). Usa estos indicadores como parte del Go/No-Go.
 - `scripts/tools/deploy_plan.py` genera el Markdown para cada ventana piloto a partir del resumen autopilot y la checklist (`--output-md docs/operations/deploy_plan.md`). Úsalo desde CI/cron (`make deploy-plan`) para tener el reporte listo antes del comité.
 

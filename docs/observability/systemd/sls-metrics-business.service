@@ -5,10 +5,12 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/root/SLS_Bot
-# Ajusta estas variables antes de copiar el servicio a /etc/systemd/system/.
+# Carga las mismas variables que usan los servicios del bot (opcional pero recomendado).
+EnvironmentFile=/root/SLS_Bot/.env
+# Puedes sobreescribir estos valores editando el servicio antes de instalarlo.
 Environment=SLSBOT_MODE=real
 Environment=METRICS_OUTPUT=/var/lib/node_exporter/textfile_collector/sls_bot_business.prom
-ExecStart=/bin/bash -lc '/root/SLS_Bot/venv/bin/python scripts/tools/metrics_business.py --mode "$SLSBOT_MODE" --output "$METRICS_OUTPUT"'
+ExecStart=/bin/bash -lc '/root/SLS_Bot/venv/bin/python scripts/tools/metrics_business.py --mode \"${SLSBOT_MODE}\" --output \"${METRICS_OUTPUT}\"'
 
 [Install]
 WantedBy=multi-user.target
