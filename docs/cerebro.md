@@ -15,6 +15,9 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 
 - **DataSources**: conectores a Bybit (OHLC + ATR) y RSS (titulares). Cada `fetch()` entrega diccionarios
   crudos que la politica puede consumir directamente, ahora con sentimiento NLP (`vaderSentiment`) en cada titular.
+- **Intel orchestrator** (`bot/cerebro/intel.py`): agrega noticias de CryptoPanic (token configurable) y analiza
+  el orderbook de Bybit para detectar entrada de ballenas, desequilibrios y posibles maniobras de spoofing. Sus señales
+  se mezclan en el `PolicyEnsemble` para aumentar/reducir riesgo o bloquear operaciones sospechosas.
 - **FeatureStore**: buffer circular (max 500) que almacena las ultimas velas por simbolo/timeframe.
 - **ExperienceMemory**: cola de tamano configurable que guarda `features + pnl + decision`.
 - **PolicyEnsemble**: combina `ia_signal_engine` + heuristicas de riesgo + sentimiento de noticias y un modelo ligero entrenado con los trades reales (logística).
@@ -92,7 +95,23 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
       "risk_multiplier_after_news": 0.7,
       "close_positions_minutes": 20
     }
-  ]
+  ],
+  "intel": {
+    "news_api": {
+      "enabled": true,
+      "provider": "cryptopanic",
+      "token_env": "CRYPTOPANIC_TOKEN",
+      "min_votes": 2,
+      "limit": 30
+    },
+    "whales": {
+      "enabled": true,
+      "min_notional": 1500000,
+      "orderbook_depth": 80,
+      "spoof_ratio": 5.0,
+      "imbalance_threshold": 0.35
+    }
+  }
 }
 ```
 
@@ -100,6 +119,8 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 - `session_guards`: lista de ventanas por region. Puedes eliminar o ajustar horarios/tiempos segun la cobertura del bot.
 - `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una
   noticia alineada.
+- `intel.news_api`: habilita el agregador (CryptoPanic por defecto). Usa `token_env` para leer la API key desde el entorno sin dejarla en el repo.
+- `intel.whales`: controla el detector de ballenas/spoofing. Ajusta `min_notional` y `orderbook_depth` para cada modo.
 
 ## Entrenamiento automático (`bot/cerebro/train.py`)
 

@@ -1,13 +1,58 @@
 from __future__ import annotations
-import os, joblib, numpy as np
-from typing import Tuple, Dict, Any
+
+import os
+from typing import Any, Dict, Optional, Tuple
+
+import joblib
+import numpy as np
+
 from .config_loader import load_config
 from .ia_utils import latest_slice
+from .strategies import get_scalping_strategy
 
 _cfg = load_config()
 _MODELS_DIR = "/opt/sls_bot/models"
-_FEATURES = ["rsi","atr","range_pct","ema_diff_bps","dist_to_avwap_bps","dist_to_ema200_bps",
-             "breakout_up","breakout_dn","slope_ema_fast","ema_fast","ema_mid","ema_slow","close","volume"]
+_FEATURES = [
+    "rsi",
+    "atr",
+    "range_pct",
+    "ema_diff_bps",
+    "dist_to_avwap_bps",
+    "dist_to_ema200_bps",
+    "breakout_up",
+    "breakout_dn",
+    "slope_ema_fast",
+    "ema_fast",
+    "ema_mid",
+    "ema_slow",
+    "close",
+    "volume",
+]
+
+
+def _scalping_applicable(marco: str) -> bool:
+    strategy_cfg = (_cfg.get("strategies") or {}).get("scalping") or {}
+    if not strategy_cfg.get("enabled"):
+        return False
+    allowed_modes = {str(m).lower() for m in strategy_cfg.get("modes", ["test"])}
+    active_mode = str(_cfg.get("_active_mode") or "").lower()
+    if allowed_modes and active_mode and active_mode not in allowed_modes:
+        return False
+    allowed_tf = [str(tf).lower() for tf in strategy_cfg.get("timeframes", [])]
+    if not allowed_tf:
+        return True
+    marco_norm = str(marco).lower()
+    if marco_norm in allowed_tf:
+        return True
+    return bool(strategy_cfg.get("force_primary_timeframe", True))
+
+
+def _try_scalping(symbol: str, marco: str, riesgo_pct_user: float | None, leverage_user: int | None):
+    strategy_cfg = (_cfg.get("strategies") or {}).get("scalping") or {}
+    if not _scalping_applicable(marco):
+        return None
+    engine = get_scalping_strategy(strategy_cfg)
+    return engine.decide(symbol=symbol, marco=marco, riesgo_pct_user=riesgo_pct_user, leverage_user=leverage_user)
 
 def _load_model(symbol: str, marco: str):
     base = os.path.join(_MODELS_DIR, f"ia_model_{symbol.upper()}_{marco}")
@@ -45,6 +90,26 @@ def decide(symbol: str, marco: str, riesgo_pct_user: float | None = None, levera
     lev_default  = int(bybit_cfg.get("default_leverage", 5))
     thr_enter    = float(ia_cfg.get("proba_enter", 0.60))
     w_rules, w_ml = 0.6, 0.4
+
+    scalping_result = _try_scalping(symbol, marco, riesgo_pct_user, leverage_user)
+    if scalping_result is not None:
+        scores = scalping_result.evidences.get("scores", {})
+        rules = {
+            "long": float(scores.get("long", 0.0)),
+            "short": float(scores.get("short", 0.0)),
+        }
+        evid = {
+            "rules": rules,
+            "ml": {"proba_up": scores.get("confidence_norm"), "trained": False},
+            "scalping": scalping_result.evidences,
+        }
+        meta_out = {
+            "weights": {"rules": 1.0, "ml": 0.0},
+            "thr_enter": scalping_result.metadata.get("confidence_threshold", thr_enter),
+            "model_meta": {"trained": False, "strategy": "scalping"},
+            "strategy": scalping_result.metadata,
+        }
+        return scalping_result.payload, evid, meta_out
 
     df, s = latest_slice(symbol, marco)
     scores = _rule_scores(s)

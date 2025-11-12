@@ -4,6 +4,7 @@ from .config_loader import load_config
 
 _cfg = load_config()
 _BASE_URL = _cfg["bybit"]["base_url"].rstrip("/")
+_ORDERBOOK_LIMIT = 200
 
 def _map_interval(marco: str) -> str:
     s = str(marco).lower().strip()
@@ -77,3 +78,35 @@ def latest_slice(symbol: str, marco: str, limit: int = 600):
     raw = fetch_ohlc(symbol, marco, limit=limit)
     df = compute_indicators(raw)
     return df, df.iloc[-1]
+
+
+def fetch_orderbook(symbol: str, depth: int = 50) -> dict:
+    """Descarga el orderbook para detectar ballenas/manipulación."""
+    url = f"{_BASE_URL}/v5/market/orderbook"
+    limit = max(1, min(int(depth), _ORDERBOOK_LIMIT))
+    resp = requests.get(
+        url,
+        params={"category": "linear", "symbol": symbol.upper(), "limit": limit},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("retCode") != 0:
+        raise RuntimeError(f"orderbook error: {data}")
+
+    def _parse(rows):
+        parsed = []
+        for row in rows or []:
+            if isinstance(row, dict):
+                price = row.get("price")
+                size = row.get("size")
+            else:
+                price, size, *_ = row
+            parsed.append({"price": float(price), "size": float(size)})
+        return parsed
+
+    result = data.get("result") or {}
+    return {
+        "bids": _parse(result.get("b")),
+        "asks": _parse(result.get("a")),
+    }

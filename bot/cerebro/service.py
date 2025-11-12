@@ -16,6 +16,7 @@ from .datasources.market import MarketDataSource
 from .datasources.news import RSSNewsDataSource
 from .filters import MarketSessionGuard, summarize_news_items
 from .features import FeatureStore
+from .intel import NewsAggregatorClient, WhaleWatcher
 from .memory import Experience, ExperienceMemory
 from .policy import PolicyDecision, PolicyEnsemble
 
@@ -76,6 +77,8 @@ class Cerebro:
         self.feature_store = FeatureStore(maxlen=500)
         self.market_source = MarketDataSource()
         self.news_source = RSSNewsDataSource(self.config.news_feeds)
+        self.news_aggregator = NewsAggregatorClient((self.config.intel or {}).get("news_api"))
+        self.whale_watcher = WhaleWatcher((self.config.intel or {}).get("whales"))
         self.memory = ExperienceMemory(maxlen=self.config.max_memory)
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         self.policy = PolicyEnsemble(
@@ -118,7 +121,9 @@ class Cerebro:
             self._last_run = time.time()
             now = datetime.now(timezone.utc)
             news_items = self.news_source.fetch(limit=10)
-            news_pulse = summarize_news_items(news_items, now=now, ttl_minutes=self.config.news_ttl_minutes)
+            agg_items = self.news_aggregator.fetch(limit=8) if self.news_aggregator else []
+            combined_news = (agg_items or []) + news_items
+            news_pulse = summarize_news_items(combined_news or news_items, now=now, ttl_minutes=self.config.news_ttl_minutes)
             news_sentiment = news_pulse.sentiment
             news_meta = {
                 "latest_title": news_pulse.latest_title,
@@ -126,7 +131,10 @@ class Cerebro:
                 "latest_ts": news_pulse.latest_ts.isoformat() if news_pulse.latest_ts else None,
                 "is_fresh": news_pulse.is_fresh(now, self.config.news_ttl_minutes),
                 "sentiment": news_pulse.sentiment,
+                "sources": len(combined_news) if combined_news else len(news_items),
             }
+            if agg_items:
+                news_meta["aggregated"] = agg_items[:3]
             session_guard = self.session_guard.evaluate(now=now, news_pulse=news_pulse)
             session_meta = session_guard.to_metadata() if session_guard else None
             stats = self.memory.stats()
@@ -145,6 +153,7 @@ class Cerebro:
                             memory_stats=stats,
                             session_context=session_meta,
                             news_meta=news_meta,
+                            orderflow_meta=self.whale_watcher.analyze(symbol) if self.whale_watcher else None,
                         )
                         key = f"{symbol.upper()}::{tf}"
                         self._decisions[key] = DecisionSnapshot(

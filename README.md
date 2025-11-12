@@ -4,7 +4,8 @@
 Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. El repo tambien incluye stubs y utilidades IA para generar decisiones desde Bybit.
 
 ## Arquitectura
-- `bot/` FastAPI + PyBit, maneja webhooks, control de riesgo, escritura en Excel y endpoints IA.
+- `bot/` FastAPI + PyBit, maneja webhooks, control de riesgo, escritura en Excel y endpoints IA. El Cerebro ahora consume señales avanzadas (`bot/cerebro/intel.py`) para mezclar sentimiento (RSS + CryptoPanic) con un detector de ballenas/spoofing basado en el orderbook de Bybit.
+- `bot/sls_bot/strategies/scalping.py` introduce la nueva estrategia de scalping para el modo demo: trabaja sobre 1m/3m/5m, mide compresión + liquidez y ajusta riesgo/apalancamiento automáticamente.
 - `panel/` Next.js 14 (app router) que consume la API via `NEXT_PUBLIC_API_BASE` y `X-Panel-Token`.
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
@@ -135,6 +136,8 @@ python scripts/tools/arena_rank.py runs/ \
 ```
 El script acepta archivos `.json` o `.jsonl` con `stats` (pnl, max_drawdown, trades, returns_avg/std, etc.), calcula Sharpe/Calmar/Profit Factor, aplica guardias (`min_trades`, `max_drawdown`, `max_drift`) y devuelve la tabla ordenada por score. Guarda los descartados con la razón para documentar por qué no calificaron.
 - Si quieres un resumen integrado (dataset + ranking + métricas Prometheus + Markdown), usa `autopilot_summary.py` o `make autopilot-summary` como se explica más abajo.
+- Para generar lotes sintéticos masivos de estrategias Arena utiliza `python scripts/tools/generate_arena_runs.py --count 5000 --output arena/runs/arena_5000.jsonl`.
+- Para llevar control de victorias/promociones ejecuta `python scripts/tools/arena_scoreboard.py --runs arena/runs/arena_5000.jsonl --scoreboard arena/scoreboard.json --champions arena/champions.json --promotion-wins 10`. El scoreboard suma victorias cuando una estrategia supera `--score-threshold` y mantiene un top configurable (<span>`--top`</span>).
 
 ## Autopilot summary / CI
 ```

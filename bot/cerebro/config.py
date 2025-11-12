@@ -48,6 +48,7 @@ class CerebroConfig:
     tp_atr_multiple: float = 2.0
     news_ttl_minutes: int = 45
     session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
+    intel: dict = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict) -> "CerebroConfig":
@@ -66,6 +67,7 @@ class CerebroConfig:
             tp_atr_multiple=float(data.get("tp_atr_multiple") or 2.0),
             news_ttl_minutes=int(data.get("news_ttl_minutes") or 45),
             session_guards=[SessionGuardConfig.from_dict(item or {}) for item in raw_sessions],
+            intel=data.get("intel") or {},
         )
 
 

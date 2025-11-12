@@ -1,0 +1,4002 @@
+{
+  "scalp_halo_4532": {
+    "victories": 1,
+    "last_score": 1.3915,
+    "stats": {
+      "pnl": 1264.47,
+      "max_drawdown": 1.1,
+      "gross_profit": 2577.94,
+      "gross_loss": 1313.47,
+      "trades": 163,
+      "win_rate": 0.695,
+      "returns_avg": 0.0366,
+      "returns_std": 0.0156,
+      "feature_drift": 0.0663,
+      "sharpe": 2.3461538461538463,
+      "calmar": 1149.5181818181818,
+      "profit_factor": 1.9626942374016918
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_2706": {
+    "victories": 1,
+    "last_score": 1.3785,
+    "stats": {
+      "pnl": 1324.27,
+      "max_drawdown": 0.96,
+      "gross_profit": 2710.89,
+      "gross_loss": 1386.62,
+      "trades": 210,
+      "win_rate": 0.6324,
+      "returns_avg": 0.0181,
+      "returns_std": 0.0077,
+      "feature_drift": 0.0941,
+      "sharpe": 2.3506493506493507,
+      "calmar": 1379.4479166666667,
+      "profit_factor": 1.9550345444317838
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_4817": {
+    "victories": 1,
+    "last_score": 1.3751,
+    "stats": {
+      "pnl": 1160.34,
+      "max_drawdown": 2.07,
+      "gross_profit": 2444.01,
+      "gross_loss": 1283.67,
+      "trades": 131,
+      "win_rate": 0.6788,
+      "returns_avg": 0.0301,
+      "returns_std": 0.0124,
+      "feature_drift": 0.073,
+      "sharpe": 2.4274193548387095,
+      "calmar": 560.5507246376811,
+      "profit_factor": 1.9039239056766926
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1794": {
+    "victories": 1,
+    "last_score": 1.373,
+    "stats": {
+      "pnl": 1255.02,
+      "max_drawdown": 1.73,
+      "gross_profit": 3105.61,
+      "gross_loss": 1850.58,
+      "trades": 225,
+      "win_rate": 0.6977,
+      "returns_avg": 0.0415,
+      "returns_std": 0.0168,
+      "feature_drift": 0.0964,
+      "sharpe": 2.4702380952380953,
+      "calmar": 725.4450867052024,
+      "profit_factor": 1.6781819753806917
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1647": {
+    "victories": 1,
+    "last_score": 1.3726,
+    "stats": {
+      "pnl": 1071.42,
+      "max_drawdown": 0.1,
+      "gross_profit": 2332.27,
+      "gross_loss": 1260.85,
+      "trades": 153,
+      "win_rate": 0.5842,
+      "returns_avg": 0.0117,
+      "returns_std": 0.005,
+      "feature_drift": 0.0589,
+      "sharpe": 2.34,
+      "calmar": 10714.2,
+      "profit_factor": 1.8497600824840386
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1196": {
+    "victories": 1,
+    "last_score": 1.3696,
+    "stats": {
+      "pnl": 902.3,
+      "max_drawdown": 1.55,
+      "gross_profit": 1839.58,
+      "gross_loss": 937.28,
+      "trades": 245,
+      "win_rate": 0.5635,
+      "returns_avg": 0.0345,
+      "returns_std": 0.014,
+      "feature_drift": 0.0718,
+      "sharpe": 2.4642857142857144,
+      "calmar": 582.1290322580645,
+      "profit_factor": 1.9626792420621373
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_4189": {
+    "victories": 1,
+    "last_score": 1.369,
+    "stats": {
+      "pnl": 1917.14,
+      "max_drawdown": 1.8,
+      "gross_profit": 4701.87,
+      "gross_loss": 2784.73,
+      "trades": 177,
+      "win_rate": 0.6697,
+      "returns_avg": 0.0254,
+      "returns_std": 0.0102,
+      "feature_drift": 0.0597,
+      "sharpe": 2.490196078431372,
+      "calmar": 1065.0777777777778,
+      "profit_factor": 1.6884473539625027
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0882": {
+    "victories": 1,
+    "last_score": 1.3677,
+    "stats": {
+      "pnl": 1452.85,
+      "max_drawdown": 0.4,
+      "gross_profit": 2928.97,
+      "gross_loss": 1476.11,
+      "trades": 152,
+      "win_rate": 0.6529,
+      "returns_avg": 0.0155,
+      "returns_std": 0.0071,
+      "feature_drift": 0.0691,
+      "sharpe": 2.1830985915492955,
+      "calmar": 3632.1249999999995,
+      "profit_factor": 1.984249141324156
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_0597": {
+    "victories": 1,
+    "last_score": 1.3661,
+    "stats": {
+      "pnl": 869.8,
+      "max_drawdown": 1.72,
+      "gross_profit": 2097.12,
+      "gross_loss": 1227.33,
+      "trades": 310,
+      "win_rate": 0.6405,
+      "returns_avg": 0.0262,
+      "returns_std": 0.0105,
+      "feature_drift": 0.0657,
+      "sharpe": 2.4952380952380953,
+      "calmar": 505.6976744186046,
+      "profit_factor": 1.7086847058248393
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_4739": {
+    "victories": 1,
+    "last_score": 1.3609,
+    "stats": {
+      "pnl": 1513.43,
+      "max_drawdown": 2.76,
+      "gross_profit": 3164.53,
+      "gross_loss": 1651.09,
+      "trades": 279,
+      "win_rate": 0.6799,
+      "returns_avg": 0.0439,
+      "returns_std": 0.0181,
+      "feature_drift": 0.0832,
+      "sharpe": 2.4254143646408837,
+      "calmar": 548.3442028985507,
+      "profit_factor": 1.916630831753569
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_2649": {
+    "victories": 1,
+    "last_score": 1.3608,
+    "stats": {
+      "pnl": 1828.32,
+      "max_drawdown": 1.89,
+      "gross_profit": 3861.52,
+      "gross_loss": 2033.2,
+      "trades": 333,
+      "win_rate": 0.5916,
+      "returns_avg": 0.039,
+      "returns_std": 0.0159,
+      "feature_drift": 0.0596,
+      "sharpe": 2.452830188679245,
+      "calmar": 967.3650793650794,
+      "profit_factor": 1.89923273657289
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_0663": {
+    "victories": 1,
+    "last_score": 1.3603,
+    "stats": {
+      "pnl": 1979.45,
+      "max_drawdown": 0.14,
+      "gross_profit": 5390.53,
+      "gross_loss": 3411.09,
+      "trades": 260,
+      "win_rate": 0.5728,
+      "returns_avg": 0.0456,
+      "returns_std": 0.0187,
+      "feature_drift": 0.0583,
+      "sharpe": 2.4385026737967914,
+      "calmar": 14138.92857142857,
+      "profit_factor": 1.5802954480825775
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_1806": {
+    "victories": 1,
+    "last_score": 1.3603,
+    "stats": {
+      "pnl": 956.86,
+      "max_drawdown": 0.79,
+      "gross_profit": 2679.9,
+      "gross_loss": 1723.04,
+      "trades": 290,
+      "win_rate": 0.6649,
+      "returns_avg": 0.0245,
+      "returns_std": 0.0102,
+      "feature_drift": 0.1077,
+      "sharpe": 2.4019607843137254,
+      "calmar": 1211.2151898734178,
+      "profit_factor": 1.5553324356950506
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1599": {
+    "victories": 1,
+    "last_score": 1.3602,
+    "stats": {
+      "pnl": 1953.19,
+      "max_drawdown": 2.24,
+      "gross_profit": 5743.78,
+      "gross_loss": 3790.59,
+      "trades": 239,
+      "win_rate": 0.7449,
+      "returns_avg": 0.0318,
+      "returns_std": 0.0128,
+      "feature_drift": 0.0918,
+      "sharpe": 2.484375,
+      "calmar": 871.9598214285713,
+      "profit_factor": 1.5152733479484723
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_4510": {
+    "victories": 1,
+    "last_score": 1.3594,
+    "stats": {
+      "pnl": 1113.11,
+      "max_drawdown": 3.53,
+      "gross_profit": 2255.94,
+      "gross_loss": 1142.83,
+      "trades": 239,
+      "win_rate": 0.6693,
+      "returns_avg": 0.0334,
+      "returns_std": 0.0134,
+      "feature_drift": 0.0522,
+      "sharpe": 2.4925373134328357,
+      "calmar": 315.32861189801696,
+      "profit_factor": 1.9739943823665813
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_0354": {
+    "victories": 1,
+    "last_score": 1.3576,
+    "stats": {
+      "pnl": 1541.46,
+      "max_drawdown": 0.43,
+      "gross_profit": 3984.32,
+      "gross_loss": 2442.86,
+      "trades": 187,
+      "win_rate": 0.6682,
+      "returns_avg": 0.0115,
+      "returns_std": 0.005,
+      "feature_drift": 0.1053,
+      "sharpe": 2.3,
+      "calmar": 3584.790697674419,
+      "profit_factor": 1.6310062795248192
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2283": {
+    "victories": 1,
+    "last_score": 1.3572,
+    "stats": {
+      "pnl": 1197.69,
+      "max_drawdown": 2.53,
+      "gross_profit": 2473.02,
+      "gross_loss": 1275.33,
+      "trades": 208,
+      "win_rate": 0.7235,
+      "returns_avg": 0.0196,
+      "returns_std": 0.0085,
+      "feature_drift": 0.0266,
+      "sharpe": 2.3058823529411763,
+      "calmar": 473.3952569169961,
+      "profit_factor": 1.9391216391051729
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_0008": {
+    "victories": 1,
+    "last_score": 1.3564,
+    "stats": {
+      "pnl": 1470.2,
+      "max_drawdown": 1.16,
+      "gross_profit": 3277.46,
+      "gross_loss": 1807.26,
+      "trades": 328,
+      "win_rate": 0.6402,
+      "returns_avg": 0.0397,
+      "returns_std": 0.0171,
+      "feature_drift": 0.1067,
+      "sharpe": 2.3216374269005846,
+      "calmar": 1267.4137931034484,
+      "profit_factor": 1.813496674523865
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_3634": {
+    "victories": 1,
+    "last_score": 1.3563,
+    "stats": {
+      "pnl": 1612.31,
+      "max_drawdown": 3.05,
+      "gross_profit": 3877.82,
+      "gross_loss": 2265.51,
+      "trades": 319,
+      "win_rate": 0.7369,
+      "returns_avg": 0.0217,
+      "returns_std": 0.0088,
+      "feature_drift": 0.0915,
+      "sharpe": 2.465909090909091,
+      "calmar": 528.6262295081967,
+      "profit_factor": 1.7116763995744886
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_4035": {
+    "victories": 1,
+    "last_score": 1.3559,
+    "stats": {
+      "pnl": 1466.0,
+      "max_drawdown": 1.17,
+      "gross_profit": 3716.56,
+      "gross_loss": 2250.56,
+      "trades": 303,
+      "win_rate": 0.6544,
+      "returns_avg": 0.0179,
+      "returns_std": 0.0075,
+      "feature_drift": 0.0506,
+      "sharpe": 2.3866666666666667,
+      "calmar": 1252.9914529914531,
+      "profit_factor": 1.6513934309682923
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1291": {
+    "victories": 1,
+    "last_score": 1.3541,
+    "stats": {
+      "pnl": 1470.12,
+      "max_drawdown": 2.28,
+      "gross_profit": 3032.53,
+      "gross_loss": 1562.41,
+      "trades": 242,
+      "win_rate": 0.6323,
+      "returns_avg": 0.0124,
+      "returns_std": 0.0052,
+      "feature_drift": 0.0743,
+      "sharpe": 2.3846153846153846,
+      "calmar": 644.7894736842105,
+      "profit_factor": 1.9409309976254632
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_2544": {
+    "victories": 1,
+    "last_score": 1.3538,
+    "stats": {
+      "pnl": 1148.07,
+      "max_drawdown": 0.8,
+      "gross_profit": 2338.24,
+      "gross_loss": 1190.17,
+      "trades": 193,
+      "win_rate": 0.7501,
+      "returns_avg": 0.0309,
+      "returns_std": 0.0152,
+      "feature_drift": 0.0226,
+      "sharpe": 2.0328947368421053,
+      "calmar": 1435.0874999999999,
+      "profit_factor": 1.9646269020392042
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2566": {
+    "victories": 1,
+    "last_score": 1.3514,
+    "stats": {
+      "pnl": 1286.21,
+      "max_drawdown": 3.19,
+      "gross_profit": 3033.94,
+      "gross_loss": 1747.72,
+      "trades": 221,
+      "win_rate": 0.717,
+      "returns_avg": 0.0126,
+      "returns_std": 0.0051,
+      "feature_drift": 0.0581,
+      "sharpe": 2.4705882352941173,
+      "calmar": 403.20062695924764,
+      "profit_factor": 1.7359416840226123
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4628": {
+    "victories": 1,
+    "last_score": 1.3502,
+    "stats": {
+      "pnl": 1346.72,
+      "max_drawdown": 1.99,
+      "gross_profit": 2713.26,
+      "gross_loss": 1366.54,
+      "trades": 268,
+      "win_rate": 0.6367,
+      "returns_avg": 0.0115,
+      "returns_std": 0.005,
+      "feature_drift": 0.0453,
+      "sharpe": 2.3,
+      "calmar": 676.7437185929648,
+      "profit_factor": 1.9854962167225256
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_0544": {
+    "victories": 1,
+    "last_score": 1.3494,
+    "stats": {
+      "pnl": 1199.85,
+      "max_drawdown": 3.32,
+      "gross_profit": 2632.45,
+      "gross_loss": 1432.6,
+      "trades": 175,
+      "win_rate": 0.85,
+      "returns_avg": 0.0461,
+      "returns_std": 0.0206,
+      "feature_drift": 0.0396,
+      "sharpe": 2.237864077669903,
+      "calmar": 361.40060240963857,
+      "profit_factor": 1.8375331564986737
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2699": {
+    "victories": 1,
+    "last_score": 1.3477,
+    "stats": {
+      "pnl": 1195.25,
+      "max_drawdown": 2.9,
+      "gross_profit": 3176.75,
+      "gross_loss": 1981.5,
+      "trades": 267,
+      "win_rate": 0.7153,
+      "returns_avg": 0.0493,
+      "returns_std": 0.0198,
+      "feature_drift": 0.1122,
+      "sharpe": 2.4898989898989896,
+      "calmar": 412.15517241379314,
+      "profit_factor": 1.6032046429472622
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1755": {
+    "victories": 1,
+    "last_score": 1.3462,
+    "stats": {
+      "pnl": 1528.04,
+      "max_drawdown": 0.55,
+      "gross_profit": 3259.4,
+      "gross_loss": 1731.36,
+      "trades": 279,
+      "win_rate": 0.5752,
+      "returns_avg": 0.0436,
+      "returns_std": 0.0194,
+      "feature_drift": 0.0743,
+      "sharpe": 2.247422680412371,
+      "calmar": 2778.254545454545,
+      "profit_factor": 1.8825663062563536
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_4601": {
+    "victories": 1,
+    "last_score": 1.346,
+    "stats": {
+      "pnl": 1444.3,
+      "max_drawdown": 2.07,
+      "gross_profit": 3713.71,
+      "gross_loss": 2269.41,
+      "trades": 302,
+      "win_rate": 0.6655,
+      "returns_avg": 0.0146,
+      "returns_std": 0.006,
+      "feature_drift": 0.1287,
+      "sharpe": 2.433333333333333,
+      "calmar": 697.7294685990338,
+      "profit_factor": 1.6364209199747954
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_2254": {
+    "victories": 1,
+    "last_score": 1.345,
+    "stats": {
+      "pnl": 1008.18,
+      "max_drawdown": 2.47,
+      "gross_profit": 2724.03,
+      "gross_loss": 1715.86,
+      "trades": 177,
+      "win_rate": 0.7088,
+      "returns_avg": 0.0481,
+      "returns_std": 0.0197,
+      "feature_drift": 0.0848,
+      "sharpe": 2.4416243654822334,
+      "calmar": 408.17004048582993,
+      "profit_factor": 1.5875595911088318
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_4055": {
+    "victories": 1,
+    "last_score": 1.3448,
+    "stats": {
+      "pnl": 1156.74,
+      "max_drawdown": 2.04,
+      "gross_profit": 2582.82,
+      "gross_loss": 1426.07,
+      "trades": 174,
+      "win_rate": 0.642,
+      "returns_avg": 0.0163,
+      "returns_std": 0.0069,
+      "feature_drift": 0.1164,
+      "sharpe": 2.36231884057971,
+      "calmar": 567.0294117647059,
+      "profit_factor": 1.8111453154473485
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_0865": {
+    "victories": 1,
+    "last_score": 1.3447,
+    "stats": {
+      "pnl": 1236.22,
+      "max_drawdown": 2.17,
+      "gross_profit": 2649.63,
+      "gross_loss": 1413.41,
+      "trades": 283,
+      "win_rate": 0.5966,
+      "returns_avg": 0.0308,
+      "returns_std": 0.0128,
+      "feature_drift": 0.0546,
+      "sharpe": 2.40625,
+      "calmar": 569.6866359447005,
+      "profit_factor": 1.874636517358728
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_4462": {
+    "victories": 1,
+    "last_score": 1.3445,
+    "stats": {
+      "pnl": 1502.43,
+      "max_drawdown": 1.89,
+      "gross_profit": 3452.73,
+      "gross_loss": 1950.3,
+      "trades": 177,
+      "win_rate": 0.6958,
+      "returns_avg": 0.0394,
+      "returns_std": 0.0172,
+      "feature_drift": 0.0554,
+      "sharpe": 2.2906976744186047,
+      "calmar": 794.9365079365081,
+      "profit_factor": 1.7703584063990156
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_4982": {
+    "victories": 1,
+    "last_score": 1.3443,
+    "stats": {
+      "pnl": 1628.49,
+      "max_drawdown": 3.21,
+      "gross_profit": 4450.07,
+      "gross_loss": 2821.58,
+      "trades": 136,
+      "win_rate": 0.8455,
+      "returns_avg": 0.0164,
+      "returns_std": 0.007,
+      "feature_drift": 0.0706,
+      "sharpe": 2.342857142857143,
+      "calmar": 507.3177570093458,
+      "profit_factor": 1.5771553526747424
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_3655": {
+    "victories": 1,
+    "last_score": 1.344,
+    "stats": {
+      "pnl": 1545.18,
+      "max_drawdown": 3.29,
+      "gross_profit": 3523.22,
+      "gross_loss": 1978.04,
+      "trades": 120,
+      "win_rate": 0.7531,
+      "returns_avg": 0.0353,
+      "returns_std": 0.0149,
+      "feature_drift": 0.0387,
+      "sharpe": 2.3691275167785233,
+      "calmar": 469.6595744680851,
+      "profit_factor": 1.7811672160320315
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_2286": {
+    "victories": 1,
+    "last_score": 1.3436,
+    "stats": {
+      "pnl": 1351.79,
+      "max_drawdown": 2.1,
+      "gross_profit": 3823.2,
+      "gross_loss": 2471.41,
+      "trades": 233,
+      "win_rate": 0.6627,
+      "returns_avg": 0.0255,
+      "returns_std": 0.0103,
+      "feature_drift": 0.0634,
+      "sharpe": 2.4757281553398056,
+      "calmar": 643.7095238095237,
+      "profit_factor": 1.5469711622110456
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_3968": {
+    "victories": 1,
+    "last_score": 1.3433,
+    "stats": {
+      "pnl": 1557.43,
+      "max_drawdown": 1.52,
+      "gross_profit": 3307.94,
+      "gross_loss": 1750.51,
+      "trades": 231,
+      "win_rate": 0.5929,
+      "returns_avg": 0.016,
+      "returns_std": 0.0069,
+      "feature_drift": 0.0727,
+      "sharpe": 2.318840579710145,
+      "calmar": 1024.625,
+      "profit_factor": 1.8897007157913979
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_4214": {
+    "victories": 1,
+    "last_score": 1.3433,
+    "stats": {
+      "pnl": 1421.48,
+      "max_drawdown": 1.71,
+      "gross_profit": 4059.65,
+      "gross_loss": 2638.18,
+      "trades": 151,
+      "win_rate": 0.6297,
+      "returns_avg": 0.0275,
+      "returns_std": 0.0111,
+      "feature_drift": 0.1014,
+      "sharpe": 2.4774774774774775,
+      "calmar": 831.2748538011696,
+      "profit_factor": 1.538807056379777
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0972": {
+    "victories": 1,
+    "last_score": 1.343,
+    "stats": {
+      "pnl": 1469.68,
+      "max_drawdown": 3.31,
+      "gross_profit": 3122.25,
+      "gross_loss": 1652.58,
+      "trades": 198,
+      "win_rate": 0.6279,
+      "returns_avg": 0.0263,
+      "returns_std": 0.0106,
+      "feature_drift": 0.0616,
+      "sharpe": 2.4811320754716983,
+      "calmar": 444.012084592145,
+      "profit_factor": 1.8893185201321572
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3499": {
+    "victories": 1,
+    "last_score": 1.3427,
+    "stats": {
+      "pnl": 1260.89,
+      "max_drawdown": 1.74,
+      "gross_profit": 2674.04,
+      "gross_loss": 1413.15,
+      "trades": 210,
+      "win_rate": 0.6945,
+      "returns_avg": 0.0209,
+      "returns_std": 0.0095,
+      "feature_drift": 0.1034,
+      "sharpe": 2.1999999999999997,
+      "calmar": 724.6494252873564,
+      "profit_factor": 1.892254891554329
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_3742": {
+    "victories": 1,
+    "last_score": 1.3426,
+    "stats": {
+      "pnl": 2166.59,
+      "max_drawdown": 2.15,
+      "gross_profit": 5940.65,
+      "gross_loss": 3774.06,
+      "trades": 260,
+      "win_rate": 0.6858,
+      "returns_avg": 0.0311,
+      "returns_std": 0.0128,
+      "feature_drift": 0.1325,
+      "sharpe": 2.4296875,
+      "calmar": 1007.7162790697676,
+      "profit_factor": 1.574074074074074
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_2385": {
+    "victories": 1,
+    "last_score": 1.3417,
+    "stats": {
+      "pnl": 1393.63,
+      "max_drawdown": 1.88,
+      "gross_profit": 4689.08,
+      "gross_loss": 3295.45,
+      "trades": 171,
+      "win_rate": 0.6855,
+      "returns_avg": 0.0193,
+      "returns_std": 0.0078,
+      "feature_drift": 0.0937,
+      "sharpe": 2.4743589743589745,
+      "calmar": 741.2925531914894,
+      "profit_factor": 1.4228952039933849
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_0580": {
+    "victories": 1,
+    "last_score": 1.3415,
+    "stats": {
+      "pnl": 907.85,
+      "max_drawdown": 0.85,
+      "gross_profit": 2778.77,
+      "gross_loss": 1870.91,
+      "trades": 181,
+      "win_rate": 0.6806,
+      "returns_avg": 0.0351,
+      "returns_std": 0.0151,
+      "feature_drift": 0.0488,
+      "sharpe": 2.324503311258278,
+      "calmar": 1068.0588235294117,
+      "profit_factor": 1.4852504930755621
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4714": {
+    "victories": 1,
+    "last_score": 1.3398,
+    "stats": {
+      "pnl": 1115.5,
+      "max_drawdown": 2.65,
+      "gross_profit": 3324.69,
+      "gross_loss": 2209.19,
+      "trades": 220,
+      "win_rate": 0.6981,
+      "returns_avg": 0.0424,
+      "returns_std": 0.017,
+      "feature_drift": 0.1133,
+      "sharpe": 2.4941176470588236,
+      "calmar": 420.94339622641513,
+      "profit_factor": 1.5049361983351364
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_4650": {
+    "victories": 1,
+    "last_score": 1.3394,
+    "stats": {
+      "pnl": 1206.93,
+      "max_drawdown": 0.66,
+      "gross_profit": 4014.04,
+      "gross_loss": 2807.11,
+      "trades": 146,
+      "win_rate": 0.6665,
+      "returns_avg": 0.0117,
+      "returns_std": 0.005,
+      "feature_drift": 0.1006,
+      "sharpe": 2.34,
+      "calmar": 1828.6818181818182,
+      "profit_factor": 1.429954650868687
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_3745": {
+    "victories": 1,
+    "last_score": 1.3392,
+    "stats": {
+      "pnl": 1821.68,
+      "max_drawdown": 1.04,
+      "gross_profit": 4386.46,
+      "gross_loss": 2564.78,
+      "trades": 194,
+      "win_rate": 0.722,
+      "returns_avg": 0.0123,
+      "returns_std": 0.0057,
+      "feature_drift": 0.0775,
+      "sharpe": 2.1578947368421053,
+      "calmar": 1751.6153846153845,
+      "profit_factor": 1.7102675473139994
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_3560": {
+    "victories": 1,
+    "last_score": 1.3382,
+    "stats": {
+      "pnl": 1680.5,
+      "max_drawdown": 3.63,
+      "gross_profit": 3387.26,
+      "gross_loss": 1706.76,
+      "trades": 186,
+      "win_rate": 0.6167,
+      "returns_avg": 0.044,
+      "returns_std": 0.0179,
+      "feature_drift": 0.0831,
+      "sharpe": 2.458100558659218,
+      "calmar": 462.94765840220384,
+      "profit_factor": 1.9846141226651668
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0297": {
+    "victories": 1,
+    "last_score": 1.3365,
+    "stats": {
+      "pnl": 1281.68,
+      "max_drawdown": 2.27,
+      "gross_profit": 2905.21,
+      "gross_loss": 1623.53,
+      "trades": 231,
+      "win_rate": 0.5597,
+      "returns_avg": 0.0378,
+      "returns_std": 0.0153,
+      "feature_drift": 0.0388,
+      "sharpe": 2.4705882352941178,
+      "calmar": 564.6167400881058,
+      "profit_factor": 1.7894402936810532
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_0434": {
+    "victories": 1,
+    "last_score": 1.335,
+    "stats": {
+      "pnl": 1195.78,
+      "max_drawdown": 1.15,
+      "gross_profit": 3737.84,
+      "gross_loss": 2542.07,
+      "trades": 154,
+      "win_rate": 0.6935,
+      "returns_avg": 0.0301,
+      "returns_std": 0.013,
+      "feature_drift": 0.1034,
+      "sharpe": 2.315384615384615,
+      "calmar": 1039.808695652174,
+      "profit_factor": 1.4703922393954534
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_0063": {
+    "victories": 1,
+    "last_score": 1.3348,
+    "stats": {
+      "pnl": 1067.52,
+      "max_drawdown": 1.9,
+      "gross_profit": 3437.78,
+      "gross_loss": 2370.26,
+      "trades": 176,
+      "win_rate": 0.6879,
+      "returns_avg": 0.0201,
+      "returns_std": 0.0083,
+      "feature_drift": 0.0486,
+      "sharpe": 2.4216867469879517,
+      "calmar": 561.8526315789474,
+      "profit_factor": 1.450380970863956
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_3419": {
+    "victories": 1,
+    "last_score": 1.3341,
+    "stats": {
+      "pnl": 1771.66,
+      "max_drawdown": 2.31,
+      "gross_profit": 4369.04,
+      "gross_loss": 2597.38,
+      "trades": 222,
+      "win_rate": 0.7287,
+      "returns_avg": 0.0263,
+      "returns_std": 0.0115,
+      "feature_drift": 0.0875,
+      "sharpe": 2.2869565217391306,
+      "calmar": 766.952380952381,
+      "profit_factor": 1.6820950342267977
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3512": {
+    "victories": 1,
+    "last_score": 1.3332,
+    "stats": {
+      "pnl": 769.79,
+      "max_drawdown": 0.67,
+      "gross_profit": 1648.2,
+      "gross_loss": 878.41,
+      "trades": 182,
+      "win_rate": 0.4825,
+      "returns_avg": 0.0237,
+      "returns_std": 0.0102,
+      "feature_drift": 0.094,
+      "sharpe": 2.3235294117647056,
+      "calmar": 1148.9402985074626,
+      "profit_factor": 1.8763447592809737
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_3704": {
+    "victories": 1,
+    "last_score": 1.333,
+    "stats": {
+      "pnl": 1423.05,
+      "max_drawdown": 2.07,
+      "gross_profit": 3086.0,
+      "gross_loss": 1662.95,
+      "trades": 203,
+      "win_rate": 0.6094,
+      "returns_avg": 0.0172,
+      "returns_std": 0.0074,
+      "feature_drift": 0.0479,
+      "sharpe": 2.324324324324324,
+      "calmar": 687.4637681159421,
+      "profit_factor": 1.855738296400974
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_3880": {
+    "victories": 1,
+    "last_score": 1.333,
+    "stats": {
+      "pnl": 1672.57,
+      "max_drawdown": 2.61,
+      "gross_profit": 5562.99,
+      "gross_loss": 3890.42,
+      "trades": 211,
+      "win_rate": 0.7478,
+      "returns_avg": 0.0177,
+      "returns_std": 0.0073,
+      "feature_drift": 0.1096,
+      "sharpe": 2.4246575342465753,
+      "calmar": 640.8314176245211,
+      "profit_factor": 1.4299201628615932
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0987": {
+    "victories": 1,
+    "last_score": 1.3325,
+    "stats": {
+      "pnl": 1786.75,
+      "max_drawdown": 2.05,
+      "gross_profit": 4183.42,
+      "gross_loss": 2396.67,
+      "trades": 178,
+      "win_rate": 0.6758,
+      "returns_avg": 0.0391,
+      "returns_std": 0.0171,
+      "feature_drift": 0.0866,
+      "sharpe": 2.2865497076023393,
+      "calmar": 871.5853658536586,
+      "profit_factor": 1.745513566740519
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_0894": {
+    "victories": 1,
+    "last_score": 1.3317,
+    "stats": {
+      "pnl": 1224.75,
+      "max_drawdown": 2.46,
+      "gross_profit": 2793.24,
+      "gross_loss": 1568.49,
+      "trades": 285,
+      "win_rate": 0.6293,
+      "returns_avg": 0.0221,
+      "returns_std": 0.0093,
+      "feature_drift": 0.1086,
+      "sharpe": 2.376344086021506,
+      "calmar": 497.8658536585366,
+      "profit_factor": 1.7808465466786525
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0872": {
+    "victories": 1,
+    "last_score": 1.3304,
+    "stats": {
+      "pnl": 1485.46,
+      "max_drawdown": 0.79,
+      "gross_profit": 4056.49,
+      "gross_loss": 2571.03,
+      "trades": 255,
+      "win_rate": 0.6615,
+      "returns_avg": 0.0152,
+      "returns_std": 0.0068,
+      "feature_drift": 0.0877,
+      "sharpe": 2.235294117647059,
+      "calmar": 1880.3291139240505,
+      "profit_factor": 1.5777684429975534
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_4941": {
+    "victories": 1,
+    "last_score": 1.3302,
+    "stats": {
+      "pnl": 1419.68,
+      "max_drawdown": 3.83,
+      "gross_profit": 3047.42,
+      "gross_loss": 1627.73,
+      "trades": 175,
+      "win_rate": 0.6317,
+      "returns_avg": 0.0347,
+      "returns_std": 0.014,
+      "feature_drift": 0.0893,
+      "sharpe": 2.4785714285714286,
+      "calmar": 370.67362924281986,
+      "profit_factor": 1.8721901052385839
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4350": {
+    "victories": 1,
+    "last_score": 1.3301,
+    "stats": {
+      "pnl": 1309.57,
+      "max_drawdown": 3.09,
+      "gross_profit": 2753.28,
+      "gross_loss": 1443.71,
+      "trades": 249,
+      "win_rate": 0.7135,
+      "returns_avg": 0.0314,
+      "returns_std": 0.0139,
+      "feature_drift": 0.018,
+      "sharpe": 2.258992805755396,
+      "calmar": 423.80906148867314,
+      "profit_factor": 1.9070866032651987
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_1182": {
+    "victories": 1,
+    "last_score": 1.3294,
+    "stats": {
+      "pnl": 1324.37,
+      "max_drawdown": 2.1,
+      "gross_profit": 3087.24,
+      "gross_loss": 1762.87,
+      "trades": 193,
+      "win_rate": 0.7736,
+      "returns_avg": 0.031,
+      "returns_std": 0.0145,
+      "feature_drift": 0.1346,
+      "sharpe": 2.1379310344827585,
+      "calmar": 630.6523809523809,
+      "profit_factor": 1.7512578919602693
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_3235": {
+    "victories": 1,
+    "last_score": 1.3286,
+    "stats": {
+      "pnl": 1230.43,
+      "max_drawdown": 3.2,
+      "gross_profit": 2926.02,
+      "gross_loss": 1695.59,
+      "trades": 243,
+      "win_rate": 0.6496,
+      "returns_avg": 0.0333,
+      "returns_std": 0.0136,
+      "feature_drift": 0.0848,
+      "sharpe": 2.448529411764706,
+      "calmar": 384.509375,
+      "profit_factor": 1.7256648128380092
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_0796": {
+    "victories": 1,
+    "last_score": 1.3274,
+    "stats": {
+      "pnl": 1389.4,
+      "max_drawdown": 3.2,
+      "gross_profit": 3188.8,
+      "gross_loss": 1799.4,
+      "trades": 143,
+      "win_rate": 0.5991,
+      "returns_avg": 0.0194,
+      "returns_std": 0.0078,
+      "feature_drift": 0.0905,
+      "sharpe": 2.4871794871794872,
+      "calmar": 434.1875,
+      "profit_factor": 1.7721462709792153
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_0161": {
+    "victories": 1,
+    "last_score": 1.3272,
+    "stats": {
+      "pnl": 2095.13,
+      "max_drawdown": 3.82,
+      "gross_profit": 5425.53,
+      "gross_loss": 3330.4,
+      "trades": 269,
+      "win_rate": 0.6977,
+      "returns_avg": 0.013,
+      "returns_std": 0.0052,
+      "feature_drift": 0.138,
+      "sharpe": 2.5,
+      "calmar": 548.4633507853404,
+      "profit_factor": 1.6290926014893106
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_4465": {
+    "victories": 1,
+    "last_score": 1.3272,
+    "stats": {
+      "pnl": 1380.51,
+      "max_drawdown": 2.53,
+      "gross_profit": 3196.61,
+      "gross_loss": 1816.1,
+      "trades": 245,
+      "win_rate": 0.5413,
+      "returns_avg": 0.0364,
+      "returns_std": 0.0146,
+      "feature_drift": 0.0748,
+      "sharpe": 2.493150684931507,
+      "calmar": 545.6561264822135,
+      "profit_factor": 1.760150872749298
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1688": {
+    "victories": 1,
+    "last_score": 1.3271,
+    "stats": {
+      "pnl": 1161.0,
+      "max_drawdown": 3.13,
+      "gross_profit": 2531.4,
+      "gross_loss": 1370.4,
+      "trades": 157,
+      "win_rate": 0.6607,
+      "returns_avg": 0.0374,
+      "returns_std": 0.0159,
+      "feature_drift": 0.0843,
+      "sharpe": 2.352201257861635,
+      "calmar": 370.926517571885,
+      "profit_factor": 1.8471978984238178
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0419": {
+    "victories": 1,
+    "last_score": 1.327,
+    "stats": {
+      "pnl": 1474.48,
+      "max_drawdown": 2.29,
+      "gross_profit": 4186.69,
+      "gross_loss": 2712.21,
+      "trades": 206,
+      "win_rate": 0.6264,
+      "returns_avg": 0.0128,
+      "returns_std": 0.0052,
+      "feature_drift": 0.11,
+      "sharpe": 2.4615384615384617,
+      "calmar": 643.8777292576419,
+      "profit_factor": 1.5436452192123764
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_0622": {
+    "victories": 1,
+    "last_score": 1.3267,
+    "stats": {
+      "pnl": 1524.9,
+      "max_drawdown": 2.68,
+      "gross_profit": 3071.94,
+      "gross_loss": 1547.04,
+      "trades": 227,
+      "win_rate": 0.5059,
+      "returns_avg": 0.0134,
+      "returns_std": 0.0055,
+      "feature_drift": 0.1079,
+      "sharpe": 2.4363636363636365,
+      "calmar": 568.9925373134329,
+      "profit_factor": 1.9856887992553522
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1906": {
+    "victories": 1,
+    "last_score": 1.3267,
+    "stats": {
+      "pnl": 1335.89,
+      "max_drawdown": 0.99,
+      "gross_profit": 2958.31,
+      "gross_loss": 1622.42,
+      "trades": 153,
+      "win_rate": 0.5114,
+      "returns_avg": 0.047,
+      "returns_std": 0.0203,
+      "feature_drift": 0.0944,
+      "sharpe": 2.315270935960591,
+      "calmar": 1349.3838383838386,
+      "profit_factor": 1.8233934492917985
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_1915": {
+    "victories": 1,
+    "last_score": 1.3259,
+    "stats": {
+      "pnl": 1698.73,
+      "max_drawdown": 2.78,
+      "gross_profit": 4924.78,
+      "gross_loss": 3226.04,
+      "trades": 207,
+      "win_rate": 0.7586,
+      "returns_avg": 0.0454,
+      "returns_std": 0.0194,
+      "feature_drift": 0.1662,
+      "sharpe": 2.3402061855670104,
+      "calmar": 611.0539568345324,
+      "profit_factor": 1.5265712762396002
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_0939": {
+    "victories": 1,
+    "last_score": 1.3228,
+    "stats": {
+      "pnl": 1072.21,
+      "max_drawdown": 3.46,
+      "gross_profit": 2626.33,
+      "gross_loss": 1554.12,
+      "trades": 233,
+      "win_rate": 0.6652,
+      "returns_avg": 0.0296,
+      "returns_std": 0.0121,
+      "feature_drift": 0.0953,
+      "sharpe": 2.4462809917355375,
+      "calmar": 309.8872832369942,
+      "profit_factor": 1.689914549713021
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0112": {
+    "victories": 1,
+    "last_score": 1.3226,
+    "stats": {
+      "pnl": 1269.57,
+      "max_drawdown": 2.94,
+      "gross_profit": 2638.5,
+      "gross_loss": 1368.93,
+      "trades": 209,
+      "win_rate": 0.608,
+      "returns_avg": 0.0334,
+      "returns_std": 0.0143,
+      "feature_drift": 0.097,
+      "sharpe": 2.3356643356643354,
+      "calmar": 431.8265306122449,
+      "profit_factor": 1.9274177642392232
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_4996": {
+    "victories": 1,
+    "last_score": 1.3211,
+    "stats": {
+      "pnl": 866.41,
+      "max_drawdown": 1.79,
+      "gross_profit": 2108.54,
+      "gross_loss": 1242.13,
+      "trades": 159,
+      "win_rate": 0.5601,
+      "returns_avg": 0.0119,
+      "returns_std": 0.005,
+      "feature_drift": 0.0864,
+      "sharpe": 2.3800000000000003,
+      "calmar": 484.02793296089385,
+      "profit_factor": 1.6975195832964343
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0494": {
+    "victories": 1,
+    "last_score": 1.3208,
+    "stats": {
+      "pnl": 1688.61,
+      "max_drawdown": 1.67,
+      "gross_profit": 5520.23,
+      "gross_loss": 3831.62,
+      "trades": 208,
+      "win_rate": 0.6086,
+      "returns_avg": 0.037,
+      "returns_std": 0.0152,
+      "feature_drift": 0.0432,
+      "sharpe": 2.4342105263157894,
+      "calmar": 1011.1437125748503,
+      "profit_factor": 1.4407039320183108
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1589": {
+    "victories": 1,
+    "last_score": 1.3201,
+    "stats": {
+      "pnl": 850.65,
+      "max_drawdown": 3.87,
+      "gross_profit": 2807.06,
+      "gross_loss": 1956.41,
+      "trades": 168,
+      "win_rate": 0.8084,
+      "returns_avg": 0.0479,
+      "returns_std": 0.0198,
+      "feature_drift": 0.0472,
+      "sharpe": 2.419191919191919,
+      "calmar": 219.80620155038758,
+      "profit_factor": 1.434801498663368
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4521": {
+    "victories": 1,
+    "last_score": 1.3197,
+    "stats": {
+      "pnl": 913.01,
+      "max_drawdown": 2.35,
+      "gross_profit": 2584.9,
+      "gross_loss": 1671.89,
+      "trades": 215,
+      "win_rate": 0.6303,
+      "returns_avg": 0.0126,
+      "returns_std": 0.0052,
+      "feature_drift": 0.0812,
+      "sharpe": 2.4230769230769234,
+      "calmar": 388.51489361702124,
+      "profit_factor": 1.546094539712541
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_2040": {
+    "victories": 1,
+    "last_score": 1.3191,
+    "stats": {
+      "pnl": 1432.97,
+      "max_drawdown": 2.28,
+      "gross_profit": 4178.61,
+      "gross_loss": 2745.64,
+      "trades": 182,
+      "win_rate": 0.6076,
+      "returns_avg": 0.0167,
+      "returns_std": 0.0068,
+      "feature_drift": 0.1022,
+      "sharpe": 2.4558823529411766,
+      "calmar": 628.4956140350878,
+      "profit_factor": 1.5219074605556446
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1332": {
+    "victories": 1,
+    "last_score": 1.3186,
+    "stats": {
+      "pnl": 1134.37,
+      "max_drawdown": 2.41,
+      "gross_profit": 3636.09,
+      "gross_loss": 2501.71,
+      "trades": 181,
+      "win_rate": 0.6277,
+      "returns_avg": 0.0327,
+      "returns_std": 0.0132,
+      "feature_drift": 0.0602,
+      "sharpe": 2.477272727272727,
+      "calmar": 470.6929460580912,
+      "profit_factor": 1.4534418457774883
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2825": {
+    "victories": 1,
+    "last_score": 1.3182,
+    "stats": {
+      "pnl": 970.16,
+      "max_drawdown": 2.81,
+      "gross_profit": 2239.78,
+      "gross_loss": 1269.62,
+      "trades": 222,
+      "win_rate": 0.6366,
+      "returns_avg": 0.0354,
+      "returns_std": 0.0151,
+      "feature_drift": 0.0428,
+      "sharpe": 2.3443708609271523,
+      "calmar": 345.25266903914587,
+      "profit_factor": 1.7641341503757033
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2594": {
+    "victories": 1,
+    "last_score": 1.3176,
+    "stats": {
+      "pnl": 1248.45,
+      "max_drawdown": 2.06,
+      "gross_profit": 2830.12,
+      "gross_loss": 1581.67,
+      "trades": 202,
+      "win_rate": 0.5959,
+      "returns_avg": 0.0179,
+      "returns_std": 0.0078,
+      "feature_drift": 0.0516,
+      "sharpe": 2.2948717948717947,
+      "calmar": 606.0436893203884,
+      "profit_factor": 1.7893239424152951
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_4367": {
+    "victories": 1,
+    "last_score": 1.3173,
+    "stats": {
+      "pnl": 1731.69,
+      "max_drawdown": 2.63,
+      "gross_profit": 4569.38,
+      "gross_loss": 2837.69,
+      "trades": 166,
+      "win_rate": 0.782,
+      "returns_avg": 0.011,
+      "returns_std": 0.005,
+      "feature_drift": 0.0993,
+      "sharpe": 2.1999999999999997,
+      "calmar": 658.4372623574145,
+      "profit_factor": 1.6102463623581151
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0048": {
+    "victories": 1,
+    "last_score": 1.3171,
+    "stats": {
+      "pnl": 1388.03,
+      "max_drawdown": 2.64,
+      "gross_profit": 3338.37,
+      "gross_loss": 1950.35,
+      "trades": 146,
+      "win_rate": 0.5573,
+      "returns_avg": 0.0388,
+      "returns_std": 0.0158,
+      "feature_drift": 0.0491,
+      "sharpe": 2.4556962025316453,
+      "calmar": 525.7689393939394,
+      "profit_factor": 1.7116773912374703
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1476": {
+    "victories": 1,
+    "last_score": 1.3171,
+    "stats": {
+      "pnl": 809.92,
+      "max_drawdown": 3.72,
+      "gross_profit": 1881.69,
+      "gross_loss": 1071.76,
+      "trades": 186,
+      "win_rate": 0.6082,
+      "returns_avg": 0.0249,
+      "returns_std": 0.01,
+      "feature_drift": 0.0922,
+      "sharpe": 2.4899999999999998,
+      "calmar": 217.72043010752685,
+      "profit_factor": 1.7557009031872808
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_4183": {
+    "victories": 1,
+    "last_score": 1.3168,
+    "stats": {
+      "pnl": 1230.21,
+      "max_drawdown": 2.09,
+      "gross_profit": 3156.34,
+      "gross_loss": 1926.13,
+      "trades": 243,
+      "win_rate": 0.672,
+      "returns_avg": 0.0345,
+      "returns_std": 0.0152,
+      "feature_drift": 0.0788,
+      "sharpe": 2.2697368421052633,
+      "calmar": 588.6172248803829,
+      "profit_factor": 1.638695207488591
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0735": {
+    "victories": 1,
+    "last_score": 1.3166,
+    "stats": {
+      "pnl": 986.04,
+      "max_drawdown": 3.73,
+      "gross_profit": 1984.61,
+      "gross_loss": 998.58,
+      "trades": 213,
+      "win_rate": 0.5563,
+      "returns_avg": 0.0212,
+      "returns_std": 0.0087,
+      "feature_drift": 0.0648,
+      "sharpe": 2.4367816091954024,
+      "calmar": 264.3538873994638,
+      "profit_factor": 1.9874321536581945
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0105": {
+    "victories": 1,
+    "last_score": 1.3165,
+    "stats": {
+      "pnl": 519.66,
+      "max_drawdown": 4.47,
+      "gross_profit": 1105.05,
+      "gross_loss": 585.39,
+      "trades": 131,
+      "win_rate": 0.6247,
+      "returns_avg": 0.0432,
+      "returns_std": 0.0174,
+      "feature_drift": 0.0749,
+      "sharpe": 2.4827586206896557,
+      "calmar": 116.25503355704699,
+      "profit_factor": 1.887715881719879
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_3665": {
+    "victories": 1,
+    "last_score": 1.3164,
+    "stats": {
+      "pnl": 1560.04,
+      "max_drawdown": 4.05,
+      "gross_profit": 3416.99,
+      "gross_loss": 1856.96,
+      "trades": 244,
+      "win_rate": 0.6478,
+      "returns_avg": 0.0279,
+      "returns_std": 0.0115,
+      "feature_drift": 0.1042,
+      "sharpe": 2.4260869565217393,
+      "calmar": 385.19506172839505,
+      "profit_factor": 1.8400988712734792
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_2853": {
+    "victories": 1,
+    "last_score": 1.3159,
+    "stats": {
+      "pnl": 1623.91,
+      "max_drawdown": 2.77,
+      "gross_profit": 3380.61,
+      "gross_loss": 1756.7,
+      "trades": 164,
+      "win_rate": 0.7026,
+      "returns_avg": 0.0428,
+      "returns_std": 0.0199,
+      "feature_drift": 0.0529,
+      "sharpe": 2.150753768844221,
+      "calmar": 586.2490974729242,
+      "profit_factor": 1.924409403996129
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2838": {
+    "victories": 1,
+    "last_score": 1.315,
+    "stats": {
+      "pnl": 1597.56,
+      "max_drawdown": 2.66,
+      "gross_profit": 3767.8,
+      "gross_loss": 2170.24,
+      "trades": 188,
+      "win_rate": 0.5724,
+      "returns_avg": 0.0181,
+      "returns_std": 0.0075,
+      "feature_drift": 0.0884,
+      "sharpe": 2.4133333333333336,
+      "calmar": 600.5864661654135,
+      "profit_factor": 1.7361213506340316
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1149": {
+    "victories": 1,
+    "last_score": 1.3148,
+    "stats": {
+      "pnl": 1089.65,
+      "max_drawdown": 2.44,
+      "gross_profit": 3180.36,
+      "gross_loss": 2090.71,
+      "trades": 154,
+      "win_rate": 0.5769,
+      "returns_avg": 0.0454,
+      "returns_std": 0.0182,
+      "feature_drift": 0.0556,
+      "sharpe": 2.4945054945054945,
+      "calmar": 446.57786885245906,
+      "profit_factor": 1.5211865825485122
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2803": {
+    "victories": 1,
+    "last_score": 1.3148,
+    "stats": {
+      "pnl": 1630.3,
+      "max_drawdown": 2.2,
+      "gross_profit": 4843.61,
+      "gross_loss": 3213.31,
+      "trades": 122,
+      "win_rate": 0.6278,
+      "returns_avg": 0.0149,
+      "returns_std": 0.0062,
+      "feature_drift": 0.0746,
+      "sharpe": 2.403225806451613,
+      "calmar": 741.0454545454545,
+      "profit_factor": 1.5073584559223978
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_2347": {
+    "victories": 1,
+    "last_score": 1.3145,
+    "stats": {
+      "pnl": 1656.37,
+      "max_drawdown": 2.0,
+      "gross_profit": 3416.48,
+      "gross_loss": 1760.12,
+      "trades": 218,
+      "win_rate": 0.572,
+      "returns_avg": 0.0378,
+      "returns_std": 0.017,
+      "feature_drift": 0.0775,
+      "sharpe": 2.2235294117647055,
+      "calmar": 828.185,
+      "profit_factor": 1.941049473899507
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0767": {
+    "victories": 1,
+    "last_score": 1.3144,
+    "stats": {
+      "pnl": 1118.25,
+      "max_drawdown": 1.61,
+      "gross_profit": 2759.14,
+      "gross_loss": 1640.89,
+      "trades": 201,
+      "win_rate": 0.6584,
+      "returns_avg": 0.0325,
+      "returns_std": 0.0148,
+      "feature_drift": 0.1003,
+      "sharpe": 2.195945945945946,
+      "calmar": 694.5652173913043,
+      "profit_factor": 1.6814899231514604
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_2359": {
+    "victories": 1,
+    "last_score": 1.3144,
+    "stats": {
+      "pnl": 1445.26,
+      "max_drawdown": 4.0,
+      "gross_profit": 3246.1,
+      "gross_loss": 1800.85,
+      "trades": 145,
+      "win_rate": 0.6145,
+      "returns_avg": 0.0302,
+      "returns_std": 0.0122,
+      "feature_drift": 0.0818,
+      "sharpe": 2.4754098360655736,
+      "calmar": 361.315,
+      "profit_factor": 1.8025376905350252
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_0975": {
+    "victories": 1,
+    "last_score": 1.314,
+    "stats": {
+      "pnl": 2225.5,
+      "max_drawdown": 3.57,
+      "gross_profit": 6013.32,
+      "gross_loss": 3787.82,
+      "trades": 182,
+      "win_rate": 0.7447,
+      "returns_avg": 0.0488,
+      "returns_std": 0.0207,
+      "feature_drift": 0.1264,
+      "sharpe": 2.3574879227053143,
+      "calmar": 623.389355742297,
+      "profit_factor": 1.5875411186381612
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0995": {
+    "victories": 1,
+    "last_score": 1.3138,
+    "stats": {
+      "pnl": 1116.1,
+      "max_drawdown": 0.58,
+      "gross_profit": 3002.7,
+      "gross_loss": 1886.6,
+      "trades": 223,
+      "win_rate": 0.5286,
+      "returns_avg": 0.0193,
+      "returns_std": 0.0084,
+      "feature_drift": 0.0429,
+      "sharpe": 2.297619047619048,
+      "calmar": 1924.3103448275863,
+      "profit_factor": 1.5915933425209372
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3279": {
+    "victories": 1,
+    "last_score": 1.3138,
+    "stats": {
+      "pnl": 1266.69,
+      "max_drawdown": 2.93,
+      "gross_profit": 3222.62,
+      "gross_loss": 1955.93,
+      "trades": 153,
+      "win_rate": 0.6357,
+      "returns_avg": 0.0403,
+      "returns_std": 0.0168,
+      "feature_drift": 0.0611,
+      "sharpe": 2.398809523809524,
+      "calmar": 432.3174061433447,
+      "profit_factor": 1.6476152009529992
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_4520": {
+    "victories": 1,
+    "last_score": 1.3133,
+    "stats": {
+      "pnl": 1305.91,
+      "max_drawdown": 1.41,
+      "gross_profit": 3700.09,
+      "gross_loss": 2394.18,
+      "trades": 151,
+      "win_rate": 0.6385,
+      "returns_avg": 0.0349,
+      "returns_std": 0.0154,
+      "feature_drift": 0.1217,
+      "sharpe": 2.2662337662337664,
+      "calmar": 926.1773049645391,
+      "profit_factor": 1.5454518874938394
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0481": {
+    "victories": 1,
+    "last_score": 1.3125,
+    "stats": {
+      "pnl": 1262.16,
+      "max_drawdown": 2.36,
+      "gross_profit": 3534.64,
+      "gross_loss": 2272.48,
+      "trades": 235,
+      "win_rate": 0.5738,
+      "returns_avg": 0.0268,
+      "returns_std": 0.0109,
+      "feature_drift": 0.0849,
+      "sharpe": 2.458715596330275,
+      "calmar": 534.8135593220339,
+      "profit_factor": 1.5554108286981623
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_4537": {
+    "victories": 1,
+    "last_score": 1.3124,
+    "stats": {
+      "pnl": 1357.17,
+      "max_drawdown": 1.33,
+      "gross_profit": 3889.03,
+      "gross_loss": 2531.85,
+      "trades": 226,
+      "win_rate": 0.634,
+      "returns_avg": 0.0421,
+      "returns_std": 0.0186,
+      "feature_drift": 0.129,
+      "sharpe": 2.263440860215054,
+      "calmar": 1020.4285714285714,
+      "profit_factor": 1.5360428145427258
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_4150": {
+    "victories": 1,
+    "last_score": 1.3122,
+    "stats": {
+      "pnl": 1488.24,
+      "max_drawdown": 1.01,
+      "gross_profit": 3056.26,
+      "gross_loss": 1568.02,
+      "trades": 250,
+      "win_rate": 0.6658,
+      "returns_avg": 0.0098,
+      "returns_std": 0.005,
+      "feature_drift": 0.0797,
+      "sharpe": 1.96,
+      "calmar": 1473.5049504950496,
+      "profit_factor": 1.9491205469317996
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_3811": {
+    "victories": 1,
+    "last_score": 1.312,
+    "stats": {
+      "pnl": 1805.44,
+      "max_drawdown": 3.91,
+      "gross_profit": 5580.42,
+      "gross_loss": 3774.98,
+      "trades": 184,
+      "win_rate": 0.813,
+      "returns_avg": 0.0402,
+      "returns_std": 0.0171,
+      "feature_drift": 0.0541,
+      "sharpe": 2.350877192982456,
+      "calmar": 461.7493606138107,
+      "profit_factor": 1.4782647855087974
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_3611": {
+    "victories": 1,
+    "last_score": 1.3119,
+    "stats": {
+      "pnl": 850.49,
+      "max_drawdown": 4.44,
+      "gross_profit": 1715.23,
+      "gross_loss": 864.74,
+      "trades": 230,
+      "win_rate": 0.6922,
+      "returns_avg": 0.0402,
+      "returns_std": 0.0174,
+      "feature_drift": 0.1256,
+      "sharpe": 2.310344827586207,
+      "calmar": 191.5518018018018,
+      "profit_factor": 1.9835210583527998
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_4593": {
+    "victories": 1,
+    "last_score": 1.3111,
+    "stats": {
+      "pnl": 1825.87,
+      "max_drawdown": 1.58,
+      "gross_profit": 3808.32,
+      "gross_loss": 1982.45,
+      "trades": 263,
+      "win_rate": 0.6924,
+      "returns_avg": 0.01,
+      "returns_std": 0.005,
+      "feature_drift": 0.1048,
+      "sharpe": 2.0,
+      "calmar": 1155.6139240506327,
+      "profit_factor": 1.9210169235037453
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_0431": {
+    "victories": 1,
+    "last_score": 1.3109,
+    "stats": {
+      "pnl": 766.55,
+      "max_drawdown": 3.51,
+      "gross_profit": 1677.47,
+      "gross_loss": 910.91,
+      "trades": 180,
+      "win_rate": 0.644,
+      "returns_avg": 0.0201,
+      "returns_std": 0.0086,
+      "feature_drift": 0.1233,
+      "sharpe": 2.3372093023255816,
+      "calmar": 218.3903133903134,
+      "profit_factor": 1.8415320942793472
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_1428": {
+    "victories": 1,
+    "last_score": 1.3108,
+    "stats": {
+      "pnl": 838.24,
+      "max_drawdown": 3.41,
+      "gross_profit": 1904.97,
+      "gross_loss": 1066.73,
+      "trades": 187,
+      "win_rate": 0.6774,
+      "returns_avg": 0.0247,
+      "returns_std": 0.0107,
+      "feature_drift": 0.0655,
+      "sharpe": 2.308411214953271,
+      "calmar": 245.8181818181818,
+      "profit_factor": 1.7858033429265137
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1231": {
+    "victories": 1,
+    "last_score": 1.3107,
+    "stats": {
+      "pnl": 1472.01,
+      "max_drawdown": 3.06,
+      "gross_profit": 2976.99,
+      "gross_loss": 1504.98,
+      "trades": 176,
+      "win_rate": 0.6366,
+      "returns_avg": 0.0111,
+      "returns_std": 0.005,
+      "feature_drift": 0.0486,
+      "sharpe": 2.22,
+      "calmar": 481.04901960784315,
+      "profit_factor": 1.9780927321293305
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0283": {
+    "victories": 1,
+    "last_score": 1.3104,
+    "stats": {
+      "pnl": 1289.16,
+      "max_drawdown": 3.72,
+      "gross_profit": 2758.06,
+      "gross_loss": 1468.9,
+      "trades": 179,
+      "win_rate": 0.647,
+      "returns_avg": 0.0341,
+      "returns_std": 0.0146,
+      "feature_drift": 0.0876,
+      "sharpe": 2.335616438356164,
+      "calmar": 346.5483870967742,
+      "profit_factor": 1.877636326502825
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1082": {
+    "victories": 1,
+    "last_score": 1.3103,
+    "stats": {
+      "pnl": 1093.96,
+      "max_drawdown": 1.75,
+      "gross_profit": 2362.56,
+      "gross_loss": 1268.6,
+      "trades": 197,
+      "win_rate": 0.5944,
+      "returns_avg": 0.0251,
+      "returns_std": 0.0115,
+      "feature_drift": 0.1074,
+      "sharpe": 2.182608695652174,
+      "calmar": 625.12,
+      "profit_factor": 1.8623364338641022
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_1508": {
+    "victories": 1,
+    "last_score": 1.3103,
+    "stats": {
+      "pnl": 1085.72,
+      "max_drawdown": 0.82,
+      "gross_profit": 3459.81,
+      "gross_loss": 2374.09,
+      "trades": 172,
+      "win_rate": 0.7469,
+      "returns_avg": 0.016,
+      "returns_std": 0.0077,
+      "feature_drift": 0.1309,
+      "sharpe": 2.0779220779220777,
+      "calmar": 1324.048780487805,
+      "profit_factor": 1.4573204891137235
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_1479": {
+    "victories": 1,
+    "last_score": 1.3101,
+    "stats": {
+      "pnl": 1479.05,
+      "max_drawdown": 1.76,
+      "gross_profit": 4716.1,
+      "gross_loss": 3237.05,
+      "trades": 215,
+      "win_rate": 0.5971,
+      "returns_avg": 0.0194,
+      "returns_std": 0.0081,
+      "feature_drift": 0.1158,
+      "sharpe": 2.395061728395062,
+      "calmar": 840.3693181818181,
+      "profit_factor": 1.4569129299825458
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_2467": {
+    "victories": 1,
+    "last_score": 1.3099,
+    "stats": {
+      "pnl": 1315.78,
+      "max_drawdown": 2.16,
+      "gross_profit": 3166.15,
+      "gross_loss": 1850.38,
+      "trades": 228,
+      "win_rate": 0.5814,
+      "returns_avg": 0.0142,
+      "returns_std": 0.0061,
+      "feature_drift": 0.0775,
+      "sharpe": 2.3278688524590163,
+      "calmar": 609.1574074074074,
+      "profit_factor": 1.711080967152693
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_0348": {
+    "victories": 1,
+    "last_score": 1.3096,
+    "stats": {
+      "pnl": 1736.41,
+      "max_drawdown": 3.16,
+      "gross_profit": 3932.83,
+      "gross_loss": 2196.41,
+      "trades": 228,
+      "win_rate": 0.7032,
+      "returns_avg": 0.0143,
+      "returns_std": 0.0064,
+      "feature_drift": 0.1402,
+      "sharpe": 2.234375,
+      "calmar": 549.496835443038,
+      "profit_factor": 1.7905718877623031
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_2527": {
+    "victories": 1,
+    "last_score": 1.3093,
+    "stats": {
+      "pnl": 1581.84,
+      "max_drawdown": 4.23,
+      "gross_profit": 3463.39,
+      "gross_loss": 1881.55,
+      "trades": 357,
+      "win_rate": 0.6456,
+      "returns_avg": 0.0439,
+      "returns_std": 0.0182,
+      "feature_drift": 0.1013,
+      "sharpe": 2.412087912087912,
+      "calmar": 373.95744680851055,
+      "profit_factor": 1.8407111158353484
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_4688": {
+    "victories": 1,
+    "last_score": 1.3093,
+    "stats": {
+      "pnl": 1354.48,
+      "max_drawdown": 4.37,
+      "gross_profit": 3398.84,
+      "gross_loss": 2044.37,
+      "trades": 262,
+      "win_rate": 0.7466,
+      "returns_avg": 0.0155,
+      "returns_std": 0.0065,
+      "feature_drift": 0.1016,
+      "sharpe": 2.3846153846153846,
+      "calmar": 309.9496567505721,
+      "profit_factor": 1.6625366249749314
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_3226": {
+    "victories": 1,
+    "last_score": 1.3092,
+    "stats": {
+      "pnl": 1093.53,
+      "max_drawdown": 2.47,
+      "gross_profit": 2849.35,
+      "gross_loss": 1755.82,
+      "trades": 184,
+      "win_rate": 0.6633,
+      "returns_avg": 0.0459,
+      "returns_std": 0.02,
+      "feature_drift": 0.0493,
+      "sharpe": 2.295,
+      "calmar": 442.7246963562753,
+      "profit_factor": 1.6228030208107893
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_2933": {
+    "victories": 1,
+    "last_score": 1.309,
+    "stats": {
+      "pnl": 1562.65,
+      "max_drawdown": 3.06,
+      "gross_profit": 3349.09,
+      "gross_loss": 1786.45,
+      "trades": 185,
+      "win_rate": 0.5373,
+      "returns_avg": 0.031,
+      "returns_std": 0.0129,
+      "feature_drift": 0.08,
+      "sharpe": 2.4031007751937983,
+      "calmar": 510.6699346405229,
+      "profit_factor": 1.874718016177335
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0274": {
+    "victories": 1,
+    "last_score": 1.3089,
+    "stats": {
+      "pnl": 1305.2,
+      "max_drawdown": 2.96,
+      "gross_profit": 4356.78,
+      "gross_loss": 3051.58,
+      "trades": 232,
+      "win_rate": 0.6788,
+      "returns_avg": 0.0387,
+      "returns_std": 0.0159,
+      "feature_drift": 0.0811,
+      "sharpe": 2.433962264150943,
+      "calmar": 440.945945945946,
+      "profit_factor": 1.4277128569462376
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1720": {
+    "victories": 1,
+    "last_score": 1.3089,
+    "stats": {
+      "pnl": 1227.93,
+      "max_drawdown": 2.55,
+      "gross_profit": 3460.06,
+      "gross_loss": 2232.13,
+      "trades": 187,
+      "win_rate": 0.7132,
+      "returns_avg": 0.0475,
+      "returns_std": 0.0209,
+      "feature_drift": 0.13,
+      "sharpe": 2.272727272727273,
+      "calmar": 481.5411764705883,
+      "profit_factor": 1.550115808667058
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_0970": {
+    "victories": 1,
+    "last_score": 1.3088,
+    "stats": {
+      "pnl": 933.38,
+      "max_drawdown": 3.14,
+      "gross_profit": 2338.94,
+      "gross_loss": 1405.56,
+      "trades": 170,
+      "win_rate": 0.6278,
+      "returns_avg": 0.0403,
+      "returns_std": 0.0168,
+      "feature_drift": 0.0964,
+      "sharpe": 2.398809523809524,
+      "calmar": 297.25477707006365,
+      "profit_factor": 1.664062722331313
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2618": {
+    "victories": 1,
+    "last_score": 1.3087,
+    "stats": {
+      "pnl": 1723.5,
+      "max_drawdown": 1.13,
+      "gross_profit": 5346.57,
+      "gross_loss": 3623.07,
+      "trades": 181,
+      "win_rate": 0.7071,
+      "returns_avg": 0.0142,
+      "returns_std": 0.0066,
+      "feature_drift": 0.0718,
+      "sharpe": 2.151515151515152,
+      "calmar": 1525.2212389380531,
+      "profit_factor": 1.4757015459265208
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_0874": {
+    "victories": 1,
+    "last_score": 1.3084,
+    "stats": {
+      "pnl": 1317.71,
+      "max_drawdown": 4.49,
+      "gross_profit": 2902.93,
+      "gross_loss": 1585.22,
+      "trades": 260,
+      "win_rate": 0.7486,
+      "returns_avg": 0.0382,
+      "returns_std": 0.0166,
+      "feature_drift": 0.0532,
+      "sharpe": 2.301204819277108,
+      "calmar": 293.47661469933183,
+      "profit_factor": 1.831247397837524
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1066": {
+    "victories": 1,
+    "last_score": 1.3083,
+    "stats": {
+      "pnl": 1369.03,
+      "max_drawdown": 3.11,
+      "gross_profit": 3553.68,
+      "gross_loss": 2184.65,
+      "trades": 212,
+      "win_rate": 0.7245,
+      "returns_avg": 0.0294,
+      "returns_std": 0.0129,
+      "feature_drift": 0.1101,
+      "sharpe": 2.2790697674418605,
+      "calmar": 440.2025723472669,
+      "profit_factor": 1.6266587325200832
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_2581": {
+    "victories": 1,
+    "last_score": 1.3082,
+    "stats": {
+      "pnl": 1299.61,
+      "max_drawdown": 2.43,
+      "gross_profit": 3250.41,
+      "gross_loss": 1950.81,
+      "trades": 291,
+      "win_rate": 0.5094,
+      "returns_avg": 0.0428,
+      "returns_std": 0.0173,
+      "feature_drift": 0.0969,
+      "sharpe": 2.4739884393063583,
+      "calmar": 534.8189300411522,
+      "profit_factor": 1.6661848155381611
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1615": {
+    "victories": 1,
+    "last_score": 1.3081,
+    "stats": {
+      "pnl": 1435.01,
+      "max_drawdown": 1.39,
+      "gross_profit": 4974.67,
+      "gross_loss": 3539.66,
+      "trades": 284,
+      "win_rate": 0.7767,
+      "returns_avg": 0.0229,
+      "returns_std": 0.0108,
+      "feature_drift": 0.1279,
+      "sharpe": 2.1203703703703702,
+      "calmar": 1032.381294964029,
+      "profit_factor": 1.4054089940841776
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0791": {
+    "victories": 1,
+    "last_score": 1.308,
+    "stats": {
+      "pnl": 903.51,
+      "max_drawdown": 4.24,
+      "gross_profit": 2291.11,
+      "gross_loss": 1387.6,
+      "trades": 237,
+      "win_rate": 0.6459,
+      "returns_avg": 0.0173,
+      "returns_std": 0.0069,
+      "feature_drift": 0.1186,
+      "sharpe": 2.5072463768115942,
+      "calmar": 213.09198113207546,
+      "profit_factor": 1.651131449985587
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3672": {
+    "victories": 1,
+    "last_score": 1.3078,
+    "stats": {
+      "pnl": 1469.94,
+      "max_drawdown": 1.62,
+      "gross_profit": 3823.28,
+      "gross_loss": 2353.34,
+      "trades": 160,
+      "win_rate": 0.5095,
+      "returns_avg": 0.0235,
+      "returns_std": 0.0098,
+      "feature_drift": 0.0809,
+      "sharpe": 2.3979591836734695,
+      "calmar": 907.3703703703703,
+      "profit_factor": 1.6246186271426992
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1123": {
+    "victories": 1,
+    "last_score": 1.3076,
+    "stats": {
+      "pnl": 1504.12,
+      "max_drawdown": 2.58,
+      "gross_profit": 3384.78,
+      "gross_loss": 1880.66,
+      "trades": 233,
+      "win_rate": 0.5105,
+      "returns_avg": 0.0186,
+      "returns_std": 0.0077,
+      "feature_drift": 0.0898,
+      "sharpe": 2.4155844155844153,
+      "calmar": 582.9922480620154,
+      "profit_factor": 1.7997830548849871
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_2152": {
+    "victories": 1,
+    "last_score": 1.3076,
+    "stats": {
+      "pnl": 1722.23,
+      "max_drawdown": 1.05,
+      "gross_profit": 5725.94,
+      "gross_loss": 4003.71,
+      "trades": 197,
+      "win_rate": 0.5981,
+      "returns_avg": 0.0342,
+      "returns_std": 0.0148,
+      "feature_drift": 0.0466,
+      "sharpe": 2.310810810810811,
+      "calmar": 1640.2190476190476,
+      "profit_factor": 1.430158527965312
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_2847": {
+    "victories": 1,
+    "last_score": 1.3073,
+    "stats": {
+      "pnl": 2081.27,
+      "max_drawdown": 1.18,
+      "gross_profit": 6619.64,
+      "gross_loss": 4538.36,
+      "trades": 231,
+      "win_rate": 0.717,
+      "returns_avg": 0.0133,
+      "returns_std": 0.0062,
+      "feature_drift": 0.0865,
+      "sharpe": 2.1451612903225805,
+      "calmar": 1763.7881355932204,
+      "profit_factor": 1.4585973787888138
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_3878": {
+    "victories": 1,
+    "last_score": 1.3073,
+    "stats": {
+      "pnl": 1186.16,
+      "max_drawdown": 1.68,
+      "gross_profit": 2580.44,
+      "gross_loss": 1394.28,
+      "trades": 193,
+      "win_rate": 0.5943,
+      "returns_avg": 0.05,
+      "returns_std": 0.0231,
+      "feature_drift": 0.0656,
+      "sharpe": 2.164502164502165,
+      "calmar": 706.0476190476192,
+      "profit_factor": 1.8507329948073559
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_3839": {
+    "victories": 1,
+    "last_score": 1.3072,
+    "stats": {
+      "pnl": 1371.56,
+      "max_drawdown": 4.22,
+      "gross_profit": 4022.33,
+      "gross_loss": 2650.77,
+      "trades": 190,
+      "win_rate": 0.7209,
+      "returns_avg": 0.0195,
+      "returns_std": 0.0079,
+      "feature_drift": 0.0331,
+      "sharpe": 2.4683544303797467,
+      "calmar": 325.01421800947867,
+      "profit_factor": 1.5174194667964402
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_1250": {
+    "victories": 1,
+    "last_score": 1.307,
+    "stats": {
+      "pnl": 1275.01,
+      "max_drawdown": 3.54,
+      "gross_profit": 2622.29,
+      "gross_loss": 1347.28,
+      "trades": 186,
+      "win_rate": 0.5662,
+      "returns_avg": 0.0147,
+      "returns_std": 0.0062,
+      "feature_drift": 0.0784,
+      "sharpe": 2.370967741935484,
+      "calmar": 360.17231638418076,
+      "profit_factor": 1.9463585891574136
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_0321": {
+    "victories": 1,
+    "last_score": 1.3068,
+    "stats": {
+      "pnl": 986.63,
+      "max_drawdown": 3.72,
+      "gross_profit": 2033.07,
+      "gross_loss": 1046.44,
+      "trades": 227,
+      "win_rate": 0.5476,
+      "returns_avg": 0.0387,
+      "returns_std": 0.016,
+      "feature_drift": 0.0816,
+      "sharpe": 2.4187499999999997,
+      "calmar": 265.22311827956986,
+      "profit_factor": 1.942844310232789
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_3910": {
+    "victories": 1,
+    "last_score": 1.3068,
+    "stats": {
+      "pnl": 1817.52,
+      "max_drawdown": 2.92,
+      "gross_profit": 4134.43,
+      "gross_loss": 2316.91,
+      "trades": 122,
+      "win_rate": 0.7073,
+      "returns_avg": 0.0221,
+      "returns_std": 0.0101,
+      "feature_drift": 0.0907,
+      "sharpe": 2.1881188118811883,
+      "calmar": 622.4383561643835,
+      "profit_factor": 1.784458610822173
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_3371": {
+    "victories": 1,
+    "last_score": 1.3066,
+    "stats": {
+      "pnl": 908.0,
+      "max_drawdown": 3.33,
+      "gross_profit": 2093.12,
+      "gross_loss": 1185.12,
+      "trades": 232,
+      "win_rate": 0.6959,
+      "returns_avg": 0.0251,
+      "returns_std": 0.0111,
+      "feature_drift": 0.0849,
+      "sharpe": 2.2612612612612613,
+      "calmar": 272.67267267267266,
+      "profit_factor": 1.7661671391926557
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_0817": {
+    "victories": 1,
+    "last_score": 1.3065,
+    "stats": {
+      "pnl": 1635.2,
+      "max_drawdown": 3.96,
+      "gross_profit": 3453.81,
+      "gross_loss": 1818.61,
+      "trades": 205,
+      "win_rate": 0.5513,
+      "returns_avg": 0.0446,
+      "returns_std": 0.0181,
+      "feature_drift": 0.0277,
+      "sharpe": 2.464088397790055,
+      "calmar": 412.92929292929296,
+      "profit_factor": 1.8991482505869868
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2967": {
+    "victories": 1,
+    "last_score": 1.3063,
+    "stats": {
+      "pnl": 1480.2,
+      "max_drawdown": 1.61,
+      "gross_profit": 5134.02,
+      "gross_loss": 3653.83,
+      "trades": 358,
+      "win_rate": 0.6184,
+      "returns_avg": 0.0497,
+      "returns_std": 0.0211,
+      "feature_drift": 0.0471,
+      "sharpe": 2.3554502369668247,
+      "calmar": 919.3788819875776,
+      "profit_factor": 1.405106422575763
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1438": {
+    "victories": 1,
+    "last_score": 1.3062,
+    "stats": {
+      "pnl": 1292.83,
+      "max_drawdown": 3.5,
+      "gross_profit": 2637.61,
+      "gross_loss": 1344.78,
+      "trades": 238,
+      "win_rate": 0.5555,
+      "returns_avg": 0.0244,
+      "returns_std": 0.0103,
+      "feature_drift": 0.0449,
+      "sharpe": 2.3689320388349517,
+      "calmar": 369.38,
+      "profit_factor": 1.9613691458825981
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_3186": {
+    "victories": 1,
+    "last_score": 1.3062,
+    "stats": {
+      "pnl": 913.76,
+      "max_drawdown": 2.33,
+      "gross_profit": 2864.54,
+      "gross_loss": 1950.78,
+      "trades": 253,
+      "win_rate": 0.6176,
+      "returns_avg": 0.0195,
+      "returns_std": 0.0081,
+      "feature_drift": 0.0355,
+      "sharpe": 2.4074074074074074,
+      "calmar": 392.17167381974247,
+      "profit_factor": 1.4684075087913553
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1981": {
+    "victories": 1,
+    "last_score": 1.3052,
+    "stats": {
+      "pnl": 1682.07,
+      "max_drawdown": 1.06,
+      "gross_profit": 4703.94,
+      "gross_loss": 3021.88,
+      "trades": 239,
+      "win_rate": 0.5635,
+      "returns_avg": 0.0408,
+      "returns_std": 0.0179,
+      "feature_drift": 0.0093,
+      "sharpe": 2.2793296089385477,
+      "calmar": 1586.8584905660375,
+      "profit_factor": 1.5566270004103404
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_2339": {
+    "victories": 1,
+    "last_score": 1.305,
+    "stats": {
+      "pnl": 1722.85,
+      "max_drawdown": 2.7,
+      "gross_profit": 4798.09,
+      "gross_loss": 3075.23,
+      "trades": 221,
+      "win_rate": 0.6192,
+      "returns_avg": 0.0474,
+      "returns_std": 0.0198,
+      "feature_drift": 0.0491,
+      "sharpe": 2.3939393939393936,
+      "calmar": 638.0925925925925,
+      "profit_factor": 1.5602377708334012
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_2783": {
+    "victories": 1,
+    "last_score": 1.3047,
+    "stats": {
+      "pnl": 1787.04,
+      "max_drawdown": 3.02,
+      "gross_profit": 4392.56,
+      "gross_loss": 2605.51,
+      "trades": 177,
+      "win_rate": 0.5593,
+      "returns_avg": 0.0494,
+      "returns_std": 0.0202,
+      "feature_drift": 0.0622,
+      "sharpe": 2.4455445544554455,
+      "calmar": 591.7350993377484,
+      "profit_factor": 1.685873399065826
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_0748": {
+    "victories": 1,
+    "last_score": 1.3046,
+    "stats": {
+      "pnl": 1790.72,
+      "max_drawdown": 2.65,
+      "gross_profit": 5113.37,
+      "gross_loss": 3322.64,
+      "trades": 216,
+      "win_rate": 0.6238,
+      "returns_avg": 0.0263,
+      "returns_std": 0.011,
+      "feature_drift": 0.0039,
+      "sharpe": 2.390909090909091,
+      "calmar": 675.7433962264151,
+      "profit_factor": 1.5389479450075843
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_2372": {
+    "victories": 1,
+    "last_score": 1.3044,
+    "stats": {
+      "pnl": 1734.02,
+      "max_drawdown": 3.03,
+      "gross_profit": 3867.29,
+      "gross_loss": 2133.27,
+      "trades": 217,
+      "win_rate": 0.6985,
+      "returns_avg": 0.0271,
+      "returns_std": 0.0124,
+      "feature_drift": 0.097,
+      "sharpe": 2.185483870967742,
+      "calmar": 572.2838283828384,
+      "profit_factor": 1.812846006365814
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_4389": {
+    "victories": 1,
+    "last_score": 1.3044,
+    "stats": {
+      "pnl": 1183.87,
+      "max_drawdown": 2.55,
+      "gross_profit": 4127.85,
+      "gross_loss": 2943.98,
+      "trades": 230,
+      "win_rate": 0.6261,
+      "returns_avg": 0.0399,
+      "returns_std": 0.0163,
+      "feature_drift": 0.081,
+      "sharpe": 2.4478527607361964,
+      "calmar": 464.2627450980392,
+      "profit_factor": 1.4021324873130934
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_2309": {
+    "victories": 1,
+    "last_score": 1.3043,
+    "stats": {
+      "pnl": 1189.22,
+      "max_drawdown": 3.35,
+      "gross_profit": 2511.4,
+      "gross_loss": 1322.17,
+      "trades": 217,
+      "win_rate": 0.5927,
+      "returns_avg": 0.0223,
+      "returns_std": 0.0096,
+      "feature_drift": 0.0486,
+      "sharpe": 2.322916666666667,
+      "calmar": 354.9910447761194,
+      "profit_factor": 1.89945317167989
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_1274": {
+    "victories": 1,
+    "last_score": 1.3041,
+    "stats": {
+      "pnl": 1713.7,
+      "max_drawdown": 1.82,
+      "gross_profit": 3916.89,
+      "gross_loss": 2203.19,
+      "trades": 196,
+      "win_rate": 0.6267,
+      "returns_avg": 0.0423,
+      "returns_std": 0.0196,
+      "feature_drift": 0.1132,
+      "sharpe": 2.1581632653061225,
+      "calmar": 941.5934065934066,
+      "profit_factor": 1.7778266967442662
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_2418": {
+    "victories": 1,
+    "last_score": 1.3035,
+    "stats": {
+      "pnl": 871.03,
+      "max_drawdown": 1.89,
+      "gross_profit": 1758.58,
+      "gross_loss": 887.55,
+      "trades": 121,
+      "win_rate": 0.66,
+      "returns_avg": 0.0454,
+      "returns_std": 0.0226,
+      "feature_drift": 0.1111,
+      "sharpe": 2.008849557522124,
+      "calmar": 460.8624338624339,
+      "profit_factor": 1.9813869641146977
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_2727": {
+    "victories": 1,
+    "last_score": 1.3035,
+    "stats": {
+      "pnl": 1461.86,
+      "max_drawdown": 3.62,
+      "gross_profit": 3253.73,
+      "gross_loss": 1791.88,
+      "trades": 165,
+      "win_rate": 0.8005,
+      "returns_avg": 0.0194,
+      "returns_std": 0.0092,
+      "feature_drift": 0.1026,
+      "sharpe": 2.108695652173913,
+      "calmar": 403.8287292817679,
+      "profit_factor": 1.8158191396745316
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_2962": {
+    "victories": 1,
+    "last_score": 1.3035,
+    "stats": {
+      "pnl": 1254.3,
+      "max_drawdown": 4.4,
+      "gross_profit": 3055.37,
+      "gross_loss": 1801.07,
+      "trades": 218,
+      "win_rate": 0.6541,
+      "returns_avg": 0.0148,
+      "returns_std": 0.006,
+      "feature_drift": 0.1124,
+      "sharpe": 2.466666666666667,
+      "calmar": 285.0681818181818,
+      "profit_factor": 1.6964193507192946
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4015": {
+    "victories": 1,
+    "last_score": 1.3033,
+    "stats": {
+      "pnl": 1353.39,
+      "max_drawdown": 3.84,
+      "gross_profit": 3841.97,
+      "gross_loss": 2488.59,
+      "trades": 199,
+      "win_rate": 0.6501,
+      "returns_avg": 0.0271,
+      "returns_std": 0.0109,
+      "feature_drift": 0.038,
+      "sharpe": 2.4862385321100917,
+      "calmar": 352.44531250000006,
+      "profit_factor": 1.5438340586436494
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_0291": {
+    "victories": 1,
+    "last_score": 1.3032,
+    "stats": {
+      "pnl": 1674.26,
+      "max_drawdown": 1.86,
+      "gross_profit": 4260.9,
+      "gross_loss": 2586.64,
+      "trades": 172,
+      "win_rate": 0.6989,
+      "returns_avg": 0.0332,
+      "returns_std": 0.0156,
+      "feature_drift": 0.067,
+      "sharpe": 2.128205128205128,
+      "calmar": 900.1397849462365,
+      "profit_factor": 1.6472721368261527
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_1817": {
+    "victories": 1,
+    "last_score": 1.3032,
+    "stats": {
+      "pnl": 1680.53,
+      "max_drawdown": 3.51,
+      "gross_profit": 4404.33,
+      "gross_loss": 2723.8,
+      "trades": 187,
+      "win_rate": 0.5921,
+      "returns_avg": 0.0393,
+      "returns_std": 0.0158,
+      "feature_drift": 0.0816,
+      "sharpe": 2.4873417721518987,
+      "calmar": 478.7834757834758,
+      "profit_factor": 1.6169799544753651
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_2590": {
+    "victories": 1,
+    "last_score": 1.303,
+    "stats": {
+      "pnl": 1042.37,
+      "max_drawdown": 2.19,
+      "gross_profit": 2525.9,
+      "gross_loss": 1483.53,
+      "trades": 187,
+      "win_rate": 0.4864,
+      "returns_avg": 0.0294,
+      "returns_std": 0.0121,
+      "feature_drift": 0.0822,
+      "sharpe": 2.4297520661157024,
+      "calmar": 475.9680365296803,
+      "profit_factor": 1.702628190869076
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_0057": {
+    "victories": 1,
+    "last_score": 1.3029,
+    "stats": {
+      "pnl": 2078.16,
+      "max_drawdown": 0.99,
+      "gross_profit": 7110.18,
+      "gross_loss": 5032.02,
+      "trades": 188,
+      "win_rate": 0.6848,
+      "returns_avg": 0.0336,
+      "returns_std": 0.0155,
+      "feature_drift": 0.0854,
+      "sharpe": 2.1677419354838707,
+      "calmar": 2099.151515151515,
+      "profit_factor": 1.4129872297804857
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_1069": {
+    "victories": 1,
+    "last_score": 1.3026,
+    "stats": {
+      "pnl": 1536.98,
+      "max_drawdown": 3.21,
+      "gross_profit": 3655.71,
+      "gross_loss": 2118.73,
+      "trades": 269,
+      "win_rate": 0.6176,
+      "returns_avg": 0.0318,
+      "returns_std": 0.0135,
+      "feature_drift": 0.0542,
+      "sharpe": 2.3555555555555556,
+      "calmar": 478.809968847352,
+      "profit_factor": 1.7254251367564533
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3816": {
+    "victories": 1,
+    "last_score": 1.3026,
+    "stats": {
+      "pnl": 1907.32,
+      "max_drawdown": 3.4,
+      "gross_profit": 4053.71,
+      "gross_loss": 2146.39,
+      "trades": 214,
+      "win_rate": 0.5628,
+      "returns_avg": 0.0284,
+      "returns_std": 0.012,
+      "feature_drift": 0.0768,
+      "sharpe": 2.3666666666666667,
+      "calmar": 560.9764705882353,
+      "profit_factor": 1.888617632396722
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_0990": {
+    "victories": 1,
+    "last_score": 1.3023,
+    "stats": {
+      "pnl": 1722.86,
+      "max_drawdown": 3.53,
+      "gross_profit": 3713.51,
+      "gross_loss": 1990.65,
+      "trades": 229,
+      "win_rate": 0.559,
+      "returns_avg": 0.0247,
+      "returns_std": 0.0103,
+      "feature_drift": 0.0438,
+      "sharpe": 2.3980582524271843,
+      "calmar": 488.06232294617564,
+      "profit_factor": 1.865476100771105
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1190": {
+    "victories": 1,
+    "last_score": 1.302,
+    "stats": {
+      "pnl": 1149.02,
+      "max_drawdown": 2.6,
+      "gross_profit": 2779.21,
+      "gross_loss": 1630.19,
+      "trades": 198,
+      "win_rate": 0.6606,
+      "returns_avg": 0.0337,
+      "returns_std": 0.0151,
+      "feature_drift": 0.0709,
+      "sharpe": 2.2317880794701987,
+      "calmar": 441.9307692307692,
+      "profit_factor": 1.704838086358032
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0803": {
+    "victories": 1,
+    "last_score": 1.3018,
+    "stats": {
+      "pnl": 1795.24,
+      "max_drawdown": 3.19,
+      "gross_profit": 5759.9,
+      "gross_loss": 3964.65,
+      "trades": 245,
+      "win_rate": 0.673,
+      "returns_avg": 0.0382,
+      "returns_std": 0.0158,
+      "feature_drift": 0.0657,
+      "sharpe": 2.4177215189873413,
+      "calmar": 562.7711598746082,
+      "profit_factor": 1.4528142458981246
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2514": {
+    "victories": 1,
+    "last_score": 1.3013,
+    "stats": {
+      "pnl": 1156.07,
+      "max_drawdown": 2.01,
+      "gross_profit": 3424.27,
+      "gross_loss": 2268.2,
+      "trades": 162,
+      "win_rate": 0.724,
+      "returns_avg": 0.0224,
+      "returns_std": 0.0103,
+      "feature_drift": 0.0878,
+      "sharpe": 2.174757281553398,
+      "calmar": 575.1592039800995,
+      "profit_factor": 1.5096860947006439
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_1653": {
+    "victories": 1,
+    "last_score": 1.3011,
+    "stats": {
+      "pnl": 1587.76,
+      "max_drawdown": 3.79,
+      "gross_profit": 3713.87,
+      "gross_loss": 2126.1,
+      "trades": 188,
+      "win_rate": 0.6408,
+      "returns_avg": 0.0382,
+      "returns_std": 0.0161,
+      "feature_drift": 0.0506,
+      "sharpe": 2.372670807453416,
+      "calmar": 418.93403693931396,
+      "profit_factor": 1.7467993038897511
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_4111": {
+    "victories": 1,
+    "last_score": 1.3009,
+    "stats": {
+      "pnl": 1544.04,
+      "max_drawdown": 2.35,
+      "gross_profit": 5292.12,
+      "gross_loss": 3748.09,
+      "trades": 144,
+      "win_rate": 0.628,
+      "returns_avg": 0.0199,
+      "returns_std": 0.0083,
+      "feature_drift": 0.0574,
+      "sharpe": 2.397590361445783,
+      "calmar": 657.0382978723404,
+      "profit_factor": 1.4119511537876623
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0579": {
+    "victories": 1,
+    "last_score": 1.3006,
+    "stats": {
+      "pnl": 1431.13,
+      "max_drawdown": 2.73,
+      "gross_profit": 3560.4,
+      "gross_loss": 2129.27,
+      "trades": 162,
+      "win_rate": 0.6013,
+      "returns_avg": 0.0269,
+      "returns_std": 0.0115,
+      "feature_drift": 0.0937,
+      "sharpe": 2.339130434782609,
+      "calmar": 524.2234432234433,
+      "profit_factor": 1.6721223705777097
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_0887": {
+    "victories": 1,
+    "last_score": 1.3005,
+    "stats": {
+      "pnl": 1672.78,
+      "max_drawdown": 2.6,
+      "gross_profit": 3556.26,
+      "gross_loss": 1883.48,
+      "trades": 287,
+      "win_rate": 0.6393,
+      "returns_avg": 0.0291,
+      "returns_std": 0.0135,
+      "feature_drift": 0.0574,
+      "sharpe": 2.1555555555555554,
+      "calmar": 643.376923076923,
+      "profit_factor": 1.8881326056023957
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_0524": {
+    "victories": 1,
+    "last_score": 1.3004,
+    "stats": {
+      "pnl": 1673.32,
+      "max_drawdown": 1.92,
+      "gross_profit": 5554.0,
+      "gross_loss": 3880.68,
+      "trades": 287,
+      "win_rate": 0.5459,
+      "returns_avg": 0.0367,
+      "returns_std": 0.015,
+      "feature_drift": 0.1088,
+      "sharpe": 2.4466666666666668,
+      "calmar": 871.5208333333334,
+      "profit_factor": 1.4311924714225344
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_raptor_4472": {
+    "victories": 1,
+    "last_score": 1.3002,
+    "stats": {
+      "pnl": 1617.09,
+      "max_drawdown": 3.43,
+      "gross_profit": 3965.24,
+      "gross_loss": 2348.15,
+      "trades": 174,
+      "win_rate": 0.6574,
+      "returns_avg": 0.0133,
+      "returns_std": 0.0057,
+      "feature_drift": 0.1495,
+      "sharpe": 2.333333333333333,
+      "calmar": 471.45481049562676,
+      "profit_factor": 1.6886655452164467
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_0418": {
+    "victories": 1,
+    "last_score": 1.3001,
+    "stats": {
+      "pnl": 1585.6,
+      "max_drawdown": 2.32,
+      "gross_profit": 3934.38,
+      "gross_loss": 2348.78,
+      "trades": 201,
+      "win_rate": 0.5398,
+      "returns_avg": 0.0211,
+      "returns_std": 0.0089,
+      "feature_drift": 0.1164,
+      "sharpe": 2.370786516853933,
+      "calmar": 683.448275862069,
+      "profit_factor": 1.6750738681357982
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_1949": {
+    "victories": 1,
+    "last_score": 1.3,
+    "stats": {
+      "pnl": 1015.31,
+      "max_drawdown": 3.23,
+      "gross_profit": 3168.27,
+      "gross_loss": 2152.96,
+      "trades": 203,
+      "win_rate": 0.6225,
+      "returns_avg": 0.0314,
+      "returns_std": 0.0127,
+      "feature_drift": 0.1,
+      "sharpe": 2.47244094488189,
+      "calmar": 314.3374613003096,
+      "profit_factor": 1.4715879533293699
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_0839": {
+    "victories": 1,
+    "last_score": 1.2999,
+    "stats": {
+      "pnl": 1480.38,
+      "max_drawdown": 2.75,
+      "gross_profit": 3033.15,
+      "gross_loss": 1552.77,
+      "trades": 173,
+      "win_rate": 0.544,
+      "returns_avg": 0.017,
+      "returns_std": 0.0075,
+      "feature_drift": 0.0756,
+      "sharpe": 2.266666666666667,
+      "calmar": 538.32,
+      "profit_factor": 1.9533800884870265
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2497": {
+    "victories": 1,
+    "last_score": 1.2998,
+    "stats": {
+      "pnl": 1054.24,
+      "max_drawdown": 3.22,
+      "gross_profit": 3032.06,
+      "gross_loss": 1977.82,
+      "trades": 178,
+      "win_rate": 0.5938,
+      "returns_avg": 0.027,
+      "returns_std": 0.0109,
+      "feature_drift": 0.0728,
+      "sharpe": 2.477064220183486,
+      "calmar": 327.40372670807454,
+      "profit_factor": 1.5330313173089563
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_3670": {
+    "victories": 1,
+    "last_score": 1.2998,
+    "stats": {
+      "pnl": 1308.72,
+      "max_drawdown": 4.56,
+      "gross_profit": 2763.46,
+      "gross_loss": 1454.74,
+      "trades": 191,
+      "win_rate": 0.5614,
+      "returns_avg": 0.0251,
+      "returns_std": 0.0101,
+      "feature_drift": 0.0995,
+      "sharpe": 2.485148514851485,
+      "calmar": 287.00000000000006,
+      "profit_factor": 1.8996246751996921
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_dune_4669": {
+    "victories": 1,
+    "last_score": 1.2994,
+    "stats": {
+      "pnl": 919.71,
+      "max_drawdown": 4.42,
+      "gross_profit": 2126.05,
+      "gross_loss": 1206.34,
+      "trades": 205,
+      "win_rate": 0.7328,
+      "returns_avg": 0.0486,
+      "returns_std": 0.0211,
+      "feature_drift": 0.0808,
+      "sharpe": 2.3033175355450233,
+      "calmar": 208.079185520362,
+      "profit_factor": 1.7623970025034403
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1596": {
+    "victories": 1,
+    "last_score": 1.2989,
+    "stats": {
+      "pnl": 1080.39,
+      "max_drawdown": 3.58,
+      "gross_profit": 3068.32,
+      "gross_loss": 1987.93,
+      "trades": 251,
+      "win_rate": 0.6141,
+      "returns_avg": 0.034,
+      "returns_std": 0.0137,
+      "feature_drift": 0.0807,
+      "sharpe": 2.4817518248175183,
+      "calmar": 301.7849162011173,
+      "profit_factor": 1.543474870845553
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_4613": {
+    "victories": 1,
+    "last_score": 1.2989,
+    "stats": {
+      "pnl": 946.3,
+      "max_drawdown": 3.78,
+      "gross_profit": 2722.79,
+      "gross_loss": 1776.49,
+      "trades": 237,
+      "win_rate": 0.6542,
+      "returns_avg": 0.0496,
+      "returns_std": 0.0202,
+      "feature_drift": 0.0489,
+      "sharpe": 2.4554455445544554,
+      "calmar": 250.34391534391534,
+      "profit_factor": 1.5326796097923432
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_1443": {
+    "victories": 1,
+    "last_score": 1.2988,
+    "stats": {
+      "pnl": 1062.3,
+      "max_drawdown": 2.01,
+      "gross_profit": 3366.45,
+      "gross_loss": 2304.15,
+      "trades": 145,
+      "win_rate": 0.63,
+      "returns_avg": 0.019,
+      "returns_std": 0.0082,
+      "feature_drift": 0.0537,
+      "sharpe": 2.317073170731707,
+      "calmar": 528.5074626865672,
+      "profit_factor": 1.4610376928585378
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_2976": {
+    "victories": 1,
+    "last_score": 1.2988,
+    "stats": {
+      "pnl": 843.66,
+      "max_drawdown": 4.01,
+      "gross_profit": 2060.98,
+      "gross_loss": 1217.32,
+      "trades": 190,
+      "win_rate": 0.7533,
+      "returns_avg": 0.0113,
+      "returns_std": 0.005,
+      "feature_drift": 0.1019,
+      "sharpe": 2.26,
+      "calmar": 210.38902743142145,
+      "profit_factor": 1.6930470213255349
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_1769": {
+    "victories": 1,
+    "last_score": 1.2982,
+    "stats": {
+      "pnl": 1756.35,
+      "max_drawdown": 3.58,
+      "gross_profit": 3550.12,
+      "gross_loss": 1793.77,
+      "trades": 282,
+      "win_rate": 0.6082,
+      "returns_avg": 0.0453,
+      "returns_std": 0.0201,
+      "feature_drift": 0.0706,
+      "sharpe": 2.253731343283582,
+      "calmar": 490.6005586592178,
+      "profit_factor": 1.9791389085557234
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_3465": {
+    "victories": 1,
+    "last_score": 1.2981,
+    "stats": {
+      "pnl": 2195.06,
+      "max_drawdown": 2.6,
+      "gross_profit": 4699.95,
+      "gross_loss": 2504.88,
+      "trades": 210,
+      "win_rate": 0.6725,
+      "returns_avg": 0.0204,
+      "returns_std": 0.0097,
+      "feature_drift": 0.0536,
+      "sharpe": 2.1030927835051547,
+      "calmar": 844.2538461538461,
+      "profit_factor": 1.8763174283798025
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0179": {
+    "victories": 1,
+    "last_score": 1.298,
+    "stats": {
+      "pnl": 1286.31,
+      "max_drawdown": 3.39,
+      "gross_profit": 2602.83,
+      "gross_loss": 1316.52,
+      "trades": 146,
+      "win_rate": 0.5487,
+      "returns_avg": 0.0155,
+      "returns_std": 0.0067,
+      "feature_drift": 0.0845,
+      "sharpe": 2.3134328358208953,
+      "calmar": 379.4424778761062,
+      "profit_factor": 1.9770531400966183
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_0530": {
+    "victories": 1,
+    "last_score": 1.2979,
+    "stats": {
+      "pnl": 1322.22,
+      "max_drawdown": 2.08,
+      "gross_profit": 3038.45,
+      "gross_loss": 1716.23,
+      "trades": 219,
+      "win_rate": 0.5718,
+      "returns_avg": 0.0427,
+      "returns_std": 0.0191,
+      "feature_drift": 0.1257,
+      "sharpe": 2.235602094240838,
+      "calmar": 635.6826923076923,
+      "profit_factor": 1.7704212139398565
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_0694": {
+    "victories": 1,
+    "last_score": 1.2974,
+    "stats": {
+      "pnl": 1339.9,
+      "max_drawdown": 3.33,
+      "gross_profit": 4547.18,
+      "gross_loss": 3207.28,
+      "trades": 213,
+      "win_rate": 0.693,
+      "returns_avg": 0.0245,
+      "returns_std": 0.0102,
+      "feature_drift": 0.0806,
+      "sharpe": 2.4019607843137254,
+      "calmar": 402.3723723723724,
+      "profit_factor": 1.4177683270559478
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_1795": {
+    "victories": 1,
+    "last_score": 1.2974,
+    "stats": {
+      "pnl": 1771.28,
+      "max_drawdown": 0.48,
+      "gross_profit": 4660.37,
+      "gross_loss": 2889.09,
+      "trades": 148,
+      "win_rate": 0.5193,
+      "returns_avg": 0.011,
+      "returns_std": 0.005,
+      "feature_drift": 0.0721,
+      "sharpe": 2.1999999999999997,
+      "calmar": 3690.166666666667,
+      "profit_factor": 1.6130927039309955
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_4018": {
+    "victories": 1,
+    "last_score": 1.2974,
+    "stats": {
+      "pnl": 1374.2,
+      "max_drawdown": 3.06,
+      "gross_profit": 2766.49,
+      "gross_loss": 1392.3,
+      "trades": 221,
+      "win_rate": 0.6753,
+      "returns_avg": 0.0115,
+      "returns_std": 0.0055,
+      "feature_drift": 0.1483,
+      "sharpe": 2.090909090909091,
+      "calmar": 449.08496732026146,
+      "profit_factor": 1.986992745816275
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_1218": {
+    "victories": 1,
+    "last_score": 1.2973,
+    "stats": {
+      "pnl": 1489.01,
+      "max_drawdown": 0.98,
+      "gross_profit": 3930.66,
+      "gross_loss": 2441.65,
+      "trades": 260,
+      "win_rate": 0.5762,
+      "returns_avg": 0.012,
+      "returns_std": 0.0055,
+      "feature_drift": 0.0437,
+      "sharpe": 2.181818181818182,
+      "calmar": 1519.3979591836735,
+      "profit_factor": 1.6098376098130363
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_ion_1512": {
+    "victories": 1,
+    "last_score": 1.2973,
+    "stats": {
+      "pnl": 1331.51,
+      "max_drawdown": 2.06,
+      "gross_profit": 3415.74,
+      "gross_loss": 2084.22,
+      "trades": 211,
+      "win_rate": 0.7063,
+      "returns_avg": 0.0387,
+      "returns_std": 0.0183,
+      "feature_drift": 0.085,
+      "sharpe": 2.1147540983606556,
+      "calmar": 646.3640776699029,
+      "profit_factor": 1.63885770216196
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2171": {
+    "victories": 1,
+    "last_score": 1.2973,
+    "stats": {
+      "pnl": 1142.16,
+      "max_drawdown": 0.69,
+      "gross_profit": 2623.03,
+      "gross_loss": 1480.87,
+      "trades": 206,
+      "win_rate": 0.5821,
+      "returns_avg": 0.0193,
+      "returns_std": 0.0094,
+      "feature_drift": 0.0529,
+      "sharpe": 2.0531914893617023,
+      "calmar": 1655.3043478260872,
+      "profit_factor": 1.7712763443111146
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0826": {
+    "victories": 1,
+    "last_score": 1.2966,
+    "stats": {
+      "pnl": 1943.51,
+      "max_drawdown": 3.71,
+      "gross_profit": 5304.44,
+      "gross_loss": 3360.93,
+      "trades": 261,
+      "win_rate": 0.6385,
+      "returns_avg": 0.0253,
+      "returns_std": 0.0104,
+      "feature_drift": 0.0969,
+      "sharpe": 2.432692307692308,
+      "calmar": 523.8571428571429,
+      "profit_factor": 1.5782655395976708
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_4795": {
+    "victories": 1,
+    "last_score": 1.2965,
+    "stats": {
+      "pnl": 1777.61,
+      "max_drawdown": 3.05,
+      "gross_profit": 5396.97,
+      "gross_loss": 3619.36,
+      "trades": 274,
+      "win_rate": 0.6869,
+      "returns_avg": 0.0133,
+      "returns_std": 0.0057,
+      "feature_drift": 0.0422,
+      "sharpe": 2.333333333333333,
+      "calmar": 582.8229508196721,
+      "profit_factor": 1.4911393174483887
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_halo_4929": {
+    "victories": 1,
+    "last_score": 1.2964,
+    "stats": {
+      "pnl": 1495.5,
+      "max_drawdown": 4.5,
+      "gross_profit": 3951.56,
+      "gross_loss": 2456.07,
+      "trades": 183,
+      "win_rate": 0.6688,
+      "returns_avg": 0.037,
+      "returns_std": 0.015,
+      "feature_drift": 0.0771,
+      "sharpe": 2.466666666666667,
+      "calmar": 332.3333333333333,
+      "profit_factor": 1.6088955119357347
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_2237": {
+    "victories": 1,
+    "last_score": 1.2961,
+    "stats": {
+      "pnl": 1980.3,
+      "max_drawdown": 1.41,
+      "gross_profit": 5113.19,
+      "gross_loss": 3132.89,
+      "trades": 212,
+      "win_rate": 0.6915,
+      "returns_avg": 0.0444,
+      "returns_std": 0.0216,
+      "feature_drift": 0.0673,
+      "sharpe": 2.0555555555555554,
+      "calmar": 1404.4680851063831,
+      "profit_factor": 1.6321000737338367
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_3693": {
+    "victories": 1,
+    "last_score": 1.296,
+    "stats": {
+      "pnl": 1431.58,
+      "max_drawdown": 4.14,
+      "gross_profit": 4000.48,
+      "gross_loss": 2568.9,
+      "trades": 169,
+      "win_rate": 0.6786,
+      "returns_avg": 0.0324,
+      "returns_std": 0.0133,
+      "feature_drift": 0.0289,
+      "sharpe": 2.43609022556391,
+      "calmar": 345.79227053140096,
+      "profit_factor": 1.5572735412044065
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_apollo_2902": {
+    "victories": 1,
+    "last_score": 1.2958,
+    "stats": {
+      "pnl": 1016.24,
+      "max_drawdown": 3.3,
+      "gross_profit": 2664.44,
+      "gross_loss": 1648.2,
+      "trades": 169,
+      "win_rate": 0.5478,
+      "returns_avg": 0.0241,
+      "returns_std": 0.0097,
+      "feature_drift": 0.0779,
+      "sharpe": 2.484536082474227,
+      "calmar": 307.9515151515152,
+      "profit_factor": 1.6165756582938964
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_0637": {
+    "victories": 1,
+    "last_score": 1.2953,
+    "stats": {
+      "pnl": 758.37,
+      "max_drawdown": 4.28,
+      "gross_profit": 1966.14,
+      "gross_loss": 1207.77,
+      "trades": 182,
+      "win_rate": 0.6808,
+      "returns_avg": 0.0342,
+      "returns_std": 0.0142,
+      "feature_drift": 0.0604,
+      "sharpe": 2.408450704225352,
+      "calmar": 177.1892523364486,
+      "profit_factor": 1.6279092873643162
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_2368": {
+    "victories": 1,
+    "last_score": 1.2952,
+    "stats": {
+      "pnl": 1132.54,
+      "max_drawdown": 4.82,
+      "gross_profit": 2326.41,
+      "gross_loss": 1193.87,
+      "trades": 185,
+      "win_rate": 0.6573,
+      "returns_avg": 0.0364,
+      "returns_std": 0.0156,
+      "feature_drift": 0.1062,
+      "sharpe": 2.3333333333333335,
+      "calmar": 234.96680497925308,
+      "profit_factor": 1.9486292477405414
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_aurora_4665": {
+    "victories": 1,
+    "last_score": 1.2949,
+    "stats": {
+      "pnl": 1509.97,
+      "max_drawdown": 3.52,
+      "gross_profit": 5005.5,
+      "gross_loss": 3495.53,
+      "trades": 136,
+      "win_rate": 0.6652,
+      "returns_avg": 0.0359,
+      "returns_std": 0.0147,
+      "feature_drift": 0.0828,
+      "sharpe": 2.4421768707482996,
+      "calmar": 428.96875,
+      "profit_factor": 1.4319716895578065
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_falcon_2547": {
+    "victories": 1,
+    "last_score": 1.2946,
+    "stats": {
+      "pnl": 1078.08,
+      "max_drawdown": 3.28,
+      "gross_profit": 2822.77,
+      "gross_loss": 1744.69,
+      "trades": 187,
+      "win_rate": 0.7651,
+      "returns_avg": 0.0298,
+      "returns_std": 0.0137,
+      "feature_drift": 0.0508,
+      "sharpe": 2.1751824817518246,
+      "calmar": 328.6829268292683,
+      "profit_factor": 1.617920662123357
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_vega_4443": {
+    "victories": 1,
+    "last_score": 1.2945,
+    "stats": {
+      "pnl": 1944.57,
+      "max_drawdown": 1.96,
+      "gross_profit": 6699.08,
+      "gross_loss": 4754.51,
+      "trades": 209,
+      "win_rate": 0.6018,
+      "returns_avg": 0.0398,
+      "returns_std": 0.0169,
+      "feature_drift": 0.0527,
+      "sharpe": 2.355029585798817,
+      "calmar": 992.1275510204082,
+      "profit_factor": 1.4089948280685074
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_quantum_2280": {
+    "victories": 1,
+    "last_score": 1.2944,
+    "stats": {
+      "pnl": 1069.46,
+      "max_drawdown": 2.19,
+      "gross_profit": 2492.36,
+      "gross_loss": 1422.9,
+      "trades": 133,
+      "win_rate": 0.5177,
+      "returns_avg": 0.0463,
+      "returns_std": 0.02,
+      "feature_drift": 0.0139,
+      "sharpe": 2.315,
+      "calmar": 488.337899543379,
+      "profit_factor": 1.7516058753250403
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_nebula_3581": {
+    "victories": 1,
+    "last_score": 1.2944,
+    "stats": {
+      "pnl": 1070.33,
+      "max_drawdown": 4.75,
+      "gross_profit": 2539.36,
+      "gross_loss": 1469.03,
+      "trades": 233,
+      "win_rate": 0.7163,
+      "returns_avg": 0.0476,
+      "returns_std": 0.0202,
+      "feature_drift": 0.0354,
+      "sharpe": 2.3564356435643568,
+      "calmar": 225.33263157894734,
+      "profit_factor": 1.7285964207674454
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  },
+  "scalp_blade_1295": {
+    "victories": 1,
+    "last_score": 1.2943,
+    "stats": {
+      "pnl": 1302.84,
+      "max_drawdown": 2.6,
+      "gross_profit": 4122.88,
+      "gross_loss": 2820.04,
+      "trades": 165,
+      "win_rate": 0.6949,
+      "returns_avg": 0.0325,
+      "returns_std": 0.0143,
+      "feature_drift": 0.0844,
+      "sharpe": 2.272727272727273,
+      "calmar": 501.09230769230766,
+      "profit_factor": 1.4619934469014624
+    },
+    "source": "arena/runs/arena_5000.jsonl",
+    "updated_at": "2025-11-12T22:36:38.952814Z"
+  }
+}

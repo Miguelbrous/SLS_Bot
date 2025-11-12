@@ -30,8 +30,12 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `bot/app/main.py`: API de control/panel. Expone `/status`, `/logs/*`, `/pnl/diario`, incluye el modo activo en la respuesta y lee los mismos directorios que el bot.  
 - `bot/sls_bot/config_loader.py`: Parser robusto (comentarios, comas) + motor de perfiles (`modes`). Usa `SLSBOT_MODE` y tokens `{mode}` para generar rutas.  
 - `bot/cerebro/service.py`: Servicio continuo del Cerebro. Guarda decisiones/experiencias en `logs/<mode>/cerebro_*.jsonl` y carga modelos desde `models/cerebro/<mode>/active_model.json`. Reporta el modo en `/cerebro/status`.  
+- `bot/sls_bot/strategies/scalping.py`: Estrategia de scalping multi-factor pensada para el modo demo. Consume `ia_utils.latest_slice`, mezcla tendencia micro/macro, compresión y liquidez para decidir `LONG/SHORT/NO_TRADE`, ajusta `risk_pct`/`leverage` y expone stops dinámicos.  
+- `bot/cerebro/intel.py`: Orquestador de inteligencia (agregador CryptoPanic + detector de ballenas/spoofing basado en orderbook). Inyecta `metadata.orderflow` y bloquea señales dudosas desde el PolicyEnsemble.  
 - `bot/cerebro/train.py`: Entrenamiento ligero (logistic regression). `--mode` autodetecta rutas de dataset/modelos según el modo. Añade campo `mode` al artefacto.  
 - `scripts/tools/promote_strategy.py`: Copia `active_model.json` desde el modo de prueba al real cuando las métricas superan los umbrales y opcionalmente archiva/reset el dataset de experiencias del modo prueba.  
+- `scripts/tools/generate_arena_runs.py`: Genera archivos JSONL sintéticos con miles de estrategias para Arena/Autopilot (`--count 5000 --output arena/runs/arena_5000.jsonl`). Ajusta medias de pnl/drawdown/win rate y la semilla para repetir resultados.  
+- `scripts/tools/arena_scoreboard.py`: Calcula victorias por estrategia (`--score-threshold`) y mantiene `arena/scoreboard.json` + `arena/champions.json` para promover automáticamente las que acumulen `--promotion-wins`.  
 - `scripts/tools/infra_check.py`: Carga `config.json`, revisa variables obligatorias (`BYBIT_*`, `PANEL_API_TOKENS`, `CONTROL_*`) y confirma que `logs/{mode}` & `excel/{mode}` existen. Útil antes de desplegar.  
 - `README.md`: Documentación general (instrucciones de entorno, pruebas, despliegue, explicación modos/prueba-real y comandos de entrenamiento/promoción).  
 - `.env.example`: Ejemplo de variables, incluye `SLSBOT_MODE`, credenciales panel y Bybit.  

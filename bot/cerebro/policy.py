@@ -45,6 +45,7 @@ class PolicyEnsemble:
         memory_stats: dict | None = None,
         session_context: dict | None = None,
         news_meta: dict | None = None,
+        orderflow_meta: dict | None = None,
     ) -> PolicyDecision:
         payload, evid_rules, meta = ia_signal_engine.decide(symbol=symbol, marco=timeframe)
         decision = payload["decision"]
@@ -138,6 +139,29 @@ class PolicyEnsemble:
             elif ml_score > 0.65:
                 risk_pct = min(risk_pct * 1.15, payload["riesgo_pct"] * 1.5)
                 reasons.append("Modelo permite subir riesgo por score alto")
+
+        if orderflow_meta:
+            metadata["orderflow"] = orderflow_meta
+            imb = orderflow_meta.get("imbalance")
+            if imb is not None:
+                reasons.append(f"Orderbook imbalance={imb:+.2f}")
+            whale_side = orderflow_meta.get("whale_side")
+            if orderflow_meta.get("spoofing_suspected"):
+                decision = "NO_TRADE"
+                reasons.append("Whale watcher detectó posible spoofing/manipulación")
+            elif whale_side:
+                aligned = (decision == "LONG" and whale_side == "bid") or (decision == "SHORT" and whale_side == "ask")
+                if aligned:
+                    risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                    reasons.append(f"Whale side favorece {decision}, riesgo aumentado")
+                else:
+                    risk_pct = max(0.1, risk_pct * 0.65)
+                    reasons.append("Whale side contrario, riesgo reducido")
+            if imb is not None and abs(imb) > 0.55:
+                desired = "LONG" if imb > 0 else "SHORT"
+                if decision != desired:
+                    decision = "NO_TRADE"
+                    reasons.append("Imbalance extremo contradice la señal")
 
         return PolicyDecision(
             symbol=symbol.upper(),
