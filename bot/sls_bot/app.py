@@ -66,6 +66,8 @@ BRIDGE_LOG = LOGS_DIR / "bridge.log"
 PNL_LOG = LOGS_DIR / "pnl.jsonl"
 PNL_SYMBOLS_JSON = LOGS_DIR / "pnl_daily_symbols.json"
 SCALP_TELEMETRY_LOG = LOGS_DIR / "scalp_telemetry.jsonl"
+SCALP_DAILY_LOG = LOGS_DIR / "scalp_daily.jsonl"
+ALERTS_LOG = LOGS_DIR / "alerts.log"
 
 # ==== CLIENTE BYBIT (pybit) ====
 bb = BybitClient(
@@ -162,9 +164,13 @@ def _needs_scalp_push(meta: dict | None, st: dict) -> bool:
     profit_done = float(st.get("scalp_profit_today") or 0.0)
     start_eq = float(st.get("start_equity") or 0.0)
     target_profit = start_eq * (daily_target_pct / 100.0) if daily_target_pct > 0 and start_eq > 0 else None
+    if target_profit is not None and profit_done >= target_profit:
+        st["scalp_objective_met"] = True
+    objective_met = bool(st.get("scalp_objective_met"))
+
     if min_trades and trades_done < min_trades:
         return True
-    if target_profit is not None and profit_done < target_profit:
+    if target_profit is not None and not objective_met:
         return True
     return False
 
@@ -177,6 +183,44 @@ def _bump_scalp_entry(st: dict, forced: bool) -> None:
 
 def _bump_scalp_pnl(st: dict, pnl: float) -> None:
     st["scalp_profit_today"] = float(st.get("scalp_profit_today") or 0.0) + float(pnl)
+
+
+def _evaluate_scalp_objectives(st: dict, meta: Optional[dict]) -> None:
+    if not meta or meta.get("strategy") != "scalping_v1":
+        return
+    target_pct = float(meta.get("daily_target_pct") or 0.0)
+    if target_pct <= 0:
+        return
+    start_eq = float(st.get("start_equity") or 0.0)
+    target_profit = start_eq * (target_pct / 100.0) if start_eq > 0 else 0.0
+    if target_profit <= 0:
+        return
+    profit_done = float(st.get("scalp_profit_today") or 0.0)
+    if profit_done >= target_profit and not st.get("scalp_objective_met"):
+        st["scalp_objective_met"] = True
+        _append_alert("Objetivo diario de scalping alcanzado", {
+            "profit": profit_done,
+            "target": target_profit,
+        })
+
+
+def _append_alert(message: str, details: Optional[dict] = None) -> None:
+    payload = {
+        "ts": utc_now_iso(z_suffix=True),
+        "message": message,
+        "details": details or {},
+    }
+    _append_jsonl(ALERTS_LOG, payload)
+
+
+def _append_scalp_daily_summary(st: dict) -> None:
+    payload = {
+        "date": st.get("date"),
+        "trades": st.get("scalp_trades_today"),
+        "forced_entries": st.get("scalp_forced_entries"),
+        "profit": st.get("scalp_profit_today"),
+    }
+    _append_jsonl(SCALP_DAILY_LOG, payload)
 
 
 def _load_symbol_pnl_cache() -> dict:
@@ -575,6 +619,10 @@ def _reset_daily_if_needed():
             "scalp_trades_today": 0,
             "scalp_profit_today": 0.0,
             "scalp_forced_entries": 0,
+            "scalp_forced_loss_streak": 0,
+            "scalp_open_forced": False,
+            "scalp_open_strategy_meta": None,
+            "scalp_objective_met": False,
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -1050,9 +1098,33 @@ def webhook(sig: Signal):
             if st["consecutive_losses"] >= nloss:
                 _start_cooldown("losses", mins)
 
-            st = _register_trade_result(st, pnl)
-            _bump_scalp_pnl(st, pnl)
-            _save_state(st)
+        forced_open = bool(st.get("scalp_open_forced"))
+        open_meta = st.get("scalp_open_strategy_meta") or {}
+        st["scalp_open_forced"] = False
+        st["scalp_open_strategy_meta"] = None
+        st = _register_trade_result(st, pnl)
+        _bump_scalp_pnl(st, pnl)
+        _evaluate_scalp_objectives(st, open_meta)
+        if forced_open:
+            limit = int(open_meta.get("forced_loss_backoff") or 0)
+            backoff_minutes = int(open_meta.get("forced_backoff_minutes") or 30)
+            if pnl < -epsilon:
+                st["scalp_forced_loss_streak"] = int(st.get("scalp_forced_loss_streak") or 0) + 1
+            else:
+                st["scalp_forced_loss_streak"] = 0
+            if limit and st.get("scalp_forced_loss_streak", 0) >= limit:
+                _append_alert("Activando backoff por pérdidas forzadas", {
+                    "streak": st.get("scalp_forced_loss_streak"),
+                    "limit": limit,
+                    "minutes": backoff_minutes,
+                })
+                _save_state(st)
+                _start_cooldown("scalp_forced_losses", backoff_minutes, extra={"streak": st.get("scalp_forced_loss_streak")})
+                st = _load_state()
+                st["scalp_forced_loss_streak"] = 0
+        else:
+            st["scalp_forced_loss_streak"] = 0
+        _save_state(st)
             loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
             if _loss_streak_reached(st):
                 _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
@@ -1078,6 +1150,11 @@ def webhook(sig: Signal):
                 strategy_meta["forced_entry"] = True
                 strategy_meta["force_reason"] = "daily_objective"
                 sig.strategy_meta = strategy_meta
+                _append_alert("Scalping forzado por objetivos diarios", {
+                    "symbol": symbol,
+                    "trades_done": st.get("scalp_trades_today"),
+                    "profit": st.get("scalp_profit_today"),
+                })
 
         price_live = bb.get_mark_price(symbol) or (60000.0 if "BTC" in symbol else 3000.0)
         cere_decision = None if force_scalp else _maybe_apply_cerebro(sig, price_live, st)
@@ -1206,6 +1283,8 @@ def webhook(sig: Signal):
 
         # Guardar equity en la entrada
         st["last_entry_equity"] = balance
+        st["scalp_open_forced"] = bool(strategy_meta.get("forced_entry"))
+        st["scalp_open_strategy_meta"] = strategy_meta if strategy_meta else None
         _save_state(st)
 
         # TP1 parcial + SL->BE

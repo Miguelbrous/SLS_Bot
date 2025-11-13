@@ -52,12 +52,16 @@ class CerebroConfig:
     news_ttl_minutes: int = 45
     session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
     intel: dict = field(default_factory=dict)
+    orderflow_warn: float = 0.35
+    orderflow_block: float = 0.7
+    allow_spoof_override: bool = False
 
     @classmethod
     def from_dict(cls, data: dict) -> "CerebroConfig":
         if not data:
             return cls()
         raw_sessions = data.get("session_guards") or DEFAULT_SESSION_GUARDS
+        whale_cfg = (data.get("intel") or {}).get("whales") or {}
         return cls(
             enabled=bool(data.get("enabled", False)),
             symbols=data.get("symbols") or ["BTCUSDT"],
@@ -71,6 +75,9 @@ class CerebroConfig:
             news_ttl_minutes=int(data.get("news_ttl_minutes") or 45),
             session_guards=[SessionGuardConfig.from_dict(item or {}) for item in raw_sessions],
             intel=data.get("intel") or {},
+            orderflow_warn=float(whale_cfg.get("imbalance_warn") or whale_cfg.get("imbalance_threshold") or 0.35),
+            orderflow_block=float(whale_cfg.get("imbalance_block") or 0.7),
+            allow_spoof_override=bool(whale_cfg.get("allow_spoof_override", False)),
         )
 
 

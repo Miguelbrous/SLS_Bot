@@ -123,6 +123,9 @@ class WhaleWatcherConfig:
     orderbook_depth: int = 50
     spoof_ratio: float = 4.0
     imbalance_threshold: float = 0.25
+    imbalance_warn: float = 0.25
+    imbalance_block: float = 0.6
+    allow_spoof_override: bool = False
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "WhaleWatcherConfig":
@@ -134,6 +137,9 @@ class WhaleWatcherConfig:
             orderbook_depth=int(data.get("orderbook_depth") or 50),
             spoof_ratio=float(data.get("spoof_ratio") or 4.0),
             imbalance_threshold=float(data.get("imbalance_threshold") or 0.25),
+            imbalance_warn=float(data.get("imbalance_warn") or data.get("imbalance_threshold") or 0.25),
+            imbalance_block=float(data.get("imbalance_block") or 0.6),
+            allow_spoof_override=bool(data.get("allow_spoof_override", False)),
         )
 
 
@@ -187,6 +193,7 @@ class WhaleWatcher:
                 spoofing_flag = True
                 spoofing_side = "ask"
 
+        severity = abs(imbalance)
         return {
             "imbalance": round(imbalance, 4),
             "whale_side": whale_side,
@@ -196,4 +203,5 @@ class WhaleWatcher:
             "total_bid": round(total_bid, 2),
             "total_ask": round(total_ask, 2),
             "captured_at": _utc_now().isoformat().replace("+00:00", "Z"),
+            "severity": severity,
         }

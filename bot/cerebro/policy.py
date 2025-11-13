@@ -32,11 +32,15 @@ class PolicyDecision:
 class PolicyEnsemble:
     """Combina heuristicas, noticias y el motor ML existente."""
 
-    def __init__(self, min_confidence: float, sl_atr: float, tp_atr: float, model_path: str | Path | None = None):
+    def __init__(self, min_confidence: float, sl_atr: float, tp_atr: float, model_path: str | Path | None = None,
+                 orderflow_warn: float = 0.35, orderflow_block: float = 0.7, allow_spoof_override: bool = False):
         self.min_confidence = min_confidence
         self.sl_atr = sl_atr
         self.tp_atr = tp_atr
         self._model_artifact = self._load_model(model_path)
+        self.orderflow_warn = orderflow_warn
+        self.orderflow_block = orderflow_block
+        self.orderflow_allow_override = allow_spoof_override
 
     def decide(
         self,
@@ -146,25 +150,28 @@ class PolicyEnsemble:
         if orderflow_meta:
             metadata["orderflow"] = orderflow_meta
             imb = orderflow_meta.get("imbalance")
+            whale_side = orderflow_meta.get("whale_side")
+            severity = abs(orderflow_meta.get("severity") or imb or 0.0)
             if imb is not None:
                 reasons.append(f"Orderbook imbalance={imb:+.2f}")
-            whale_side = orderflow_meta.get("whale_side")
-            if orderflow_meta.get("spoofing_suspected"):
+            block_due_spoof = orderflow_meta.get("spoofing_suspected") and not self.orderflow_allow_override
+            block_due_imbalance = severity >= self.orderflow_block
+            warn_due_imbalance = severity >= self.orderflow_warn
+            if block_due_spoof or block_due_imbalance:
                 decision = "NO_TRADE"
-                reasons.append("Whale watcher detectó posible spoofing/manipulación")
-            elif whale_side:
-                aligned = (decision == "LONG" and whale_side == "bid") or (decision == "SHORT" and whale_side == "ask")
-                if aligned:
-                    risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
-                    reasons.append(f"Whale side favorece {decision}, riesgo aumentado")
-                else:
-                    risk_pct = max(0.1, risk_pct * 0.65)
-                    reasons.append("Whale side contrario, riesgo reducido")
-            if imb is not None and abs(imb) > 0.55:
-                desired = "LONG" if imb > 0 else "SHORT"
-                if decision != desired:
-                    decision = "NO_TRADE"
-                    reasons.append("Imbalance extremo contradice la señal")
+                reasons.append("Orderflow bloqueado por spoofing/imbalance")
+            else:
+                if warn_due_imbalance:
+                    risk_pct = max(0.1, risk_pct * 0.6)
+                    reasons.append("Imbalance elevado: riesgo reducido")
+                if whale_side:
+                    aligned = (decision == "LONG" and whale_side == "bid") or (decision == "SHORT" and whale_side == "ask")
+                    if aligned:
+                        risk_pct = min(risk_pct * 1.1, payload["riesgo_pct"] * 1.6)
+                        reasons.append(f"Whale side favorece {decision}, riesgo aumentado")
+                    else:
+                        risk_pct = max(0.1, risk_pct * 0.65)
+                        reasons.append("Whale side contrario, riesgo reducido")
 
         return PolicyDecision(
             symbol=symbol.upper(),

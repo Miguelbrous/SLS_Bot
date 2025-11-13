@@ -89,6 +89,9 @@ class Cerebro:
             sl_atr=self.config.sl_atr_multiple,
             tp_atr=self.config.tp_atr_multiple,
             model_path=MODELS_DIR / "active_model.json",
+            orderflow_warn=self.config.orderflow_warn,
+            orderflow_block=self.config.orderflow_block,
+            allow_spoof_override=self.config.allow_spoof_override,
         )
         self.session_guard = MarketSessionGuard(self.config.session_guards)
         self._lock = threading.Lock()
