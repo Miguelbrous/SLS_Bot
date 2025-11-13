@@ -1,0 +1,116 @@
+//@version=5
+indicator("SLS Scalping Visual Helper", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=200)
+
+// === Inputs ===
+lengthFast     = input.int(9,  "EMA Fast",   minval=1)
+lengthMid      = input.int(21, "EMA Mid",    minval=1)
+lengthSlow     = input.int(55, "EMA Slow",   minval=1)
+atrLen         = input.int(14, "ATR Length", minval=1)
+liqWindow      = input.int(30, "Liquidez lookback", minval=5)
+ideaPeriodMin  = input.int(5,  "Minutos entre mensajes", minval=1)
+ttlMinutes     = input.int(30, "Max hold (min)", minval=1)
+showVWAP       = input.bool(true, "Mostrar VWAP")
+
+// === Core indicators ===
+emaFast  = ta.ema(close, lengthFast)
+emaMid   = ta.ema(close, lengthMid)
+emaSlow  = ta.ema(close, lengthSlow)
+atrValue = ta.atr(atrLen)
+rsiValue = ta.rsi(close, 14)
+vwapVal  = ta.vwap(hlc3)
+liquidityHigh = ta.highest(high, liqWindow)
+liquidityLow  = ta.lowest(low, liqWindow)
+
+plot(emaFast, "EMA Fast", color=color.new(color.teal, 0), linewidth=1)
+plot(emaMid,  "EMA Mid",  color=color.new(color.orange, 0), linewidth=2)
+plot(emaSlow, "EMA Slow", color=color.new(color.red, 0), linewidth=2)
+plotshape(showVWAP ? vwapVal : na, "VWAP", style=shape.triangleup, location=location.absolute, color=color.new(color.blue, 80), size=size.tiny, title="VWAP")
+
+// Liquidity zones
+liqColor = close > emaMid ? color.new(color.green, 80) : color.new(color.red, 80)
+bgcolor(close >= liquidityHigh ? color.new(color.green, 90) : na)
+bgcolor(close <= liquidityLow  ? color.new(color.red, 90) : na)
+plot(liquidityHigh, "Zona Liquidez Alta", color=color.new(color.green, 50), linewidth=1, style=plot.style_stepline)
+plot(liquidityLow,  "Zona Liquidez Baja", color=color.new(color.red, 50), linewidth=1, style=plot.style_stepline)
+
+// === Signal logic ===
+trendBull = emaFast > emaMid and emaMid > emaSlow and close > vwapVal
+trendBear = emaFast < emaMid and emaMid < emaSlow and close < vwapVal
+volOk     = atrValue / close > 0.0008 and atrValue / close < 0.02
+longCond  = trendBull and rsiValue > 55 and volOk and close > high[1]
+shortCond = trendBear and rsiValue < 45 and volOk and close < low[1]
+
+var bool  inTrade   = false
+var bool  longTrade = false
+var float entryPrice = na
+var float stopPrice  = na
+var float targetPrice = na
+var int   entryBar   = na
+var line  entryLine  = na
+var line  stopLine   = na
+var line  targetLine = na
+
+newEntry(directionLong) =>
+    inTrade := true
+    longTrade := directionLong
+    entryPrice := close
+    stopPrice  := close + (directionLong ? -atrValue * 1.2 : atrValue * 1.2)
+    targetPrice := close + (directionLong ? atrValue * 2.4 : -atrValue * 2.4)
+    entryBar := bar_index
+    colorEntry = directionLong ? color.new(color.green, 0) : color.new(color.red, 0)
+    colorStop  = color.new(color.gray, 0)
+    colorTarget = color.new(color.blue, 0)
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+    entryLine  := line.new(bar_index, entryPrice, bar_index + 2, entryPrice, extend=extend.right, color=colorEntry, style=line.style_solid)
+    stopLine   := line.new(bar_index, stopPrice,  bar_index + 2, stopPrice, extend=extend.right, color=colorStop, style=line.style_dotted)
+    targetLine := line.new(bar_index, targetPrice, bar_index + 2, targetPrice, extend=extend.right, color=colorTarget, style=line.style_dashed)
+
+closeTrade(reason) =>
+    if inTrade
+        label.new(bar_index, close, "Salida (" + reason + ")", color=color.new(color.yellow, 0), textcolor=color.black, style=label.style_label_down)
+    inTrade := false
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+
+if not inTrade and longCond
+    newEntry(true)
+else if not inTrade and shortCond
+    newEntry(false)
+
+ttlBars = math.round(ttlMinutes * 60 / (time - time[1]) * ta.barssince(false))
+exitByTTL = inTrade and entryBar != na and (bar_index - entryBar) * timeframe.multiplier >= ttlMinutes * 60 / timeframe.in_seconds()
+exitByStop = inTrade and ((longTrade and low <= stopPrice) or (not longTrade and high >= stopPrice))
+exitByTarget = inTrade and ((longTrade and high >= targetPrice) or (not longTrade and low <= targetPrice))
+
+if exitByStop
+    closeTrade("SL")
+else if exitByTarget
+    closeTrade("TP")
+else if exitByTTL
+    closeTrade("TTL")
+
+// === Texto periódico ===
+var label ideaLabel = na
+var int   lastMsgMs = timenow
+ideaExpired = timenow - lastMsgMs >= ideaPeriodMin * 60000
+
+currentIdea =
+    inTrade ? (longTrade ? "En LONG, buscando TP " + str.tostring(targetPrice, format.mintick) : "En SHORT, buscando TP " + str.tostring(targetPrice, format.mintick))
+    : longCond ? "Preparando LONG: tendencia alcista, esperando confirmación"
+    : shortCond ? "Preparando SHORT: presión bajista/liq alta"
+    : "Modo observación: esperando volatilidad > 0.08%"
+
+if ideaExpired or barstate.isfirst
+    label.delete(ideaLabel)
+    ideaLabel := label.new(bar_index, high, currentIdea, color=color.new(color.black, 80), textcolor=color.white, style=label.style_label_left)
+    lastMsgMs := timenow
+
+// Tabla informativa
+var table infoTable = table.new(position.top_right, 1, 4)
+table.cell(infoTable, 0, 0, "RSI: " + str.tostring(rsiValue, format.mintick), bgcolor=color.new(color.blue, 80))
+table.cell(infoTable, 1, 0, "ATR: " + str.tostring(atrValue, format.mintick))
+table.cell(infoTable, 2, 0, "Idea: " + currentIdea)
+table.cell(infoTable, 3, 0, "TTL min: " + str.tostring(ttlMinutes))

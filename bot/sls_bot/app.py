@@ -153,6 +153,32 @@ def _append_scalp_telemetry(entry: dict) -> None:
     _append_jsonl(SCALP_TELEMETRY_LOG, entry)
 
 
+def _needs_scalp_push(meta: dict | None, st: dict) -> bool:
+    if not meta or meta.get("strategy") != "scalping_v1":
+        return False
+    min_trades = int(meta.get("min_trades_per_day") or 0)
+    daily_target_pct = float(meta.get("daily_target_pct") or 0.0)
+    trades_done = int(st.get("scalp_trades_today") or 0)
+    profit_done = float(st.get("scalp_profit_today") or 0.0)
+    start_eq = float(st.get("start_equity") or 0.0)
+    target_profit = start_eq * (daily_target_pct / 100.0) if daily_target_pct > 0 and start_eq > 0 else None
+    if min_trades and trades_done < min_trades:
+        return True
+    if target_profit is not None and profit_done < target_profit:
+        return True
+    return False
+
+
+def _bump_scalp_entry(st: dict, forced: bool) -> None:
+    st["scalp_trades_today"] = int(st.get("scalp_trades_today") or 0) + 1
+    if forced:
+        st["scalp_forced_entries"] = int(st.get("scalp_forced_entries") or 0) + 1
+
+
+def _bump_scalp_pnl(st: dict, pnl: float) -> None:
+    st["scalp_profit_today"] = float(st.get("scalp_profit_today") or 0.0) + float(pnl)
+
+
 def _load_symbol_pnl_cache() -> dict:
     try:
         if not PNL_SYMBOLS_JSON.exists():
@@ -546,6 +572,9 @@ def _reset_daily_if_needed():
             "active_cooldown_reason": None,
             "last_cerebro_decision": None,
             "dynamic_risk": {"enabled": False},
+            "scalp_trades_today": 0,
+            "scalp_profit_today": 0.0,
+            "scalp_forced_entries": 0,
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -1022,6 +1051,7 @@ def webhook(sig: Signal):
                 _start_cooldown("losses", mins)
 
             st = _register_trade_result(st, pnl)
+            _bump_scalp_pnl(st, pnl)
             _save_state(st)
             loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
             if _loss_streak_reached(st):
@@ -1040,15 +1070,29 @@ def webhook(sig: Signal):
         if not sig.tf:
             sig.tf = CEREBRO_DEFAULT_TF
 
+        strategy_meta = sig.strategy_meta or {}
+        force_scalp = False
+        if strategy_meta.get("strategy") == "scalping_v1" and not strategy_meta.get("forced_entry"):
+            if _needs_scalp_push(strategy_meta, st):
+                force_scalp = True
+                strategy_meta["forced_entry"] = True
+                strategy_meta["force_reason"] = "daily_objective"
+                sig.strategy_meta = strategy_meta
+
         price_live = bb.get_mark_price(symbol) or (60000.0 if "BTC" in symbol else 3000.0)
-        cere_decision = _maybe_apply_cerebro(sig, price_live, st)
+        cere_decision = None if force_scalp else _maybe_apply_cerebro(sig, price_live, st)
         if cere_decision and cere_decision.get("blocked"):
             return {"status": "filtered", "reason": cere_decision.get("reason", "cerebro")}
         _apply_dynamic_risk(sig, balance, st)
         guardrail = _apply_guardrails(sig, price_live, st)
-        if guardrail and guardrail.get("blocked"):
+        if guardrail and guardrail.get("blocked") and not force_scalp:
             _save_state(st)
             return {"status": "filtered", "reason": guardrail.get("reason", "guardrails"), "details": guardrail}
+        if guardrail and guardrail.get("blocked") and force_scalp:
+            _append_bridge_log(f"scalp_guard overridden symbol={symbol} reason={guardrail.get('reason')}")
+        if force_scalp:
+            min_risk = float(strategy_meta.get("min_risk_pct") or 0.25)
+            sig.risk_pct = max(float(sig.risk_pct or min_risk), min_risk)
         _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
@@ -1195,6 +1239,10 @@ def webhook(sig: Signal):
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
         _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)
+        if strategy_meta.get("strategy") == "scalping_v1":
+            st_scalp = _load_state()
+            _bump_scalp_entry(st_scalp, bool(strategy_meta.get("forced_entry")))
+            _save_state(st_scalp)
         strategy_meta = sig.strategy_meta or {}
         if strategy_meta.get("strategy") == "scalping_v1":
             hold_minutes = float(strategy_meta.get("max_hold_minutes") or 45)

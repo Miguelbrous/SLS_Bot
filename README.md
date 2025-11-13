@@ -5,7 +5,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 
 ## Arquitectura
 - `bot/` FastAPI + PyBit, maneja webhooks, control de riesgo, escritura en Excel y endpoints IA. El Cerebro ahora consume señales avanzadas (`bot/cerebro/intel.py`) para mezclar sentimiento (RSS + CryptoPanic) con un detector de ballenas/spoofing basado en el orderbook de Bybit.
-- `bot/sls_bot/strategies/scalping.py` introduce la nueva estrategia de scalping para el modo demo: trabaja sobre 1m/3m/5m, mete señales forzadas cuando la confianza es baja (`force_trade_confidence`) para no dejar al bot ocioso y añade colchón por comisiones (`fee_bps_round_trip`) antes de abrir/cerrar posiciones.
+- `bot/sls_bot/strategies/scalping.py` introduce la nueva estrategia de scalping para el modo demo: trabaja sobre 1m/3m/5m, mete señales forzadas cuando la confianza es baja (`force_trade_confidence`) para no dejar al bot ocioso y añade colchón por comisiones (`fee_bps_round_trip`) antes de abrir/cerrar posiciones. Además define metas diarias (`min_trades_per_day`, `daily_target_pct`) y un TTL (30 min) que el bot respeta automáticamente.
 - `panel/` Next.js 14 (app router) que consume la API via `NEXT_PUBLIC_API_BASE` y `X-Panel-Token`.
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
@@ -138,6 +138,8 @@ El script acepta archivos `.json` o `.jsonl` con `stats` (pnl, max_drawdown, tra
 - Si quieres un resumen integrado (dataset + ranking + métricas Prometheus + Markdown), usa `autopilot_summary.py` o `make autopilot-summary` como se explica más abajo.
 - Para generar lotes sintéticos masivos de estrategias Arena utiliza `python scripts/tools/generate_arena_runs.py --count 5000 --output arena/runs/arena_5000.jsonl`.
 - Para llevar control de victorias/promociones ejecuta `python scripts/tools/arena_scoreboard.py --runs arena/runs/arena_5000.jsonl --scoreboard arena/scoreboard.json --champions arena/champions.json --promotion-wins 10`. El scoreboard suma victorias cuando una estrategia supera `--score-threshold` y mantiene un top configurable (<span>`--top`</span>).
+- Si quieres visualizar el comportamiento del bot en TradingView, abre `tradingview/sls_scalping_visual.pine`: muestra EMAs, VWAP, zonas de liquidez, mensajes cada 5 minutos y borra los dibujos al cerrar la operación simulada.
+- El estado diario (`risk_state.json`) ahora guarda `scalp_trades_today`, `scalp_profit_today` y `scalp_forced_entries`. El bot fuerza entradas cuando no cumple las metas configuradas (siguiendo el riesgo mínimo definido por la estrategia).
 
 ## Autopilot summary / CI
 ```

@@ -47,6 +47,8 @@ class ScalpingStrategy:
         self.atr_tp_mult = float(self.config.get("atr_take_profit_multiple", 2.35))
         self.max_hold_minutes = int(self.config.get("max_hold_minutes", 45))
         self.fee_bps_round_trip = float(self.config.get("fee_bps_round_trip", 12.0))
+        self.min_trades_per_day = int(self.config.get("min_trades_per_day", 12))
+        self.daily_target_pct = float(self.config.get("daily_target_pct", 0.6))
 
         self.base_risk_pct = float(self.config.get("risk_pct", 1.2))
         self.base_leverage = int(self.config.get("leverage", 12))
@@ -206,6 +208,10 @@ class ScalpingStrategy:
             "confidence_threshold": self.conf_threshold,
             "forced_entry": forced_entry,
             "fee_bps_round_trip": self.fee_bps_round_trip,
+            "min_trades_per_day": self.min_trades_per_day,
+            "daily_target_pct": self.daily_target_pct,
+            "min_risk_pct": self.min_risk_pct,
+            "force_trade_confidence": self.force_trade_conf,
         }
 
         return ScalpingDecision(payload=payload, evidences=evid, metadata=metadata)
