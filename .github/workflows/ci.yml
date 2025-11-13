@@ -108,13 +108,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          cat >> ~/.ssh/config <<CONF
-          Host sls-deploy
-            HostName ${{ secrets.DEPLOY_HOST }}
-            User ${{ secrets.DEPLOY_USER }}
-            IdentityFile ~/.ssh/deploy_key
-            StrictHostKeyChecking no
-CONF
+          {
+            echo "Host sls-deploy"
+            echo "  HostName ${{ secrets.DEPLOY_HOST }}"
+            echo "  User ${{ secrets.DEPLOY_USER }}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking no"
+          } >> ~/.ssh/config
       - name: Placeholder deploy
         run: |
           echo "Connecting to ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}..."
