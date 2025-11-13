@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import List
 
-from ...sls_bot import ia_utils
+try:
+    from ...sls_bot import ia_utils
+except (ImportError, ValueError):
+    from sls_bot import ia_utils  # type: ignore
 from .base import DataSource
 
 

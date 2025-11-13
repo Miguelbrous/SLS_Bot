@@ -24,8 +24,11 @@ log = logging.getLogger(__name__)
 
 try:
     from ..sls_bot.config_loader import load_config as _load_bot_config
-except Exception:  # pragma: no cover - fallback when running standalone
-    _load_bot_config = None
+except (ImportError, ValueError):  # pragma: no cover - fallback when running standalone
+    try:
+        from sls_bot.config_loader import load_config as _load_bot_config  # type: ignore
+    except Exception:
+        _load_bot_config = None
 
 
 def _detect_mode() -> str:

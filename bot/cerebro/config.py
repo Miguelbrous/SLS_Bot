@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Sequence
 
-from ..sls_bot.config_loader import load_config
+try:
+    from ..sls_bot.config_loader import load_config
+except (ImportError, ValueError):  # cuando se importa como top-level `cerebro`
+    from sls_bot.config_loader import load_config  # type: ignore
 from .filters import SessionGuardConfig
 
 
