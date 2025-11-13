@@ -1385,6 +1385,7 @@ def daily_summary(date: Optional[str] = None, write: bool = True):
             "end": resumen.get("End Equity"),
             "trades": resumen.get("Trades"),
         })
+        _append_scalp_daily_summary(_load_state())
     return {"status": "ok", "summary": resumen}
 
 def _daily_scheduler():
