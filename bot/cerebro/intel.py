@@ -9,7 +9,10 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from ..sls_bot import ia_utils
+try:
+    from ..sls_bot import ia_utils
+except (ImportError, ValueError):
+    from sls_bot import ia_utils  # type: ignore
 
 log = logging.getLogger(__name__)
 

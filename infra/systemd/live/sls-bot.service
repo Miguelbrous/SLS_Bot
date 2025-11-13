@@ -1,0 +1,18 @@
+[Unit]
+Description=SLS Trading Bot (Bybit bridge)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/SLS_Bot/bot
+EnvironmentFile=-/etc/sls_bot.env
+Environment="PYTHONPATH=/root/SLS_Bot/bot"
+Environment="SLSBOT_CONFIG=${SLSBOT_CONFIG:-/root/SLS_Bot/config/config.json}"
+ExecStart=/usr/bin/env bash -c 'exec /root/SLS_Bot/venv/bin/uvicorn sls_bot.app:app --host 0.0.0.0 --port ${SLS_BOT_PORT:-8080}'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

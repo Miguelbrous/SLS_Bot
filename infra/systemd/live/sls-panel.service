@@ -1,0 +1,17 @@
+[Unit]
+Description=SLS Panel (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/SLS_Bot/panel
+EnvironmentFile=-/etc/sls_bot.env
+Environment="NEXT_PUBLIC_API_BASE=${PANEL_API_BASE:-https://panel.local/api}"
+ExecStart=/usr/bin/env bash -c 'cd /root/SLS_Bot/panel && npm run start -- --hostname 0.0.0.0 --port ${PANEL_PORT:-3000}'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
