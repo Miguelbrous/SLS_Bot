@@ -100,14 +100,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [summary]
-    if: ${{ env.DEPLOY_HOST != '' }}
     steps:
+      - name: Check deploy settings
+        id: deploy_check
+        run: |
+          if [ -n "$DEPLOY_HOST" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "DEPLOY_HOST no definido; se omite despliegue"
+          fi
       - uses: actions/checkout@v4
+        if: steps.deploy_check.outputs.should_deploy == 'true'
       - name: Download panel artifact
         uses: actions/download-artifact@v4
         with:
           name: panel-build
           path: panel-build
+        if: steps.deploy_check.outputs.should_deploy == 'true'
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
@@ -120,7 +130,9 @@ jobs:
             echo "  IdentityFile ~/.ssh/deploy_key"
             echo "  StrictHostKeyChecking no"
           } >> ~/.ssh/config
+        if: steps.deploy_check.outputs.should_deploy == 'true'
       - name: Placeholder deploy
         run: |
           echo "Connecting to ${DEPLOY_USER}@${DEPLOY_HOST}..."
           echo "Aquí podrías ejecutar rsync/ssh para desplegar artefactos."
+        if: steps.deploy_check.outputs.should_deploy == 'true'
