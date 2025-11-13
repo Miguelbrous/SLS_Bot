@@ -41,9 +41,12 @@ class ScalpingStrategy:
         self.volatility_min = float(self.config.get("volatility_bps_min", 25))
         self.volatility_max = float(self.config.get("volatility_bps_max", 220))
         self.conf_threshold = float(self.config.get("confidence_threshold", 0.62))
+        self.force_trade_conf = float(self.config.get("force_trade_confidence", 0.3))
+        self.min_risk_pct = float(self.config.get("min_risk_pct", 0.25))
         self.atr_stop_mult = float(self.config.get("atr_stop_multiple", 1.15))
         self.atr_tp_mult = float(self.config.get("atr_take_profit_multiple", 2.35))
         self.max_hold_minutes = int(self.config.get("max_hold_minutes", 45))
+        self.fee_bps_round_trip = float(self.config.get("fee_bps_round_trip", 12.0))
 
         self.base_risk_pct = float(self.config.get("risk_pct", 1.2))
         self.base_leverage = int(self.config.get("leverage", 12))
@@ -117,6 +120,10 @@ class ScalpingStrategy:
         confidence_norm = confidence / 1.5
 
         decision = direction if confidence_norm >= self.conf_threshold else "NO_TRADE"
+        forced_entry = False
+        if decision == "NO_TRADE" and confidence_norm >= self.force_trade_conf:
+            decision = direction
+            forced_entry = True
 
         riesgo_pct = float(riesgo_pct_user if riesgo_pct_user is not None else self.base_risk_pct)
         leverage = int(leverage_user if leverage_user is not None else self.base_leverage)
@@ -129,10 +136,20 @@ class ScalpingStrategy:
         elif volatility_score > 0.8:
             riesgo_pct *= 0.85
 
+        fee_ratio = self.fee_bps_round_trip / 10000.0
+        riesgo_pct = max(self.min_risk_pct, riesgo_pct - fee_ratio * leverage)
+        if forced_entry:
+            riesgo_pct = max(self.min_risk_pct, riesgo_pct * 0.5)
+
         riesgo_pct = _clamp(riesgo_pct, 0.1, 2.5)
         leverage = max(1, min(leverage, 30))
 
         stop_loss, take_profit = self._calc_levels(direction, float(last.close), float(last.atr))
+        fee_price_offset = float(last.close) * fee_ratio
+        if direction == "LONG":
+            take_profit += fee_price_offset
+        else:
+            take_profit -= fee_price_offset
 
         resumen = (
             f"Scalp {target_tf}: trend={direction} | conf={confidence_norm:.2f} | "
@@ -166,6 +183,8 @@ class ScalpingStrategy:
             "take_profit": take_profit,
             "notas": None if decision != "NO_TRADE" else "Filtro de confianza",
         }
+        if forced_entry and decision in {"LONG", "SHORT"}:
+            payload["notas"] = "Entrada forzada para acelerar el aprendizaje"
 
         evid = {
             "scores": {
@@ -185,6 +204,8 @@ class ScalpingStrategy:
             "max_hold_minutes": self.max_hold_minutes,
             "volatility_score": round(volatility_score, 3),
             "confidence_threshold": self.conf_threshold,
+            "forced_entry": forced_entry,
+            "fee_bps_round_trip": self.fee_bps_round_trip,
         }
 
         return ScalpingDecision(payload=payload, evidences=evid, metadata=metadata)

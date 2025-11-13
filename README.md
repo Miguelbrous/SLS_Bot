@@ -5,7 +5,7 @@ Panel (Next.js 14 + TS) nativo en Windows y API FastAPI que corre en VPS Linux. 
 
 ## Arquitectura
 - `bot/` FastAPI + PyBit, maneja webhooks, control de riesgo, escritura en Excel y endpoints IA. El Cerebro ahora consume señales avanzadas (`bot/cerebro/intel.py`) para mezclar sentimiento (RSS + CryptoPanic) con un detector de ballenas/spoofing basado en el orderbook de Bybit.
-- `bot/sls_bot/strategies/scalping.py` introduce la nueva estrategia de scalping para el modo demo: trabaja sobre 1m/3m/5m, mide compresión + liquidez y ajusta riesgo/apalancamiento automáticamente.
+- `bot/sls_bot/strategies/scalping.py` introduce la nueva estrategia de scalping para el modo demo: trabaja sobre 1m/3m/5m, mete señales forzadas cuando la confianza es baja (`force_trade_confidence`) para no dejar al bot ocioso y añade colchón por comisiones (`fee_bps_round_trip`) antes de abrir/cerrar posiciones.
 - `panel/` Next.js 14 (app router) que consume la API via `NEXT_PUBLIC_API_BASE` y `X-Panel-Token`.
 - `config/` plantillas y secretos locales (no subir `config.json`).
 - `logs/`, `excel/`, `models/` contienen datos generados en tiempo real y no se versionan.
