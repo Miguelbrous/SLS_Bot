@@ -1128,16 +1128,16 @@ def webhook(sig: Signal):
         else:
             st["scalp_forced_loss_streak"] = 0
         _save_state(st)
-            loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
-            if _loss_streak_reached(st):
-                _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
-                    "recent_results": len(st.get("recent_results") or []),
-                    "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
-                })
-            _notify_cerebro_learn(sig.symbol, sig.tf, pnl, st)
+        loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
+        if _loss_streak_reached(st):
+            _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
+                "recent_results": len(st.get("recent_results") or []),
+                "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
+            })
+        _notify_cerebro_learn(sig.symbol, sig.tf, pnl, st)
 
-            return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
-                    "consecutive_losses": st.get("consecutive_losses", 0)}
+        return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
+                "consecutive_losses": st.get("consecutive_losses", 0)}
 
         # ====== APERTURA ======
         side = sig.side or ("LONG" if "LONG" in sig.signal else "SHORT")
