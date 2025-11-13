@@ -179,10 +179,12 @@ def _bump_scalp_entry(st: dict, forced: bool) -> None:
     st["scalp_trades_today"] = int(st.get("scalp_trades_today") or 0) + 1
     if forced:
         st["scalp_forced_entries"] = int(st.get("scalp_forced_entries") or 0) + 1
+    _save_state(st)
 
 
 def _bump_scalp_pnl(st: dict, pnl: float) -> None:
     st["scalp_profit_today"] = float(st.get("scalp_profit_today") or 0.0) + float(pnl)
+    _save_state(st)
 
 
 def _evaluate_scalp_objectives(st: dict, meta: Optional[dict]) -> None:
@@ -202,6 +204,7 @@ def _evaluate_scalp_objectives(st: dict, meta: Optional[dict]) -> None:
             "profit": profit_done,
             "target": target_profit,
         })
+        _save_state(st)
 
 
 def _append_alert(message: str, details: Optional[dict] = None) -> None:
@@ -1393,6 +1396,7 @@ def _daily_scheduler():
         time.sleep((target - now).total_seconds())
         try:
             daily_summary(write=True)
+            _append_scalp_daily_summary(_load_state())
         except Exception:
             pass
 
