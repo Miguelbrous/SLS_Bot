@@ -109,7 +109,9 @@ def decide(symbol: str, marco: str, riesgo_pct_user: float | None = None, levera
             "model_meta": {"trained": False, "strategy": "scalping"},
             "strategy": scalping_result.metadata,
         }
-        return scalping_result.payload, evid, meta_out
+        payload = dict(scalping_result.payload)
+        payload["strategy_meta"] = scalping_result.metadata
+        return payload, evid, meta_out
 
     df, s = latest_slice(symbol, marco)
     scores = _rule_scores(s)

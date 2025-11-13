@@ -65,6 +65,7 @@ DECISIONS_LOG = LOGS_DIR / "decisions.jsonl"
 BRIDGE_LOG = LOGS_DIR / "bridge.log"
 PNL_LOG = LOGS_DIR / "pnl.jsonl"
 PNL_SYMBOLS_JSON = LOGS_DIR / "pnl_daily_symbols.json"
+SCALP_TELEMETRY_LOG = LOGS_DIR / "scalp_telemetry.jsonl"
 
 # ==== CLIENTE BYBIT (pybit) ====
 bb = BybitClient(
@@ -147,6 +148,11 @@ def _append_pnl_entry(entry: dict) -> None:
     _append_jsonl(PNL_LOG, entry)
 
 
+def _append_scalp_telemetry(entry: dict) -> None:
+    entry.setdefault("ts", utc_now_iso(z_suffix=True))
+    _append_jsonl(SCALP_TELEMETRY_LOG, entry)
+
+
 def _load_symbol_pnl_cache() -> dict:
     try:
         if not PNL_SYMBOLS_JSON.exists():
@@ -195,6 +201,7 @@ class Signal(BaseModel):
     confirmations: Optional[Confirmations] = None
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
+    strategy_meta: Optional[dict] = None
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -848,6 +855,105 @@ def _close_position_reduce_only(symbol: str):
     except Exception as e:
         return {"error": str(e)}
 
+
+class ScalpPositionManager:
+    def __init__(self):
+        self._positions: Dict[str, dict] = {}
+        self._lock = threading.Lock()
+        self._thread: Optional[threading.Thread] = None
+        self._stop = threading.Event()
+
+    def register(self, *, symbol: str, side: str, ttl_minutes: float, expected_price: float,
+                 latency_ms: float, strategy_meta: dict) -> None:
+        entry = {
+            "symbol": symbol.upper(),
+            "side": side.upper(),
+            "start_ts": time.time(),
+            "ttl_s": max(60.0, float(ttl_minutes) * 60.0),
+            "expected_price": float(expected_price),
+            "latency_ms": latency_ms,
+            "strategy_meta": strategy_meta,
+        }
+        with self._lock:
+            self._positions[entry["symbol"]] = entry
+        self._ensure_loop()
+        threading.Thread(target=self._capture_fill_snapshot, args=(entry,), daemon=True).start()
+
+    def _ensure_loop(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+
+        def _loop() -> None:
+            while not self._stop.is_set():
+                time.sleep(5)
+                now = time.time()
+                targets: list[dict] = []
+                with self._lock:
+                    for symbol, entry in list(self._positions.items()):
+                        pos = self._fetch_position(symbol)
+                        if not pos or pos.get("size", 0.0) <= 0:
+                            self._positions.pop(symbol, None)
+                            continue
+                        if now - entry["start_ts"] >= entry["ttl_s"]:
+                            targets.append(entry)
+                            self._positions.pop(symbol, None)
+                for entry in targets:
+                    resp = _close_position_reduce_only(entry["symbol"])
+                    _append_bridge_log(
+                        f"scalp_guard ttl_close symbol={entry['symbol']} ttl_s={entry['ttl_s']:.0f} resp={resp}"
+                    )
+                    telemetry = {
+                        "symbol": entry["symbol"],
+                        "side": entry["side"],
+                        "reason": "ttl_expired",
+                        "max_hold_minutes": entry["ttl_s"] / 60.0,
+                        "strategy": entry["strategy_meta"].get("strategy"),
+                        "forced_entry": entry["strategy_meta"].get("forced_entry"),
+                        "telemetry": resp,
+                    }
+                    _append_scalp_telemetry(telemetry)
+
+        self._thread = threading.Thread(target=_loop, daemon=True, name="scalp-ttl-guard")
+        self._thread.start()
+
+    def _fetch_position(self, symbol: str) -> Optional[dict]:
+        try:
+            resp = bb.session.get_positions(category="linear", symbol=symbol)
+            if resp.get("retCode") != 0:
+                return None
+            for row in resp.get("result", {}).get("list", []):
+                size = float(row.get("size") or 0)
+                if size > 0:
+                    return {"size": size, "avg_price": float(row.get("avgPrice") or 0.0)}
+        except Exception:
+            return None
+        return None
+
+    def _capture_fill_snapshot(self, entry: dict) -> None:
+        time.sleep(4)
+        pos = self._fetch_position(entry["symbol"])
+        if not pos or pos.get("avg_price", 0) <= 0:
+            return
+        avg_price = pos["avg_price"]
+        expected = entry["expected_price"] or avg_price
+        slippage_bps = ((avg_price - expected) / expected) * 10000 if expected else 0.0
+        telemetry = {
+            "symbol": entry["symbol"],
+            "side": entry["side"],
+            "expected_price": expected,
+            "fill_price": avg_price,
+            "slippage_bps": round(slippage_bps, 3),
+            "latency_ms": round(entry.get("latency_ms", 0.0), 2),
+            "strategy": entry["strategy_meta"].get("strategy"),
+            "forced_entry": entry["strategy_meta"].get("forced_entry"),
+            "max_hold_minutes": entry["ttl_s"] / 60.0,
+        }
+        _append_scalp_telemetry(telemetry)
+
+
+_SCALP_MANAGER = ScalpPositionManager()
+
 # ----- WEBHOOK -----
 @app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
 def webhook(sig: Signal):
@@ -997,6 +1103,7 @@ def webhook(sig: Signal):
 
         # ---- Crear orden con reintentos + fallback Market→Limit IOC ----
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        order_started = time.time()
         last_exc = None
         placed = None
         for i in range(4):
@@ -1051,6 +1158,7 @@ def webhook(sig: Signal):
                 raise
         else:
             raise last_exc
+        latency_ms = (time.time() - order_started) * 1000.0
 
         # Guardar equity en la entrada
         st["last_entry_equity"] = balance
@@ -1087,6 +1195,21 @@ def webhook(sig: Signal):
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
         _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)
+        strategy_meta = sig.strategy_meta or {}
+        if strategy_meta.get("strategy") == "scalping_v1":
+            hold_minutes = float(strategy_meta.get("max_hold_minutes") or 45)
+            expected_price = float(payload.get("price") or price_live)
+            try:
+                _SCALP_MANAGER.register(
+                    symbol=symbol,
+                    side=side,
+                    ttl_minutes=hold_minutes,
+                    expected_price=expected_price,
+                    latency_ms=latency_ms,
+                    strategy_meta=strategy_meta,
+                )
+            except Exception:
+                pass
         _append_bridge_log(f"order {side} {symbol} qty={qty_str} price={sig.price or price_live}")
 
         return {
