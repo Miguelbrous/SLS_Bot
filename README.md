@@ -304,3 +304,17 @@ excel/ (ignorado)
 - Restringe CORS (`ALLOWED_ORIGINS`) a tus dominios y usa HTTPS detras de Nginx.
 - Si defines `WEBHOOK_SHARED_SECRET`, el backend exigirá `X-Webhook-Signature` (HMAC-SHA256) en `/webhook` y `/ia/signal`.
 - Configura systemd, Nginx + Certbot y ufw (solo 22/80/443) como indica el paquete de traspaso.
+## Emisor demo (arena -> webhook)
+Para que el bot abra operaciones constantes en Bybit testnet sin intervenir manualmente, se añade `scripts/demo_emitter.py`. Este servicio lee las estrategias ganadoras de la Arena (registry.json) y golpea el webhook del backend con señales `SLS_*`.
+
+1. Configura `config/demo_emitter.json` (o copia `demo_emitter.sample.json`). Define `webhook_url` (apunta al entorno test), `panel_token` (token del panel en modo demo), lista de `symbol_pool`, límites de riesgo y objetivo diario de operaciones.
+2. Exporta los secretos necesarios (`PANEL_API_TOKEN`, `WEBHOOK_SHARED_SECRET` si el webhook lo exige) o decláralos en el propio JSON.
+3. Lanza el emisor en bucle (demo/testnet):
+   ```bash
+   # Terminal VS Code local
+   python scripts/demo_emitter.py --config config/demo_emitter.json
+   ```
+   Usa `--once` para un batch puntual o `--dry-run` para ver el payload sin enviar.
+4. El estado (trades diarios, fallos) se guarda en `logs/demo_emitter_state.json` y el historial en `logs/demo_emitter_history.jsonl`. Si el bot entra en cooldown (`logs/risk_state.json`), el emisor espera hasta que se libere.
+
+Con este flujo el bot opera continuamente en testnet, aprende de los resultados de la Arena/Cerebro y puedes validar la meta diaria antes de pasar a mainnet real.

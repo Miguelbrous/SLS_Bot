@@ -1,0 +1,14 @@
+{
+  "webhook_url": "https://api.slstudominio.com/webhook",
+  "panel_token": "demo-token",
+  "signature_secret": "",
+  "symbol_pool": ["BTCUSDT", "ETHUSDT"],
+  "default_timeframe": "15m",
+  "min_risk_pct": 0.5,
+  "max_risk_pct": 1.5,
+  "target_daily_trades": 20,
+  "batch_size": 3,
+  "interval_seconds": 60,
+  "max_price_slippage_pct": 0.15,
+  "dry_run": false
+}
