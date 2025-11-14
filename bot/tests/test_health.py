@@ -58,6 +58,10 @@ def _write_pnl(entries: list[dict]) -> None:
 def _write_symbol_breakdown(payload: dict) -> None:
     PNL_SYMBOLS_PATH.write_text(json.dumps(payload), encoding="utf-8")
 
+def _write_bridge(entries: list[str]) -> None:
+    bridge_path = LOGS_DIR / "bridge.log"
+    bridge_path.write_text("\n".join(entries) + ("\n" if entries else ""), encoding="utf-8")
+
 
 def test_health_endpoint_returns_ok() -> None:
     response = client.get("/health")
@@ -161,4 +165,60 @@ def test_status_exposes_risk_state_details(mock_status) -> None:
     assert len(details["recent_results"]) == 2
 
 
+def test_alerts_endpoint_exposes_recent_errors() -> None:
+    from app import main as api_main
+
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    lines = [
+        f"{(now - timedelta(minutes=10)).isoformat()} heartbeat balance=1000 cooldown_s=0",
+        f"{(now - timedelta(minutes=5)).isoformat()} order_error LONG BTCUSDT exc=timeout",
+    ]
+    _write_bridge(lines)
+    decisions_path = api_main.DECISIONS_LOG
+    decisions_path.write_text(json.dumps({"ts": (now - timedelta(minutes=15)).isoformat().replace("+00:00", "Z")}) + "\n", encoding="utf-8")
+    response = client.get("/alerts", headers=_panel_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"]["decisions_last_window"] >= 0
+    assert any(alert["name"] == "order_error" for alert in body["alerts"])
+
+
+def test_control_rate_limit(monkeypatch):
+    from app import main as api_main
+
+    old_max = api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS
+    old_window = api_main.CONTROL_RATE_LIMIT_WINDOW
+    api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS = 2
+    api_main.CONTROL_RATE_LIMIT_WINDOW = 3600
+    api_main._rate_limit_hits.clear()
+
+    for _ in range(2):
+        resp = client.post("/control/sls-bot/status", headers=_auth_headers())
+        assert resp.status_code == 200
+
+    resp = client.post("/control/sls-bot/status", headers=_auth_headers())
+    assert resp.status_code == 429
+
+    api_main._rate_limit_hits.clear()
+    api_main.CONTROL_RATE_LIMIT_MAX_REQUESTS = old_max
+    api_main.CONTROL_RATE_LIMIT_WINDOW = old_window
+
+
+def test_panel_rate_limit(monkeypatch):
+    from app import main as api_main
+
+    old_max = api_main.PANEL_RATE_LIMIT_MAX_REQUESTS
+    old_window = api_main.PANEL_RATE_LIMIT_WINDOW
+    api_main.PANEL_RATE_LIMIT_MAX_REQUESTS = 1
+    api_main.PANEL_RATE_LIMIT_WINDOW = 3600
+    api_main._rate_limit_hits.clear()
+
+    resp = client.get("/status", headers=_panel_headers())
+    assert resp.status_code == 200
+    resp = client.get("/status", headers=_panel_headers())
+    assert resp.status_code == 429
+
+    api_main._rate_limit_hits.clear()
+    api_main.PANEL_RATE_LIMIT_MAX_REQUESTS = old_max
+    api_main.PANEL_RATE_LIMIT_WINDOW = old_window
 

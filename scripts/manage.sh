@@ -2,10 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_DIR="${ROOT_DIR}/run"
+RUN_DIR="${ROOT_DIR}/.runtime"
 LOG_DIR="${ROOT_DIR}/logs"
 ENV_FILE="${ROOT_DIR}/.env"
 VENV_DIR="${VENV_DIR:-${ROOT_DIR}/.venv}"
+if [[ ! -x "${VENV_DIR}/bin/python" && -x "${ROOT_DIR}/venv/bin/python" ]]; then
+  VENV_DIR="${ROOT_DIR}/venv"
+fi
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 
@@ -107,19 +110,103 @@ stop_bot() {
   fi
 }
 
+start_cerebro() {
+  ensure_env
+  pythonpath_env
+  local pid_file="${RUN_DIR}/cerebro.pid"
+  local log_file="${LOG_DIR}/cerebro_service.log"
+
+  if is_running "${pid_file}"; then
+    echo "Cerebro ya está en ejecución (PID $(cat "${pid_file}"))."
+    return 0
+  fi
+
+  echo "Iniciando Cerebro..."
+  (
+    cd "${ROOT_DIR}/bot"
+    exec "${PYTHON_BIN}" run_cerebro_service.py >>"${log_file}" 2>&1
+  ) &
+  echo $! >"${pid_file}"
+  echo "Cerebro levantado (PID $(cat "${pid_file}")). Logs: ${log_file}"
+}
+
+stop_cerebro() {
+  local pid_file="${RUN_DIR}/cerebro.pid"
+  if is_running "${pid_file}"; then
+    echo "Deteniendo Cerebro (PID $(cat "${pid_file}"))..."
+    kill "$(cat "${pid_file}")" || true
+    rm -f "${pid_file}"
+  else
+    echo "Cerebro no está en ejecución."
+  fi
+}
+
+start_strategy() {
+  ensure_env
+  pythonpath_env
+  local pid_file="${RUN_DIR}/strategy.pid"
+  local log_file="${LOG_DIR}/strategy_loop.log"
+  local default_strategy="${DEFAULT_STRATEGY_ID:-scalp_rush_v1}"
+  local strategy_id="${STRATEGY_ID:-${default_strategy}}"
+  local interval="${STRATEGY_INTERVAL_SECONDS:-${STRATEGY_INTERVAL:-30}}"
+  local server_url="${STRATEGY_SERVER:-http://127.0.0.1:8080}"
+  local leverage="${STRATEGY_LEVERAGE:-20}"
+
+  if is_running "${pid_file}"; then
+    echo "Loop de estrategia ya está en ejecución (PID $(cat "${pid_file}"))."
+    return 0
+  fi
+
+  echo "Iniciando loop de estrategia (${strategy_id})..."
+  (
+    cd "${ROOT_DIR}"
+    exec "${PYTHON_BIN}" -m bot.strategies.loop \
+      --strategy "${strategy_id}" \
+      --interval "${interval}" \
+      --server "${server_url}" \
+      --leverage "${leverage}" \
+      --verbose >>"${log_file}" 2>&1
+  ) &
+  echo $! >"${pid_file}"
+  echo "Loop de estrategia levantado (PID $(cat "${pid_file}")). Logs: ${log_file}"
+}
+
+stop_strategy() {
+  local pid_file="${RUN_DIR}/strategy.pid"
+  if is_running "${pid_file}"; then
+    echo "Deteniendo loop de estrategia (PID $(cat "${pid_file}"))..."
+    kill "$(cat "${pid_file}")" || true
+    rm -f "${pid_file}"
+  else
+    echo "Loop de estrategia no está en ejecución."
+  fi
+}
+
 status() {
   local api_pid_file="${RUN_DIR}/api.pid"
   local bot_pid_file="${RUN_DIR}/bot.pid"
+  local cerebro_pid_file="${RUN_DIR}/cerebro.pid"
+  local strategy_pid_file="${RUN_DIR}/strategy.pid"
   echo "Estado servicios:"
   if is_running "${api_pid_file}"; then
-    echo "  API    -> activa (PID $(cat "${api_pid_file}"))"
+    echo "  API        -> activa (PID $(cat "${api_pid_file}"))"
   else
-    echo "  API    -> detenida"
+    echo "  API        -> detenida"
   fi
   if is_running "${bot_pid_file}"; then
-    echo "  Bot    -> activo (PID $(cat "${bot_pid_file}"))"
+    echo "  Bot        -> activo (PID $(cat "${bot_pid_file}"))"
   else
-    echo "  Bot    -> detenido"
+    echo "  Bot        -> detenido"
+  fi
+  if is_running "${cerebro_pid_file}"; then
+    echo "  Cerebro    -> activo (PID $(cat "${cerebro_pid_file}"))"
+  else
+    echo "  Cerebro    -> detenido"
+  fi
+  if is_running "${strategy_pid_file}"; then
+    echo "  Estrategia -> activa (PID $(cat "${strategy_pid_file}"))"
+  else
+    echo "  Estrategia -> detenida"
   fi
 }
 
@@ -134,8 +221,16 @@ tail_logs() {
     touch "${LOG_DIR}/bot_worker.log"
     tail -n 100 -f "${LOG_DIR}/bot_worker.log"
     ;;
+  cerebro)
+    touch "${LOG_DIR}/cerebro_service.log"
+    tail -n 100 -f "${LOG_DIR}/cerebro_service.log"
+    ;;
+  estrategia|strategy)
+    touch "${LOG_DIR}/strategy_loop.log"
+    tail -n 100 -f "${LOG_DIR}/strategy_loop.log"
+    ;;
   *)
-    echo "Uso: $0 tail {api|bot}"
+    echo "Uso: $0 tail {api|bot|cerebro|estrategia}"
     exit 1
     ;;
   esac
@@ -150,21 +245,33 @@ Comandos disponibles:
   apagar-api        Detiene la API
   encender-bot      Inicia el bot (uvicorn sls_bot.app:app)
   apagar-bot        Detiene el bot
-  encender-todo     Inicia API y bot
-  apagar-todo       Detiene ambos servicios
+  encender-cerebro  Inicia el servicio Cerebro IA
+  apagar-cerebro    Detiene el servicio Cerebro IA
+  encender-estrategia Inicia el loop de estrategia principal
+  apagar-estrategia Detiene el loop de estrategia
+  encender-todo     Inicia API, bot, Cerebro y estrategia
+  apagar-todo       Detiene todos los servicios
   estado            Muestra el estado de los procesos
-  tail api|bot      Sigue los logs del servicio indicado
+  tail api|bot|cerebro|estrategia Sigue los logs del servicio indicado
 EOF
 }
 
 encender_todo() {
+  stop_strategy || true
+  stop_cerebro || true
+  stop_bot || true
+  stop_api || true
   start_api
   start_bot
+  start_cerebro
+  start_strategy
 }
 
 apagar_todo() {
-  stop_api || true
+  stop_strategy || true
+  stop_cerebro || true
   stop_bot || true
+  stop_api || true
 }
 
 main() {
@@ -174,6 +281,10 @@ main() {
   apagar-api) stop_api ;;
   encender-bot) start_bot ;;
   apagar-bot) stop_bot ;;
+  encender-cerebro) start_cerebro ;;
+  apagar-cerebro) stop_cerebro ;;
+  encender-estrategia) start_strategy ;;
+  apagar-estrategia) stop_strategy ;;
   encender-todo) encender_todo ;;
   apagar-todo) apagar_todo ;;
   estado) status ;;

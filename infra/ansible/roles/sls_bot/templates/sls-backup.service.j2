@@ -1,0 +1,11 @@
+[Unit]
+Description=SLS Bot Restic Backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ restic_environment_file }}
+ExecStart=/bin/bash {{ app_root }}/scripts/cron/backup_restic.sh
+User={{ sls_user }}
+Group={{ sls_user }}
+Nice=10

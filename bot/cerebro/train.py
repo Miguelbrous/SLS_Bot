@@ -210,6 +210,9 @@ def build_argparser() -> argparse.ArgumentParser:
     parser.add_argument("--min-auc", type=float, default=0.52)
     parser.add_argument("--min-win-rate", type=float, default=0.52)
     parser.add_argument("--train-ratio", type=float, default=0.8)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dry-run", action="store_true", help="Solo imprime métricas (no guarda artefactos).")
+    parser.add_argument("--no-promote", action="store_true", help="Entrena y guarda, pero no promueve automáticamente.")
     return parser
 
 
@@ -222,7 +225,7 @@ def main() -> None:
     rows = load_rows(dataset_path)
     if len(rows) < 50:
         raise SystemExit(f"Se necesitan al menos 50 experiencias, solo hay {len(rows)}")
-    random.Random(42).shuffle(rows)
+    random.Random(args.seed).shuffle(rows)
     split_idx = max(1, int(len(rows) * min(max(args.train_ratio, 0.1), 0.9)))
     train_rows = rows[:split_idx]
     test_rows = rows[split_idx:]
@@ -237,16 +240,17 @@ def main() -> None:
         "samples_train": len(train_rows),
         "samples_test": len(test_rows),
     }
+    payload = {"metrics": metrics, "mode": mode, "status": "DRY_RUN"}
+    if args.dry_run:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
     artifact_path = save_artifact(output_dir, mode, weights, bias, means, stds, metrics)
-    promoted = maybe_promote(artifact_path, metrics, args.min_auc, args.min_win_rate)
-    status = "PROMOVIDO" if promoted else "SOLO_ENTRENADO"
-    print(
-        json.dumps(
-            {"status": status, "artifact": str(artifact_path), "metrics": metrics, "mode": mode},
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    payload["artifact"] = str(artifact_path)
+    promoted = False
+    if not args.no_promote:
+        promoted = maybe_promote(artifact_path, metrics, args.min_auc, args.min_win_rate)
+    payload["status"] = "PROMOVIDO" if promoted else "SOLO_ENTRENADO"
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

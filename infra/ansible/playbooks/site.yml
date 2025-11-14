@@ -1,0 +1,8 @@
+---
+- name: Provisionar host SLS_Bot
+  hosts: sls_bot
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  roles:
+    - sls_bot

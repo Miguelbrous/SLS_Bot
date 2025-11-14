@@ -13,23 +13,41 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 
 ## Componentes
 
-- **DataSources**: conectores a Bybit (OHLC + ATR) y RSS (titulares). Cada `fetch()` entrega diccionarios
-  crudos que la politica puede consumir directamente, ahora con sentimiento NLP (`vaderSentiment`) en cada titular.
-- **FeatureStore**: buffer circular (max 500) que almacena las ultimas velas por simbolo/timeframe.
-- **ExperienceMemory**: cola de tamano configurable que guarda `features + pnl + decision`.
-- **PolicyEnsemble**: combina `ia_signal_engine` + heuristicas de riesgo + sentimiento de noticias y un modelo ligero entrenado con los trades reales (logística).
-- **MarketSessionGuard** (nuevo): detecta las ventanas de apertura (Asia/Europa/USA) y bloquea/reduce
-  operaciones segun el contexto de noticias mas reciente.
-- **API Router**: expone `/cerebro/status`, `/cerebro/decide`, `/cerebro/learn` y `/cerebro/decisions` dentro del FastAPI principal (este último sirve el historial que también se guarda en `logs/cerebro_decisions.jsonl`).
+- **DataIngestionManager**: mantiene una cola FIFO de tareas para `market`, `news` y ahora `macro` (open interest/funding/whale flow), con cache TTL configurable (`data_cache_ttl`). Evita golpear los endpoints si los datos siguen frescos.
+- **FeatureStore**: buffer circular (max 500) por símbolo/timeframe. Calcula medias/varianzas y ofrece slices normalizados para alimentar el modelo ML.
+- **AnomalyDetector**: valida cada ventana con z-score; cuando detecta un outlier fuerza `NO_TRADE` y añade el motivo en metadata.
+- **MacroDataSource + MacroPulse**: consulta endpoints configurables de open interest/funding/ballenas, genera un `macro score` y lo incorpora a la decisión (ajusta riesgo y puede bloquear trades). Ahora cachea respuestas HTTP (`cache_ttl`) y reintenta automáticamente para no golpear APIs externas en exceso; también persiste fallback en disco para operar aun sin conectividad.
+- **FundingDataSource** (opcional): resume el sesgo de funding consultando `/v5/market/funding/history` de Bybit. Calcula `avg_rate`, `last_rate`, `bias` (`longs_pay`, `shorts_pay`, `neutral`) y lo adjunta como metadata para que la política reduzca o incremente riesgo si el sesgo favorece/penaliza al lado propuesto. Se activa con `cerebro.funding_feeds.enabled=true`.
+- **OnchainDataSource** (opcional): consume `https://api.blockchair.com/<asset>/stats` para obtener mempool, hash rate, fees y direcciones activas. Deriva `mempool_ratio` y un `whale_bias` que la política utiliza para ajustar riesgo (por ejemplo, mempool saturada → menor agresividad en LONG). Habilítalo con `cerebro.onchain_feeds.enabled=true` y mapea cada símbolo a su asset (`BTCUSDT: bitcoin`, `ETHUSDT: ethereum`).
+- **OrderflowDataSource** (opcional): consulta `/v5/market/orderbook` de Bybit, agrega liquidez bid/ask y calcula imbalance/spread. Se activa definiendo `cerebro.orderflow_feeds.enabled=true` en `config/config.json`. Campos soportados:
+  ```jsonc
+  "orderflow_feeds": {
+    "enabled": true,
+    "base_url": "https://api.bybit.com",
+    "category": "linear",
+    "depth": 50,
+    "cache_ttl": 8,
+    "retry_attempts": 2
+  }
+  ```
+  Cuando está habilitado, el Cerebro ajusta riesgo/confianza según el imbalance y penaliza spreads amplios.
+- **DynamicConfidenceGate**: ajusta el umbral mínimo de confianza según volatilidad, calidad del dataset y anomalías.
+- **ExperienceMemory**: cola de tamaño configurable que guarda `features + pnl + decision` para el aprendizaje.
+- **PolicyEnsemble**: combina `ia_signal_engine`, heurísticas y el modelo entrenado. Usa features normalizados, sentimiento, guardias y resultados del detector de anomalías.
+- **EvaluationTracker**: lleva métricas `ml_vs_heuristic` persistidas en `logs/<mode>/metrics/cerebro_evaluation.json`.
+- **ModelRegistry + TrainingPipeline**: registra cada artefacto (`registry.json`), permite `promote/rollback` y lanza entrenamientos offline con `python -m cerebro.train`. El pipeline online deja pistas para reentrenar en background.
+- **BacktestSimulator**: corre simulaciones ligeras sobre las últimas velas para estimar PnL promedio y exponerlo en metadata.
+- **ReportBuilder**: agrupa resultados por sesión (trades, wins, bloqueos) y genera `logs/<mode>/reports/cerebro_daily_report.json`.
+- **API Router**: expone `/cerebro/status`, `/cerebro/decide`, `/cerebro/learn` y `/cerebro/decisions` dentro del FastAPI principal.
 
 ## Flujo rapido
 
-1. `run_cycle()` descarga OHLC recientes y actualiza el FeatureStore.
-2. Lee los feeds RSS configurados, calcula un `NewsPulse` (sentimiento -1..1, noticia mas reciente y antiguedad).
-3. El guard de sesiones revisa si estamos dentro de la ventana de pre-apertura/post-apertura.
-4. PolicyEnsemble genera una decision (LONG/SHORT/NO_TRADE) con confianza, riesgo y SL/TP dinamicos.
-5. El bot real consume esa decision via `_maybe_apply_cerebro`. Si la accion es `NO_TRADE` la senal se descarta.
-6. Al cerrar una operacion se llama a `/cerebro/learn` para alimentar la memoria.
+1. Los data sources se encolan (`IngestionTask`) y el manager rellena cache para mercado/noticias.
+2. `FeatureStore` actualiza buffers y devuelve slices normalizados + stats por símbolo/timeframe.
+3. `AnomalyDetector` y `DynamicConfidenceGate` ajustan el umbral mínimo antes de pasar por `PolicyEnsemble`.
+4. La política genera la decisión, simula un micro backtest y anota metadata (anomalías, confianza dinámica, score ML).
+5. `EvaluationTracker` y `ReportBuilder` guardan métricas de desempeño y bloqueos por sesión.
+6. Cada trade real pasa a `ExperienceMemory`, se persiste en `logs/cerebro_experience.jsonl` y, si `SLS_CEREBRO_AUTO_TRAIN=1`, se lanza entrenamiento offline según el intervalo configurado.
 
 ## Proteccion ante aperturas
 
@@ -56,7 +74,35 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
     "https://www.binance.com/blog/rss",
     "https://cointelegraph.com/rss"
   ],
+  "macro_feeds": {
+    "open_interest_url": "https://example.com/oi",
+    "funding_rate_url": "https://example.com/funding",
+    "whale_flow_url": "https://example.com/whales",
+    "cache_dir": "./tmp_logs/macro"
+  },
+  "funding_feeds": {
+    "enabled": true,
+    "base_url": "https://api.bybit.com",
+    "category": "linear",
+    "threshold": 0.00025,
+    "history_limit": 24
+  },
+  "onchain_feeds": {
+    "enabled": true,
+    "base_url": "https://api.blockchair.com",
+    "assets": {
+      "BTCUSDT": "bitcoin",
+      "ETHUSDT": "ethereum"
+    },
+    "inflow_threshold": 0.05
+  },
   "min_confidence": 0.55,
+  "confidence_max": 0.7,
+  "confidence_min": 0.45,
+  "data_cache_ttl": 20,
+  "anomaly_z_threshold": 3.0,
+  "anomaly_min_points": 25,
+  "auto_train_interval": 200,
   "max_memory": 5000,
   "sl_atr_multiple": 1.5,
   "tp_atr_multiple": 2.0,
@@ -97,9 +143,13 @@ para las aperturas de mercados institucionales y un analizador ligero de noticia
 ```
 
 - `news_ttl_minutes`: cuanto tiempo sigue siendo util una noticia para tomar decisiones si no hay sesion abierta.
+- `data_cache_ttl`: segundos que se mantienen en cache las respuestas de mercado/noticias.
+- `macro_feeds`: URLs opcionales para open interest / funding / whale flow; si están vacías se usan cache o payload sintético.
+- `anomaly_*`: parámetros del detector z-score (umbral y muestras mínimas).
+- `confidence_min` / `confidence_max`: límites inferior/superior para el umbral dinámico.
+- `auto_train_interval`: cada cuántos trades se lanza un entrenamiento offline cuando `SLS_CEREBRO_AUTO_TRAIN=1`.
 - `session_guards`: lista de ventanas por region. Puedes eliminar o ajustar horarios/tiempos segun la cobertura del bot.
-- `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una
-  noticia alineada.
+- `risk_multiplier_after_news`: multiplicador que se aplica al `risk_pct` cuando la sesion ya abrio y hay una noticia alineada.
 
 ## Entrenamiento automático (`bot/cerebro/train.py`)
 
@@ -121,11 +171,56 @@ python -m cerebro.train --dataset ../logs/cerebro_experience.jsonl --output-dir 
 `PolicyEnsemble` carga automáticamente `active_model.json` (si existe) y mezcla su `ml_score` con la confianza del
 motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirlo hasta el máximo configurado.
 
+El registro de modelos (`models/cerebro/<mode>/registry.json`) guarda cada versión con métricas y etiqueta. Usa
+`scripts/tools/rotate_artifacts.py` para archivar artefactos antiguos y `ModelRegistry.promote()` para reactivar uno.
+Si defines `SLS_CEREBRO_AUTO_TRAIN=1`, el servicio ejecuta `python -m cerebro.train` cada `auto_train_interval` trades,
+registrando automáticamente el artefacto resultante.
+
+### Autopilot CLI (`python scripts/ops.py cerebro autopilot ...`)
+- Valida que el dataset (`logs/cerebro_experience.jsonl` por defecto) tenga el mínimo de filas requerido (`--min-rows`).
+- Si faltan datos y pasas `--backfill-rows`, invoca el generador sintético (`cerebro dataset ...`) antes de entrenar.
+- Lanza `bot.cerebro.train` con los parámetros que le pases (`--epochs`, `--lr`, `--min-auc`, etc.) y admite `--dry-run`/`--no-promote`.
+- Útil para cron/CI: `python scripts/ops.py cerebro autopilot --mode test --dataset logs/cerebro_experience.jsonl --min-rows 500 --backfill-rows 600 --output-dir models/cerebro/test/autopilot --max-dataset-age-minutes 60 --require-promote` bloquea datasets viejos y falla cuando el entrenamiento no promueve un nuevo `active_model.json`. El comando ejecuta automáticamente una validación del dataset (`--dataset-min-win-rate`, `--dataset-max-win-rate`, `--dataset-min-symbols`, `--dataset-max-age-hours`, `--dataset-max-zero-rate`, `--dataset-max-loss-rate`, `--dataset-max-invalid-lines`, etc.) antes de entrenar; usa `--skip-dataset-check` solo si estás en un entorno controlado.
+- Añade `--summary-json tmp_logs/cerebro_autopilot_summary.jsonl --summary-append` para guardar cada corrida (JSON/JSONL) con métricas y dataset stats (win/long/short rate, ratio de pérdidas/zeros, median/std de PnL, símbolo dominante, etc.). Usa `--summary-compare-file tmp_logs/cerebro_autopilot_summary.jsonl --summary-max-win-rate-delta 0.08 --summary-max-rows-drop 0.25` para comparar contra el último resumen y abortar si el dataset deriva demasiado. Los textos de Slack y el `.prom` ya incluyen estos campos adicionales junto con `drift_alerts` cuando aplica.
+- Puedes añadir `--prometheus-file /var/lib/node_exporter/cerebro_autopilot.prom` para exportar métricas (`cerebro_autopilot_success`, `..._promoted`, `..._metric{name="auc"}`, `cerebro_autopilot_dataset_zero_rate`, `..._loss_rate`, `..._pnl_median`, `..._pnl_stddev`, etc.) y `--slack-webhook https://hooks.slack... --slack-user cerebro-autopilot` para recibir un resumen OK/ERROR en Slack con los mismos campos.
+- `scripts/cron/cerebro_autopilot.sh` envuelve el comando para cron: además de `CEREBRO_AUTO_PROM_FILE`, `CEREBRO_AUTO_SLACK_WEBHOOK`, `CEREBRO_AUTO_SLACK_USER`, `CEREBRO_AUTO_REQUIRE_PROMOTE` y `CEREBRO_AUTO_MAX_DATASET_AGE_MIN`, ahora soporta `CEREBRO_AUTO_DATASET_MIN_WIN_RATE`, `CEREBRO_AUTO_DATASET_MAX_WIN_RATE`, `CEREBRO_AUTO_DATASET_MIN_SYMBOLS`, `CEREBRO_AUTO_DATASET_MIN_ROWS_PER_SYMBOL`, `CEREBRO_AUTO_DATASET_MAX_SYMBOL_SHARE`, `CEREBRO_AUTO_DATASET_MIN_LONG_RATE`, `CEREBRO_AUTO_DATASET_MIN_SHORT_RATE`, `CEREBRO_AUTO_DATASET_MAX_INVALID_LINES`, `CEREBRO_AUTO_DATASET_MAX_ZERO_RATE`, `CEREBRO_AUTO_DATASET_MAX_LOSS_RATE`, `CEREBRO_AUTO_DATASET_MAX_AGE_HOURS`, `CEREBRO_AUTO_SKIP_DATASET_CHECK`, `CEREBRO_AUTO_SUMMARY_FILE`, `CEREBRO_AUTO_SUMMARY_APPEND`, `CEREBRO_AUTO_SUMMARY_COMPARE`, `CEREBRO_AUTO_SUMMARY_MAX_WIN_DELTA`, `CEREBRO_AUTO_SUMMARY_MAX_LOSS_DELTA` y `CEREBRO_AUTO_SUMMARY_MAX_ROWS_DROP` para controlar la validación del dataset, la detección de drift y la persistencia de los resúmenes antes de entrenar. Deja logs en `tmp_logs/cerebro_autopilot_runner.log` + `tmp_logs/cerebro_autopilot_<mode>.log`.
+- Para un smoke sin tocar producción ejecuta `python scripts/tests/cerebro_autopilot_failure_sim.py --prometheus-file /var/lib/node_exporter/textfile_collector/cerebro_autopilot.prom --extra-args --slack-webhook https://hooks.slack...`. El script fuerza `--min-rows 999999`, por lo que el comando fallará antes de entrenar y deberías ver `cerebro_autopilot_success 0` + alerta en Slack.
+- `python scripts/tests/cerebro_autopilot_dataset_check.py --dataset logs/test/cerebro_experience.jsonl --min-rows 200 --min-win-rate 0.3 --max-win-rate 0.8 --max-zero-rate 0.4 --max-loss-rate 0.65` inspecciona el dataset (filas, ratio pnl, zeros, pérdidas, símbolos) y falla si está sesgado. `python scripts/tests/cerebro_autopilot_ci.py ...` reutiliza ese chequeo, ejecuta `bot.cerebro.train --dry-run` y valida que `auc` / `win_rate` superen los umbrales. Puedes pasarlo a cron o CI (`make autopilot-ci`) y agregar `--slack-webhook https://hooks.slack...` para notificar la promoción/dry-run.
+- El checker acepta más umbrales si necesitas endurecer la data (`--min-rows-per-symbol`, `--max-symbol-share`, `--min-long-rate`, `--min-short-rate`, `--max-invalid-lines`); guarda el resultado con `--output-json dataset_report.json`.
+- El workflow de GitHub (`.github/workflows/ci.yml`) incluye un step “Cerebro autopilot dataset + dry-run” que ejecuta el script anterior con el dataset `logs/test/cerebro_experience.jsonl`. Si defines el secreto `SLACK_WEBHOOK_CEREBRO`, la alerta se envía automáticamente al canal configurado.
+- `bash scripts/tests/cerebro_metrics_smoke.sh --dir /var/lib/node_exporter/textfile_collector` automatiza todo el flujo: corre el suite (`prometheus_textfile_suite.py`), fuerza los fallos controlados de ingest/autopilot y vuelve a verificar que los `.prom` sigan presentes. Puedes integrarlo en cron/CI con `make textfile-smoke DIR=/var/lib/node_exporter/textfile_collector` y ajustar argumentos adicionales exportando `CEREBRO_SMOKE_INGEST_ARGS` / `CEREBRO_SMOKE_AUTOP_ARGS`.
+
+## Utilidades rápidas
+- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --output tmp_logs/cerebro_ingestion.json` consulta los data sources (market/news/macro/orderflow/funding/on-chain), rellena cache y deja un snapshot JSON para inspeccionar la ingesta antes de lanzar el servicio completo. Ideal para healthchecks de cron o para generar datasets de pruebas.
+- Usa `--require-sources market,funding,onchain` + `--min-market-rows N` para fallar cuando falte una fuente crítica, `--prometheus-file /var/lib/node_exporter/cerebro_ingest.prom` para publicar métricas (`cerebro_ingest_success`, `cerebro_ingest_rows{source="market"}`) y `--slack-webhook ... --slack-user cerebro-ingest --slack-timeout 8 --slack-proxy http://proxy:8080` para notificar éxito/fracaso incluso detrás de un proxy.
+- `scripts/cron/cerebro_ingest.sh` programa la ingesta anterior desde cron/systemd usando variables `CEREBRO_INGEST_*` para definir símbolos, timeframes, límites y qué feeds incluir (news/macro/orderflow/funding/on-chain); además de `CEREBRO_INGEST_REQUIRE_SOURCES` / `CEREBRO_INGEST_MIN_MARKET_ROWS` ahora respeta `CEREBRO_INGEST_SLACK_USER`, `CEREBRO_INGEST_SLACK_TIMEOUT`, `CEREBRO_INGEST_SLACK_PROXY` y `CEREBRO_INGEST_PROM_FILE`. Si exportas `NODE_EXPORTER_TEXTFILE_DIR=/var/lib/node_exporter/textfile_collector`, automáticamente usará `<dir>/cerebro_ingest.prom`, así que basta correr una vez `python scripts/tools/setup_textfile_collector.py --dir /var/lib/node_exporter/textfile_collector` para preparar permisos. El resultado queda en `tmp_logs/cerebro_ingestion.json` por defecto.
+- Para validar todo sin tocar producción:
+  ```bash
+  python scripts/tests/prometheus_textfile_check.py \
+    --file /var/lib/node_exporter/textfile_collector/cerebro_ingest.prom \
+    --require-metric cerebro_ingest_success
+  python scripts/tests/cerebro_ingest_failure_sim.py \
+    --prometheus-file /var/lib/node_exporter/textfile_collector/cerebro_ingest.prom \
+    --extra-args --slack-webhook https://hooks.slack... --slack-user cerebro-ingest
+  ```  
+  El primer comando revisa permisos/frescura del `.prom`; el segundo fuerza una ingesta fallida (`--require-sources fake_source`) para comprobar que Slack recibe la alerta y que `cerebro_ingest_success 0` queda registrado en el textfile. Si prefieres un único check para ambos `.prom`, usa `python scripts/tests/prometheus_textfile_suite.py --dir /var/lib/node_exporter/textfile_collector --max-age-minutes 20` o el wrapper completo `bash scripts/tests/cerebro_metrics_smoke.sh --dir /var/lib/node_exporter/textfile_collector`.
+
+## Simulaciones y promoción controlada
+
+- `Cerebro.simulate_sequence()` genera decisiones hipotéticas sobre las últimas velas cargadas y calcula un PnL simulado
+  usando `BacktestSimulator`; está expuesto vía `POST /cerebro/simulate` (`symbol`, `timeframe`, `horizon`, `news_sentiment`).
+- `scripts/tools/generate_cerebro_dataset.py` (o `python scripts/ops.py cerebro dataset --mode test --rows 300 --overwrite`) crea datasets sintéticos (JSONL) para ejercitar entrenamientos sin depender de fills reales.
+- `scripts/tools/promote_best_cerebro_model.py --mode test --metric auc --min-value 0.6` (o `python scripts/ops.py cerebro promote ...`) escoge el modelo registrado con mejor métrica y lo promueve a `active_model.json`, dejando trazabilidad en `models/cerebro/<mode>/registry.json`.
+- `python scripts/ops.py cerebro train --mode test --epochs 400 --min-auc 0.58 --min-win-rate 0.55 --dry-run` ejecuta `bot.cerebro.train`: admite `--dataset`, `--output-dir`, `--seed`, `--no-promote` y umbrales customizados para automatizar entrenamientos desde el CLI.
+
 ## Logs e historial
 
 - `logs/cerebro_decisions.jsonl`: cada decision publicada para auditar en el panel.
 - `logs/cerebro_experience.jsonl`: dataset usado por el entrenamiento.
-- `/cerebro/status` ahora expone `history` (últimas ~60 decisiones) para graficar confianza en el panel.
+- `logs/<mode>/metrics/cerebro_evaluation.json`: métricas A/B entre heurístico y ML.
+- `logs/<mode>/reports/cerebro_daily_report.json`: resumen por sesión (trades, wins, bloqueos).
+- `/cerebro/status` ahora expone `history` (últimas ~200 decisiones), `evaluation` y `report` para graficar confianza y salud del modelo.
+- `/metrics` publica `sls_cerebro_decisions_per_min`, calculado sobre los últimos 15 minutos del log `cerebro_decisions.jsonl`; úsalo para alertar cuando la producción de señales cae.
 
 ## Integracion con el panel
 
@@ -134,6 +229,7 @@ motor heurístico: scores bajos reducen `risk_pct`, scores altos permiten subirl
 - Sentimiento de noticias y ultimo titular (si llega desde los feeds).
 - Estado de la Session Guard (badge amarillo/rojo segun `block_trade`).
 - Razones completas (`decision.reasons`) para auditar por que se bloqueo una senal.
+- Umbral de confianza dinámico (`metadata.confidence_gate`), score ML, anomalías y simulación rápida (`metadata.simulation`).
 - Filtros por símbolo/timeframe, botón **Forzar decisión** (POST `/cerebro/decide`) y el gráfico de confianza histórica.
 - Para auditoría o monitoreo externo puedes consultar `/cerebro/decisions?limit=50`, que lee directamente del log JSONL y siempre entrega las entradas más recientes.
 

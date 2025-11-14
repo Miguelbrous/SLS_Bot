@@ -1,5 +1,7 @@
-﻿from fastapi import Depends, FastAPI, HTTPException, Query, status
+﻿from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
@@ -9,6 +11,7 @@ import os
 import secrets
 import time, hmac, hashlib, json, requests
 import threading, math
+import logging
 
 from .config_loader import load_config, CFG_PATH_IN_USE
 from .bybit import BybitClient
@@ -21,6 +24,11 @@ try:
     from cerebro import get_cerebro  # type: ignore
 except Exception:
     get_cerebro = None  # type: ignore
+
+try:
+    from . import ia_signal_engine
+except Exception:  # pragma: no cover - legacy IA opcional
+    ia_signal_engine = None  # type: ignore
 
 # ==== CARGA CONFIG ====
 cfg = load_config()
@@ -78,6 +86,30 @@ BASE_URL = cfg["bybit"]["base_url"].rstrip("/")
 
 # ==== FASTAPI ====
 app = FastAPI(title="SLS Bot Webhook")
+log = logging.getLogger("uvicorn.error")
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error_handler(request: Request, exc: RequestValidationError):
+    body_preview = ""
+    try:
+        body_bytes = await request.body()
+        if body_bytes:
+            body_preview = body_bytes.decode("utf-8", errors="replace")
+            if len(body_preview) > 1000:
+                body_preview = body_preview[:1000] + "...<truncated>"
+    except Exception:
+        body_preview = "<unavailable>"
+    log.warning(
+        "Request validation error en %s: %s payload=%s",
+        request.url.path,
+        exc.errors(),
+        body_preview,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
 
 
 def _parse_origins() -> list[str]:
@@ -99,6 +131,9 @@ control_cfg = cfg.get("auth") or {}
 CONTROL_USER = os.getenv("CONTROL_USER") or control_cfg.get("control_user")
 CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD") or control_cfg.get("control_password")
 security = HTTPBasic()
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SHARED_SECRET")
+WEBHOOK_SIGNATURE_HEADER = os.getenv("WEBHOOK_SIGNATURE_HEADER", "x-webhook-signature")
+SKIP_BACKGROUND_JOBS = os.getenv("SLS_BOT_SKIP_THREADS") == "1"
 
 app.add_middleware(
     CORSMiddleware,
@@ -195,6 +230,15 @@ class Signal(BaseModel):
     confirmations: Optional[Confirmations] = None
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
+    order_type: Optional[str] = None
+    trigger_price: Optional[float] = None
+    trigger_direction: Optional[int] = None
+    order_filter: Optional[str] = None
+    reduce_only: Optional[bool] = False
+    strategy_id: Optional[str] = None
+    max_margin_pct: Optional[float] = None
+    max_risk_pct: Optional[float] = None
+    min_stop_distance_pct: Optional[float] = None
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -207,11 +251,23 @@ def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_in
         "leverage": sig.leverage,
         "tf": sig.tf,
         "session": sig.session,
+        "strategy_id": sig.strategy_id,
         "qty": qty,
         "price": price_used,
         "order_id": order_info.get("orderId"),
     }
     _append_jsonl(DECISIONS_LOG, entry)
+
+
+def _verify_webhook_signature(request: Request, body: bytes) -> None:
+    if not WEBHOOK_SECRET:
+        return
+    header = request.headers.get(WEBHOOK_SIGNATURE_HEADER) or request.headers.get(WEBHOOK_SIGNATURE_HEADER.lower())
+    if not header:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook ausente")
+    expected = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    if not secrets.compare_digest(header, expected):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook inválida")
 
 # ----- UTILS BÁSICAS -----
 QTY_STEP = {"BTCUSDT": 0.001, "ETHUSDT": 0.01}
@@ -488,6 +544,68 @@ def _autopilot_tp1_and_be(symbol: str, opened_side: str,
             time.sleep(2.0)
     except Exception:
         return
+
+
+class LowCapitalError(Exception):
+    """Se lanza cuando el capital no alcanza para cumplir con las restricciones configuradas."""
+
+
+def _low_capital_config() -> dict:
+    return (cfg.get("risk", {}).get("low_capital") or {})
+
+
+def _apply_low_capital_constraints(sig: Signal, balance: float, price_live: float,
+                                   qty_num: float, filters: Dict[str, float]) -> float:
+    guard_cfg = _low_capital_config()
+    if not guard_cfg and sig.max_margin_pct is None and sig.max_risk_pct is None:
+        return qty_num
+
+    max_margin_pct = sig.max_margin_pct
+    if max_margin_pct is None:
+        max_margin_pct = guard_cfg.get("max_margin_pct")
+    max_margin_pct = float(max_margin_pct or 0.0)
+    if max_margin_pct <= 0:
+        return qty_num
+
+    max_risk_pct_cfg = guard_cfg.get("max_risk_pct")
+    if sig.max_risk_pct is not None:
+        max_risk_pct_cfg = sig.max_risk_pct
+    if max_risk_pct_cfg is not None and (sig.risk_pct or 0.0) > float(max_risk_pct_cfg):
+        sig.risk_pct = float(max_risk_pct_cfg)
+
+    min_leverage = int(guard_cfg.get("min_leverage") or max(1, sig.leverage or 1))
+    max_leverage = int(guard_cfg.get("max_leverage") or max(min_leverage, sig.leverage or min_leverage))
+    leverage = int(sig.leverage or min_leverage)
+    leverage = max(min_leverage, min(leverage, max_leverage))
+    sig.leverage = leverage
+
+    allowed_margin = max(0.0, balance * max_margin_pct)
+    if allowed_margin <= 0:
+        raise LowCapitalError("capital_guard_disabled")
+
+    def _margin(qty: float, lev: int) -> float:
+        if price_live <= 0 or lev <= 0:
+            return float("inf")
+        return price_live * qty / float(lev)
+
+    current_margin = _margin(qty_num, sig.leverage)
+    if current_margin <= allowed_margin:
+        return qty_num
+
+    required_leverage = int(math.ceil((price_live * qty_num) / max(allowed_margin, 1e-9)))
+    if required_leverage <= max_leverage:
+        sig.leverage = max(sig.leverage, max(required_leverage, 1))
+        current_margin = _margin(qty_num, sig.leverage)
+        if current_margin <= allowed_margin:
+            return qty_num
+
+    max_qty_allowed = allowed_margin * max_leverage / price_live if price_live > 0 else 0.0
+    max_qty_allowed = _floor_to(max_qty_allowed, filters.get("step", 0.001))
+    if max_qty_allowed < filters.get("min", 0.0) or max_qty_allowed <= 0:
+        raise LowCapitalError("capital_insufficient")
+
+    sig.leverage = max_leverage
+    return max_qty_allowed
 
 # ====== RISK STATE (cooldown + DD intradía) ======
 _STATE_FILE = LOGS_DIR / "risk_state.json"
@@ -799,8 +917,8 @@ def _close_position_reduce_only(symbol: str):
         return {"error": str(e)}
 
 # ----- WEBHOOK -----
-@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
-def webhook(sig: Signal):
+
+def _process_signal(sig: Signal):
     try:
         if sig.signal not in ("SLS_LONG_ENTRY", "SLS_SHORT_ENTRY", "SLS_EXIT", "SLS_UPDATE"):
             return {"status": "ignored", "reason": "unknown signal"}
@@ -892,48 +1010,125 @@ def webhook(sig: Signal):
         _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
+        try:
+            adjusted_qty = _apply_low_capital_constraints(sig, balance, price_live, qty_num, filters)
+        except LowCapitalError as exc:
+            return {
+                "status": "blocked",
+                "reason": str(exc),
+                "balance": balance,
+                "leverage": sig.leverage,
+                "requested_qty": qty_num,
+            }
+        if abs(adjusted_qty - qty_num) > 1e-8:
+            qty_num, qty_str, filters = _quantize_qty(symbol, adjusted_qty)
+        if qty_num <= 0:
+            return {
+                "status": "blocked",
+                "reason": "qty_zero",
+                "balance": balance,
+                "leverage": sig.leverage,
+            }
         tick = filters["tick"]
 
         api_key = cfg["bybit"]["api_key"]
         api_secret = cfg["bybit"]["api_secret"]
         url = f"{BASE_URL}/v5/order/create"
 
-        # helper para SL/TP válidos (>0)
-        def _add_tp_sl(payload: dict):
-            sl_value = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
-            if sl_value is not None and sl_value > 0:
-                payload["stopLoss"] = str(_quantize_price(sl_value, tick))
-            tp_value = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
-            if tp_value is None:
-                tp_value = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
-            if tp_value is not None:
-                payload["takeProfit"] = str(_quantize_price(tp_value, tick))
-                payload["tpSlMode"]   = "Full"
+        # helper para SL/TP válidos (>0) respetando el lado y el precio de referencia
+        def _add_tp_sl(payload: dict, side_ref: str, price_ref: float, symbol_ref: str):
+            guard_price = float(price_ref or 0)
+            if guard_price <= 0:
+                try:
+                    guard_price = float(bb.get_mark_price(symbol_ref) or 0)
+                except Exception:
+                    guard_price = 0.0
 
-        # LIMIT vs MARKET
-        if sig.post_only and sig.price:
-            price_ref = _quantize_price(sig.price, tick)
-            payload = {
-                "category": "linear",
-                "symbol": symbol,
-                "side": "Buy" if side == "LONG" else "Sell",
-                "orderType": "Limit",
-                "qty": qty_str,
-                "price": str(price_ref),
-                "timeInForce": "PostOnly",
-                "isLeverage": 1
-            }
-            _add_tp_sl(payload)
+            filters = _get_instrument_filters(symbol_ref)
+            tick_size = max(filters.get("tick", 0.1), 1e-6)
+            min_pct = max(float(cfg.get("risk", {}).get("min_tp_sl_pct", 0.001)), 0.0005)
+            if sig.min_stop_distance_pct is not None:
+                min_pct = max(min_pct, float(sig.min_stop_distance_pct))
+
+            def _ensure_valid(value: Optional[float], direction: str) -> Optional[float]:
+                if value is None or value <= 0:
+                    return None
+                if guard_price <= 0:
+                    return None
+                if direction == "tp_long":
+                    target = max(value, guard_price * (1 + min_pct))
+                elif direction == "tp_short":
+                    target = min(value, guard_price * (1 - min_pct))
+                elif direction == "sl_long":
+                    target = min(value, guard_price * (1 - min_pct))
+                else:  # sl_short
+                    target = max(value, guard_price * (1 + min_pct))
+                # Evita precios negativos
+                target = max(target, tick_size)
+                return _quantize_price(target, tick_size)
+
+            stop_raw = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
+            take_raw = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
+            if take_raw is None:
+                take_raw = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
+
+            if side_ref == "LONG":
+                stop_val = _ensure_valid(stop_raw, "sl_long")
+                take_val = _ensure_valid(take_raw, "tp_long")
+            else:
+                stop_val = _ensure_valid(stop_raw, "sl_short")
+                take_val = _ensure_valid(take_raw, "tp_short")
+
+            tp_sl_assigned = False
+            if stop_val is not None:
+                payload["stopLoss"] = str(stop_val)
+                tp_sl_assigned = True
+            if take_val is not None:
+                payload["takeProfit"] = str(take_val)
+                tp_sl_assigned = True
+
+            if tp_sl_assigned:
+                payload["tpSlMode"] = "Full"
+                try:
+                    _append_bridge_log(
+                        f"tp_sl_applied {side_ref} {symbol_ref} tp={payload.get('takeProfit')} sl={payload.get('stopLoss')} ref={guard_price}"
+                    )
+                except Exception:
+                    pass
+
+        order_kind = (sig.order_type or ("LIMIT" if (sig.post_only and sig.price) else "MARKET")).upper()
+        order_kind = order_kind.replace("-", "_")
+        payload = {
+            "category": "linear",
+            "symbol": symbol,
+            "side": "Buy" if side == "LONG" else "Sell",
+            "qty": qty_str,
+            "isLeverage": 1,
+        }
+
+        price_reference = sig.price if (sig.price and sig.price > 0) else price_live
+        limit_price = None
+        if order_kind in {"LIMIT", "STOP_LIMIT"}:
+            limit_price = _quantize_price(price_reference, tick)
+            payload["orderType"] = "Limit"
+            payload["price"] = str(limit_price)
+            payload["timeInForce"] = "PostOnly" if sig.post_only else payload.get("timeInForce", "GTC")
         else:
-            payload = {
-                "category": "linear",
-                "symbol": symbol,
-                "side": "Buy" if side == "LONG" else "Sell",
-                "orderType": "Market",
-                "qty": qty_str,
-                "isLeverage": 1
-            }
-            _add_tp_sl(payload)
+            payload["orderType"] = "Market"
+
+        if order_kind in {"STOP_MARKET", "STOP_LIMIT"}:
+            trigger_source = sig.trigger_price if (sig.trigger_price and sig.trigger_price > 0) else price_reference
+            trigger_price = _quantize_price(trigger_source, tick)
+            payload["triggerPrice"] = str(trigger_price)
+            payload["triggerDirection"] = int(sig.trigger_direction or (1 if side == "LONG" else 2))
+            payload["orderFilter"] = sig.order_filter or "StopOrder"
+            payload.setdefault("triggerBy", "LastPrice")
+
+        if sig.reduce_only:
+            payload["reduceOnly"] = True
+
+        tp_ref = limit_price if limit_price is not None else float(price_reference or price_live)
+        _add_tp_sl(payload, side, tp_ref, symbol)
 
         # leverage tolerante
         try:
@@ -986,6 +1181,10 @@ def webhook(sig: Signal):
                     time.sleep(0.6 + i * 0.6)
                     continue
 
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} ret={data}")
+                except Exception:
+                    pass
                 raise RuntimeError(data)
             except Exception as e:
                 last_exc = e
@@ -994,8 +1193,17 @@ def webhook(sig: Signal):
                     _sync_server_time()
                     time.sleep(0.6 + i * 0.6)
                     continue
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} exc={e}")
+                except Exception:
+                    pass
                 raise
         else:
+            if last_exc is not None:
+                try:
+                    _append_bridge_log(f"order_error {side} {symbol} final={last_exc}")
+                except Exception:
+                    pass
             raise last_exc
 
         # Guardar equity en la entrada
@@ -1030,6 +1238,7 @@ def webhook(sig: Signal):
             "%cerrado TP1": sig.tp1_close_pct or 0,
             "RiskScore": sig.risk_score or 1,
             "Confirmaciones": str(sig.confirmations.dict() if sig.confirmations else {}),
+            "Estrategia": sig.strategy_id or "default",
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
         _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)
@@ -1044,6 +1253,61 @@ def webhook(sig: Signal):
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
+async def webhook(sig: Signal, request: Request):
+    if WEBHOOK_SECRET:
+        body = await request.body()
+        _verify_webhook_signature(request, body)
+    return _process_signal(sig)
+
+
+class LegacyIASignal(BaseModel):
+    simbolo: str
+    marco: str
+    modo: Optional[str] = "asesor"
+    riesgo_pct: Optional[float] = None
+    leverage: Optional[int] = None
+
+
+@app.post("/ia/signal")
+async def ia_signal(request: Request):
+    body = await request.json()
+
+    if WEBHOOK_SECRET and "signal" in body and "symbol" in body:
+        _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
+    elif WEBHOOK_SECRET and {"simbolo", "marco"}.issubset(body.keys()):
+        # Peticiones legacy solo consultan decisiones; se permite firmar opcionalmente.
+        header = request.headers.get(WEBHOOK_SIGNATURE_HEADER)
+        if header:
+            _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
+        else:
+            log.warning("/ia/signal legacy sin firma detectado (cliente externo) - permitiendo acceso solo lectura")
+
+    if "signal" in body and "symbol" in body:
+        sig = Signal(**body)
+        return _process_signal(sig)
+
+    if {"simbolo", "marco"}.issubset(body.keys()) and ia_signal_engine:
+        legacy = LegacyIASignal(**body)
+        payload, evidence, meta = ia_signal_engine.decide(
+            symbol=legacy.simbolo,
+            marco=legacy.marco,
+            riesgo_pct_user=legacy.riesgo_pct,
+            leverage_user=legacy.leverage,
+        )
+        return {
+            "status": "ok",
+            "decision": payload,
+            "evidence": evidence,
+            "meta": meta,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail="Formato de solicitud IA inválido",
+    )
 
 # ====== RESUMEN DIARIO ======
 @app.get("/daily/summary")
@@ -1092,10 +1356,11 @@ def _daily_scheduler():
         except Exception:
             pass
 
-try:
-    threading.Thread(target=_daily_scheduler, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_daily_scheduler, daemon=True).start()
+    except Exception:
+        pass
 
 
 def _collect_closed_pnl_entries(start_ms: int, end_ms: int) -> list[dict]:
@@ -1179,10 +1444,11 @@ def _pnl_symbol_worker():
         time.sleep(interval)
 
 
-try:
-    threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
+    except Exception:
+        pass
 
 
 def _bridge_heartbeat():
@@ -1199,7 +1465,8 @@ def _bridge_heartbeat():
         time.sleep(interval)
 
 
-try:
-    threading.Thread(target=_bridge_heartbeat, daemon=True).start()
-except Exception:
-    pass
+if not SKIP_BACKGROUND_JOBS:
+    try:
+        threading.Thread(target=_bridge_heartbeat, daemon=True).start()
+    except Exception:
+        pass

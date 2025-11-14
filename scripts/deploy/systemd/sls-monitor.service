@@ -1,0 +1,13 @@
+[Unit]
+Description=SLS Bot Monitor Guard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User={{SVC_USER}}
+Group={{SVC_USER}}
+WorkingDirectory={{APP_ROOT}}
+EnvironmentFile=-/etc/sls_bot.env
+ExecStart={{APP_ROOT}}/scripts/cron/run_monitor_guard.sh
+Nice=10

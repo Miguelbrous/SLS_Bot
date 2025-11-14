@@ -1,0 +1,61 @@
+groups:
+  - name: sls-bot-alerts
+    rules:
+      - alert: ArenaLagHigh
+        expr: sls_arena_state_age_seconds > 900
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Arena sin ticks recientes"
+          description: "La arena no recibe ticks desde hace más de 15 minutos."
+      - alert: ArenaDrawdownHigh
+        expr: sls_arena_goal_drawdown_pct > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Drawdown de la arena elevado"
+          description: "La meta actual se encuentra >30 % por debajo del balance líder."
+      - alert: BotDrawdownCritical
+        expr: sls_bot_drawdown_pct > 6
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drawdown del bot supera el umbral crítico"
+          description: "Revisa risk_state.json y reduce exposición si es necesario."
+      - alert: CerebroSilent
+        expr: sls_cerebro_decisions_per_min < 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cerebro generando pocas decisiones"
+          description: "Las decisiones por minuto cayeron por debajo de 0.2; revisa logs y feeds."
+  - name: sls-business-alerts
+    rules:
+      - alert: DailyPnlNegative
+        expr: sls_bot_daily_pnl < 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PnL diario negativo"
+          description: "El PnL diario es negativo ({{ $value }}) por más de 15 minutos."
+      - alert: DrawdownExceeded
+        expr: sls_bot_drawdown_pct > 8
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Drawdown operativo supera el umbral"
+          description: "Drawdown actual ({{ $value }}%) > 8 %. Revisa guardias de riesgo."
+      - alert: SlippageHigh
+        expr: sls_bot_slippage_bps > 15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slippage promedio elevado"
+          description: "Slippage > 15 bps; verifica liquidez o ajustes de órdenes."

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import Dict, Sequence
 
-from ..sls_bot.config_loader import load_config
+try:
+    from ..sls_bot.config_loader import load_config
+except ImportError:  # pragma: no cover
+    from sls_bot.config_loader import load_config  # type: ignore
 from .filters import SessionGuardConfig
 
 
@@ -44,10 +47,20 @@ class CerebroConfig:
     news_feeds: Sequence[str] = field(default_factory=list)
     min_confidence: float = 0.55
     max_memory: int = 5000
+    macro_feeds: Dict[str, object] = field(default_factory=dict)
+    orderflow_feeds: Dict[str, object] = field(default_factory=dict)
+    onchain_feeds: Dict[str, object] = field(default_factory=dict)
+    funding_feeds: Dict[str, object] = field(default_factory=dict)
     sl_atr_multiple: float = 1.5
     tp_atr_multiple: float = 2.0
     news_ttl_minutes: int = 45
     session_guards: Sequence[SessionGuardConfig] = field(default_factory=list)
+    data_cache_ttl: int = 30
+    anomaly_z_threshold: float = 3.0
+    anomaly_min_points: int = 20
+    confidence_max: float = 0.7
+    confidence_min: float = 0.45
+    auto_train_interval: int = 100
 
     @classmethod
     def from_dict(cls, data: dict) -> "CerebroConfig":
@@ -60,12 +73,22 @@ class CerebroConfig:
             timeframes=data.get("timeframes") or ["15m"],
             refresh_seconds=int(data.get("refresh_seconds") or 60),
             news_feeds=data.get("news_feeds") or [],
+            macro_feeds=data.get("macro_feeds") or {},
+            orderflow_feeds=data.get("orderflow_feeds") or data.get("orderflow") or {},
+            onchain_feeds=data.get("onchain_feeds") or {},
+            funding_feeds=data.get("funding_feeds") or {},
             min_confidence=float(data.get("min_confidence") or 0.55),
             max_memory=int(data.get("max_memory") or 5000),
             sl_atr_multiple=float(data.get("sl_atr_multiple") or 1.5),
             tp_atr_multiple=float(data.get("tp_atr_multiple") or 2.0),
             news_ttl_minutes=int(data.get("news_ttl_minutes") or 45),
             session_guards=[SessionGuardConfig.from_dict(item or {}) for item in raw_sessions],
+            data_cache_ttl=int(data.get("data_cache_ttl") or 30),
+            anomaly_z_threshold=float(data.get("anomaly_z_threshold") or 3.0),
+            anomaly_min_points=int(data.get("anomaly_min_points") or 20),
+            confidence_max=float(data.get("confidence_max") or 0.7),
+            confidence_min=float(data.get("confidence_min") or 0.45),
+            auto_train_interval=int(data.get("auto_train_interval") or 100),
         )
 
 

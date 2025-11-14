@@ -1,0 +1,3 @@
+cerebro_ingest_success 0
+cerebro_ingest_last_ts 1762446745
+cerebro_ingest_rows{source="market"} 1

@@ -1,6 +1,101 @@
-﻿# Contexto BOT IA
+﻿# Contexto BOT IA (versión rápida para el próximo chat)
+
+## Resumen de la idea
+- Bot de futuros Bybit 24/7 con SL/TP obligatorios, autopiloto (mover SL a BE tras TP1) y guardias de riesgo. El Cerebro IA observa mercado/noticias/macro/orderflow/on-chain/funding, aprende de cada trade y ajusta riesgo/órdenes en tiempo real. En paralelo existe la **Arena** con 5 000 estrategias simuladas que compiten para ser promovidas a real.
+
+## Qué tocar / qué no tocar
+- **Sí**: backend FastAPI (`bot/`), Cerebro (`bot/cerebro/` y scripts `ops.py`/`cron`), Arena (`bot/arena/`), panel Next.js (`panel/`), scripts (`scripts/ops.py`, `scripts/cron/*`, `scripts/tools/*`), documentación (`README`, `Contexto BOT IA.md`, `docs/*`). Cualquier cambio funcional debe reflejarse en README + Contexto + doc temática.
+- **No**: credenciales reales (`.env`, `config/config.json`), modelos en `models/cerebro/real`, directorios generados (`logs/`, `excel/`, `tmp_*`), autopiloto/guardias críticos sin pruebas. Respetar tokens/API keys; nunca exponerlos.
+
+## Documentación y estilo
+- Responder siempre en español.
+- Actualizar **README.md**, **Contexto BOT IA.md** y los docs específicos cuando se toquen flujos (arena, Cerebro, observabilidad, etc.).
+- Registrar en `Contexto BOT IA.md` cada cambio relevante para que el siguiente operador tenga visibilidad.
+
+## Estado reciente (2025-11-05)
+- **Observabilidad**: docker compose (`docs/observabilidad/docker-compose.yml`) levanta Prometheus/Grafana/Alertmanager; comandos `make observability-up/down/check`; CI corre un job dedicado con `scripts/tests/observability_check.py`. Panel muestra sparklines basados en `NEXT_PUBLIC_PROMETHEUS_BASE_URL`.
+- **Observabilidad (smoke)**: nuevo `make observability-check` ejecuta `scripts/tests/observability_check.py`, valida reglas críticas y salud de Grafana/Alertmanager con variables `PROM_BASE`, `GRAFANA_BASE`, `ALERTMANAGER_BASE`. Úsalo post-deploy para asegurar que las alertas siguen vivas.
+- **CLI observabilidad**: `python scripts/ops.py observability check --prom-base http://... --grafana-base http://... --alertmanager-base http://...` corre el smoke sin exportar variables y facilita programarlo vía cron/CI.
+- **Cerebro**: feeds de funding y on-chain habilitados (`cerebro.funding_feeds` / `onchain_feeds`), política ajusta riesgo según sesgo de funding/mempool. `python scripts/ops.py cerebro autopilot` ahora valida filas + antigüedad (`--max-dataset-age-minutes`) y chequea win/long/short rate, símbolos dominantes y calidad del dataset con umbrales ampliados (`--dataset-min-win-rate`, `--dataset-max-win-rate`, `--dataset-min-symbols`, `--dataset-min-rows-per-symbol`, `--dataset-max-symbol-share`, `--dataset-min-long-rate`, `--dataset-min-short-rate`, `--dataset-max-invalid-lines`, `--dataset-max-age-hours`, `--dataset-max-zero-rate`, `--dataset-max-loss-rate`). Puede exigir promoción (`--require-promote`), generar resúmenes JSON/JSONL con median/std de PnL, ratios de zeros/pérdidas y `drift_checks`, comparar contra la corrida previa (`--summary-compare-file`, `--summary-max-win-rate-delta`, `--summary-max-loss-rate-delta`, `--summary-max-rows-drop`), mandar métricas a Prometheus (`--prometheus-file`, ahora incluye `cerebro_autopilot_dataset_zero_rate`, `..._loss_rate`, `..._pnl_median`, etc.) y notificar Slack (`--slack-webhook`, mensaje incluye win/long/short/edad/top/zero/loss/median + `drift_alerts` cuando aplica). `scripts/cron/cerebro_autopilot.sh` exporta `CEREBRO_AUTO_PROM_FILE`, `CEREBRO_AUTO_SLACK_WEBHOOK/USER`, `CEREBRO_AUTO_REQUIRE_PROMOTE`, `CEREBRO_AUTO_MAX_DATASET_AGE_MIN`, todos los `CEREBRO_AUTO_DATASET_*` nuevos (incluidos `..._MAX_ZERO_RATE` / `..._MAX_LOSS_RATE`), `CEREBRO_AUTO_SKIP_DATASET_CHECK`, `CEREBRO_AUTO_SUMMARY_FILE/_APPEND`, `CEREBRO_AUTO_SUMMARY_COMPARE`, `CEREBRO_AUTO_SUMMARY_MAX_WIN_DELTA`, `CEREBRO_AUTO_SUMMARY_MAX_LOSS_DELTA`, `CEREBRO_AUTO_SUMMARY_MAX_ROWS_DROP` además de los clásicos `CEREBRO_AUTO_*`.
+- **Cerebro ingest**: `python scripts/ops.py cerebro ingest` ahora acepta `--include-funding/--include-onchain`, overrides `--funding-symbols/--onchain-symbols`, métricas textfile (`--prometheus-file`) y notificaciones Slack con usuario/timeout/proxy (`--slack-webhook/--slack-user/--slack-timeout/--slack-proxy`). `scripts/tools/run_cerebro_ingest.py` persiste en JSON los resultados incluyendo qué feeds quedaron habilitados y garantiza métricas aun cuando falle; el cron wrapper exporta `CEREBRO_INGEST_SLACK_USER`, `CEREBRO_INGEST_SLACK_TIMEOUT`, `CEREBRO_INGEST_SLACK_PROXY`, `CEREBRO_INGEST_PROM_FILE` y autodetecta `NODE_EXPORTER_TEXTFILE_DIR` para usar `<dir>/cerebro_ingest.prom`. Smoke helpers: `scripts/tests/prometheus_textfile_check.py`, `scripts/tests/prometheus_textfile_suite.py`, `scripts/tests/cerebro_ingest_failure_sim.py`, `scripts/tests/cerebro_autopilot_failure_sim.py`, `scripts/tests/cerebro_metrics_smoke.sh` y la diana `make textfile-smoke DIR=/var/lib/node_exporter/textfile_collector`.
+- **Operación 24/7**: nueva guía `docs/operations/operacion_24_7.md` resume la arquitectura productiva (systemd, cronjobs, observabilidad, backups) y añade `sls-monitor.service/.timer` + `scripts/cron/run_monitor_guard.sh` para ejecutar `monitor_guard.py` cada 5 minutos con umbrales configurables (`MONITOR_*`) y alertas Slack/Telegram.
+- **Roadmap 2V**: `docs/roadmap.md` ahora detalla la hoja de ruta SLS_Bot 2V (fases F1–F5, backlog por frentes Infra/Ops, Trading, Datos, Panel, Seguridad y hitos Go/No-Go), incluye ownership por célula (Infra/Ops, Quant, Frontend, SecOps) y tabla RACI + cadencia de revisiones.
+- **Provisioning/Backups**: se añadió `infra/ansible/` (playbook + roles + target `make provision`), `scripts/cron/backup_restic.sh` con docs (`docs/operations/backups_restic.md`) y `make metrics-business` (`scripts/tools/prometheus_business_metrics.py`) para nutrir Grafana/Alertmanager con PnL/drawdown/slippage.
+- **CI/CD 2V**: Workflow `ci.yml` reestructurado en jobs (`backend`, `frontend`, `autopilot`, `observability`) con caching, artefactos (panel build, summary autopilot) y cancelación de ejecuciones concurrentes para soportar la fase F1 (Reliability & Ops).
+- **Cerebro autopilot (CI)**: `scripts/tests/cerebro_autopilot_dataset_check.py` asegura que los datasets de experiencias tengan filas suficientes, win rate sano y límites de zeros/pérdidas antes de entrenar. `scripts/tests/cerebro_autopilot_ci.py` reutiliza ese chequeo, ejecuta `bot.cerebro.train --dry-run`, valida `auc`/`win_rate`, guarda el resumen (`--summary-json`, soporta JSONL con `--summary-append`) y notifica a Slack si se exporta `SLACK_WEBHOOK_CEREBRO`. Expone los mismos umbrales que el CLI (`--dataset-min-rows-per-symbol`, `--dataset-max-symbol-share`, `--dataset-min-long-rate`, `--dataset-min-short-rate`, `--dataset-max-invalid-lines`, `--max-zero-rate`, `--max-loss-rate`). Está cableado en `make autopilot-ci` y en `ci.yml` (step “Cerebro autopilot dataset + dry-run`) para que cada PR verifique el autopilot con datos reales; configura el secreto `SLACK_WEBHOOK_CEREBRO` para recibir alertas en producción.
+- **Cerebro ingest (cron)**: existe `scripts/cron/cerebro_ingest.sh` con variables `CEREBRO_INGEST_*` para lanzar la ingesta desde cron/systemd, exigir fuentes críticas (`CEREBRO_INGEST_REQUIRE_SOURCES` / `CEREBRO_INGEST_MIN_MARKET_ROWS`) y notificar por Slack (`CEREBRO_INGEST_SLACK_WEBHOOK`).
+- **Arena → producción**: `python scripts/ops.py arena promote-real <id>` exporta paquete + promueve modelo test→real y deja log en `logs/promotions/promotion_log.jsonl`. Mantener validaciones (`min_trades`, `min_sharpe`, `max_drawdown`, `min_auc`, `min_win_rate`).
+- **Panel**: la tarjeta de Observabilidad elimina duplicados (links Grafana y alerts) y concentra los issues derivados de `/observability/summary`; los sparklines de Prometheus se mantienen opcionales via `NEXT_PUBLIC_PROMETHEUS_BASE_URL`.
+- **Panel / Arena**: el detalle del ledger ahora muestra métricas agregadas (PnL total/promedio, win rate), filtros rápidos (todo/ganadoras/perdedoras), exportación a CSV y búsqueda de notas para documentar hallazgos antes de promover. El ranking también ofrece filtros por categoría, búsqueda libre y mínimos de trades/score con agregados promedio.
+- **CLI Arena**: `python scripts/ops.py arena ledger <id> --limit 200 --csv tmp/ledger.csv` lista/exporta el ledger directamente desde arena.db (paridad con el panel). Complementalo con `python scripts/ops.py arena stats <id> --json` para obtener win rate, PnL acumulado/promedio y max drawdown desde CLI.
+- **Seguridad**: rate limiting configurable para `/control/*` y endpoints con `X-Panel-Token` (`CONTROL_RATE_LIMIT_*`, `PANEL_RATE_LIMIT_*`). Recordar configurar CORS y `WEBHOOK_SHARED_SECRET`.
+
+---
+
+# Contexto BOT IA (detalle)
 
 Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve como punto de partida cuando se abre un nuevo chat o cuando alguien más toma el relevo. Cada vez que modifiquemos archivos clave deberíamos regresar aquí y actualizar la sección correspondiente.
+
+## Bitácora Codex 2025-11-03 (tarde)
+- Se habilitó compatibilidad retro con `/ia/signal` para clientes legacy (`simbolo/marco`) volviendo a usar `ia_signal_engine` cuando no llega un `Signal` completo. Quedó un log explícito de quién envía payloads incompletos.
+- `micro_scalp_v1` ahora opera con filtros más laxos (EMA ≥3 bps, RSI 40-60) para producir más trades en testnet.
+- Nueva estrategia `scalp_rush_v1` (1m) añadida al runner; basta con `STRATEGY_ID=scalp_rush_v1` para encenderla en testnet y forzar prueba/error constante.
+- Nació la **Arena de estrategias** (`bot/arena/`): registro masivo de 5 000 estrategias, simulador compartido, league manager, ranking público y script `scripts/arena_bootstrap.py` para regenerar el roster.
+- Documentación añadida en `docs/arena.md` y README para explicar la “carrera” y el proceso de promoción a modo real.
+- FastAPI expone `/arena/ranking` y `/arena/state` (token panel) para que el dashboard consulte el leaderboard generado por `python -m bot.arena`.
+- Tips operativos: define en `.env` `STRATEGY_ID=scalp_rush_v1` y `STRATEGY_INTERVAL_SECONDS=30`, agenda `scripts/run_arena_tick.sh` y usa `python scripts/promote_arena_strategy.py <strategy_id>` al seleccionar estrategias para modo real.
+- Nuevo CLI `python scripts/ops.py` centraliza `up/down/status/logs`, healthcheck y acciones de arena para no depender de múltiples scripts.
+- El CLI ahora incluye `ops infra` y `ops cerebro dataset/promote` para validar infraestructura y operar el Cerebro sin buscar scripts; añadimos pruebas automatizadas para el propio CLI y para los endpoints `/arena/*`.
+- `bot/core/settings.py` unifica la lectura de `.env` mediante Pydantic, así loop y CLI comparten los mismos defaults (estrategia, intervalos, firma, modo).
+- `bot/arena/service.py` introduce `ArenaService`, un loop embebido que puedes levantar con `python scripts/ops.py arena run` para mantener ranking/state sin depender de cron.
+- `bot/arena/storage.py` agrega `arena.db` (SQLite) para registrar ledger e inspeccionar ranking desde el CLI sin depender sólo de JSON.
+- `scripts/promote_arena_strategy.py` ahora genera carpetas completas (`profile.json`, `ledger_tail.json`, `SUMMARY.md`) para facilitar la revisión/promoción de estrategias ganadoras.
+- API expone `/arena/ledger` y el panel cuenta con `/arena` para consumir ranking + ledger con filtros directamente desde la UI.
+- Nuevos endpoints `POST /arena/tick` y `POST /arena/promote` permiten operar la arena (forzar tick/exportar) desde el panel vía botones dedicados.
+- `/metrics` ahora expone métricas (Prometheus) gracias a `prometheus-fastapi-instrumentator`, útil para observabilidad externa.
+- `scripts/ops.py` ahora incluye comandos `deploy bootstrap/rollout` y `monitor check` para orquestar systemd + enviar alertas Slack/Telegram cuando la arena se estanca o supera el drawdown configurado (ver `scripts/tools/monitor_guard.py`). Ahora también vigila Sharpe promedio (`--min-arena-sharpe`) y decisiones/min del Cerebro (`--min-decisions-per-min`).
+- `cup_state.json` registra `last_tick_ts`, `ticks_since_win`, `drawdown_pct` y los endpoints `/arena/state` actualizan métricas `sls_arena_*` que se consumen vía `/metrics`.
+- Promover una estrategia ahora ejecuta validaciones (mínimo de trades, Sharpe y drawdown); el CLI/endpoint aceptan `--force`/`force=true` y generan `validation.json` con los métricos utilizados.
+- `python scripts/ops.py arena notes add/list` y los endpoints `/arena/notes` registran bitácoras para cada estrategia directamente en `arena.db`, útil antes de moverlas a real.
+- `make monitor-check` envuelve el monitor de arena (`ops monitor check`) y publica los nuevos gauges `sls_bot_drawdown_pct`, `sls_cerebro_decisions_per_min`, `sls_arena_avg_sharpe`, etc., ideales para cron/CI y dashboards Grafana.
+- Nuevos scripts: `scripts/run_testnet_session.sh` (sesión controlada testnet), `scripts/cron/cerebro_train.sh` (hook cron) y `scripts/tools/arena_candidate_report.py` (selección de campeones); CI con `.github/workflows/ci.yml` y guía `docs/observability.md` para Prometheus/Grafana.
+- Panel `/dashboard` ahora consume `/observability/summary` para mostrar meta de la arena, drawdown actual del bot y decisiones/minuto del Cerebro en tiempo real.
+- `python scripts/ops.py cerebro train --mode <m>` controla el pipeline de entrenamiento (datasets custom, `--dry-run`, `--no-promote`, seeds) y deja trazabilidad automática de métricas/artefactos antes de promover.
+- `config/config.sample.json` ahora incluye `orderflow_feeds` (OFF por defecto) y la doc (`README.md`, `docs/cerebro.md`) explica cómo habilitar el nuevo `OrderflowDataSource` con los parámetros recomendados.
+- Se endureció `bot/app/main.py` para manejar configs sin bloque `paths`, lo que desbloqueó la recarga del módulo en tests (ya no se cuelga `pytest` y la suite completa termina en ~8 s).
+- El panel ahora carga el gráfico (ChartCard) y el ledger/notas (ArenaDetail) como chunks dinámicos, reduciendo el JS inicial y dejando `panel/.next/bundle-report.html` listo tras `ANALYZE=true npm run build`.
+- `python scripts/ops.py cerebro ingest --symbols BTCUSDT,ETHUSDT --include-news --include-orderflow --prometheus-file /var/lib/node_exporter/cerebro_ingest.prom --slack-webhook https://hooks.slack... --slack-timeout 8 --slack-proxy http://proxy:8080` genera snapshots de ingesta (market/news/macro/orderflow/funding/on-chain), publica métricas y envía alertas incluso detrás de proxys corporativos. Prepara el textfile collector con `python scripts/tools/setup_textfile_collector.py --dir /var/lib/node_exporter/textfile_collector`, verifica permisos/edad con `python scripts/tests/prometheus_textfile_check.py --file /var/lib/node_exporter/textfile_collector/cerebro_ingest.prom --require-metric cerebro_ingest_success` o el combo `python scripts/tests/prometheus_textfile_suite.py --dir /var/lib/node_exporter/textfile_collector`, y fuerza fallos controlados con `python scripts/tests/cerebro_ingest_failure_sim.py` / `python scripts/tests/cerebro_autopilot_failure_sim.py` o el wrapper `bash scripts/tests/cerebro_metrics_smoke.sh --dir /var/lib/node_exporter/textfile_collector` (Make: `make textfile-smoke DIR=/var/lib/node_exporter/textfile_collector`) para validar Slack + métricas (`success=0`).
+- Dashboards Grafana (`docs/observabilidad/grafana/*.json`) y reglas Prometheus (`docs/observabilidad/prometheus_rules.yml`) listos para importarse; cubren drawdown arena/bot, ticks sin campeón y actividad del Cerebro.
+- API/PANEL cuentan con rate limiting configurable (`CONTROL_RATE_LIMIT_*`, `PANEL_RATE_LIMIT_*`) para frenar intentos en `/control/*` y `X-Panel-Token`.
+- Feed on-chain (Blockchair) y funding granular quedan habilitados en `cerebro.onchain_feeds`/`funding_feeds`; la política ajusta riesgo según mempool/hash rate y sesgo de funding.
+- `python scripts/ops.py cerebro autopilot` valida filas, bloquea datasets viejos con `--max-dataset-age-minutes`, puede forzar backfill, exportar métricas (`--prometheus-file`), notificar Slack (`--slack-webhook/--slack-user`) y fallar si no se promueve (`--require-promote`). El cron wrapper (`scripts/cron/cerebro_autopilot.sh`) respeta los `CEREBRO_AUTO_*` tradicionales más `CEREBRO_AUTO_PROM_FILE`, `CEREBRO_AUTO_SLACK_WEBHOOK`, `CEREBRO_AUTO_SLACK_USER`, `CEREBRO_AUTO_REQUIRE_PROMOTE` y `CEREBRO_AUTO_MAX_DATASET_AGE_MIN`.
+- `python scripts/ops.py arena promote-real <id>` exporta el paquete, promueve el modelo de Cerebro test→real y deja log en `logs/promotions/promotion_log.jsonl`; pensado para cerrar el gap test→producción.
+- El panel usa sparklines y alertas derivadas de Prometheus (`NEXT_PUBLIC_PROMETHEUS_BASE_URL`) además de los enlaces a Grafana, así que la tarjeta Observabilidad ya refleja drawdown y decisiones/min en tiempo real.
+- `docs/observabilidad/docker-compose.yml` + `make observability-up|down` levantan Prometheus/Grafana/Alertmanager locales apuntando al stack y usando las reglas del repo.
+
+---
+
+## Guía para nuevos chats
+- **Visión del proyecto**: Bot de trading de futuros Bybit 24/7 con TP/SL obligatorios, autopiloto (SL→BE tras TP1), guardias de riesgo y Cerebro IA que aprende de cada operación. La arena (5 000 estrategias) corre en paralelo y promueve ganadoras a modo real.
+- **Qué SÍ tocar**: backend FastAPI (`bot/`), Cerebro (`bot/cerebro/`), arena (`bot/arena/`), panel (`panel/`), scripts (`scripts/ops.py`, `scripts/run_arena_tick.sh`), estrategias (`bot/strategies/`). Cada cambio funcional debe reflejarse en `README.md`, `Contexto BOT IA.md` y en la doc específica (`docs/arena.md`, `docs/cerebro.md`, etc.).
+- **Qué NO tocar**: credenciales reales (`.env`, `config/config.json`), autopiloto y lógica crítica de riesgo sin pruebas/migraciones claras, directorios generados (`logs/`, `excel/`, `models/`, `tmp_*`), modelos en producción (`models/cerebro/real/`). Nunca publicar tokens/urls privadas.
+- **Comandos clave**: `python scripts/ops.py up/down/status/logs/qa`, `python scripts/ops.py arena run/tick/promote`, `python scripts/promote_arena_strategy.py <id>`, `./run SLS_Bot start`. El panel ofrece `/dashboard` y `/arena`; la API expone `/metrics`, `/arena/*`, `/dashboard/*`.
+- **Documentación**: responder siempre en español; al modificar flujos actualizar `README.md`, `Contexto BOT IA.md` y los docs específicos (ej. `docs/arena.md`). Mantener sección Bitácora sincronizada.
+- **Estado reciente**: CLI unificado (`scripts/ops.py`), settings centralizados (`bot/core/settings.py`), arena con servicio embebido + SQLite (`arena.db`), panel Arena completo, endpoints `/arena/tick`, `/arena/promote`, `/arena/ledger`, métricas Prometheus (`/metrics`). Cualquier evolución debe respetar esta arquitectura.
+
+---
+
+## Bitácora Codex 2025-10-31
+- Se agregó ingesta `macro` (open interest / funding / whale flow) para el Cerebro, con cache configurable y scoring integrado al `PolicyEnsemble`.
+- Nuevo guardia `low_capital` limita margen y riesgo para cuentas pequeñas (≈5 €) y ajusta el leverage automáticamente.
+- Se añadió el módulo `bot/strategies/` con el runner CLI y la estrategia inicial `micro_scalp_v1` lista para operar en testnet.
+- `scripts/tools/infra_check.py` ahora valida tokens (`token@YYYY-MM-DD`), detecta contraseñas por defecto y admite `--ensure-dirs` para crear `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}`.
+- Nuevo `scripts/tools/healthcheck.py` centraliza los pings a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status`.
+- Nuevo `scripts/tools/rotate_artifacts.py` archiva logs/modelos antiguos por modo y está conectado a `make rotate-artifacts`.
+- `Makefile` incluye `infra-check`, `setup-dirs`, `rotate-artifacts`, `health` y `smoke` para simplificar las comprobaciones manuales.
+- `scripts/manage_bot.py` incorpora reintentos configurables (`--retries/--retry-delay`) y registra cada intento en la salida JSON.
+- Cerebro IA integra ingestión en cola, detector de anomalías, umbral dinámico de confianza, evaluación A/B, versionado de modelos, pipelines de entrenamiento y reporter diario (ver `docs/cerebro.md`).
+- Se crearon los directorios `logs/real`, `excel/real`, `models/cerebro/real` y `models/cerebro/test`.
 
 ---
 
@@ -17,11 +112,15 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 | --- | --- |
 | `bot/` | Backend FastAPI + webhook del bot (`sls_bot.app`), helpers de Excel, cliente Bybit y router de control (`app.main`). |
 | `bot/cerebro/` | Servicio “Cerebro IA” que observa el mercado, genera decisiones y mantiene memoria/experiencias. Usa modelos por modo (`models/cerebro/<mode>`). |
+| `bot/strategies/` | Estrategias autónomas (ej. `micro_scalp_v1`) y runner CLI para disparar señales firmadas al webhook. |
 | `panel/` | Panel Next.js 14 que consume la API (`/status`, `/cerebro/*`, `/pnl/diario`). Ejecutar `npm run dev/lint/build`. |
 | `config/` | `config.sample.json` con la estructura multi-modo. Copiar a `config.json` (no versionar). |
 | `logs/{mode}/` | Bridge logs, decisiones, PnL, estado de riesgo y datasets Cerebro segregados por modo. |
 | `excel/{mode}/` | Libros `26. Plan de inversión.xlsx` vinculados a operaciones/eventos del modo correspondiente. |
+| `models/cerebro/{mode}/` | Artefactos activos y candidatos del Cerebro IA segregados por modo. |
+| `logs/{mode}/metrics` / `logs/{mode}/reports` | Métricas A/B del Cerebro y reportes diarios por sesión. |
 | `scripts/` | Deploy (`scripts/deploy`), pruebas (`scripts/tests/e2e_smoke.py`), utilidades Python (`scripts/tools/*.py`) y el gestor `scripts/manage.sh`. |
+| `docs/data_sources.md` | Catálogo de dashboards externos (Coinglass, CoinMarketCap, Coin360) con notas sobre APIs y uso manual. |
 
 ---
 
@@ -31,9 +130,21 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - `bot/sls_bot/config_loader.py`: Parser robusto (comentarios, comas) + motor de perfiles (`modes`). Usa `SLSBOT_MODE` y tokens `{mode}` para generar rutas.  
 - `bot/cerebro/service.py`: Servicio continuo del Cerebro. Guarda decisiones/experiencias en `logs/<mode>/cerebro_*.jsonl` y carga modelos desde `models/cerebro/<mode>/active_model.json`. Reporta el modo en `/cerebro/status`.  
 - `bot/cerebro/train.py`: Entrenamiento ligero (logistic regression). `--mode` autodetecta rutas de dataset/modelos según el modo. Añade campo `mode` al artefacto.  
+- `bot/cerebro/ingestion.py`: Gestor de colas y cache TTL para data sources de mercado/noticias.  
+- `bot/cerebro/anomaly.py` / `confidence.py`: Detector de anomalías mediante z-score y compuerta dinámica de confianza.  
+- `bot/cerebro/evaluation.py`: Métricas A/B entre heurística vs ML persistidas en `logs/<mode>/metrics`.  
+- `bot/cerebro/versioning.py` / `pipelines.py`: Registro de modelos, promoción/rollback y pipeline de entrenamiento offline/online.  
+- `bot/cerebro/reporting.py`: Reporter diario por sesión (`logs/<mode>/reports`).  
+- `bot/cerebro/simulator.py`: Simulaciones ligeras para validar la consistencia de las señales.  
 - `scripts/tools/promote_strategy.py`: Copia `active_model.json` desde el modo de prueba al real cuando las métricas superan los umbrales y opcionalmente archiva/reset el dataset de experiencias del modo prueba.  
-- `scripts/tools/infra_check.py`: Carga `config.json`, revisa variables obligatorias (`BYBIT_*`, `PANEL_API_TOKENS`, `CONTROL_*`) y confirma que `logs/{mode}` & `excel/{mode}` existen. Útil antes de desplegar.  
+- `scripts/tools/infra_check.py`: Valida `.env` y `config.json`, comprueba tokens (`token@YYYY-MM-DD`), detecta contraseñas por defecto y con `--ensure-dirs` crea `logs/{mode}`, `excel/{mode}` y `models/cerebro/{mode}`.  
+- `scripts/tools/healthcheck.py`: Lanza GET/POST a `/health`, `/status`, `/cerebro/status`, `/pnl/diario` y `/control/sls-bot/status` y devuelve un resumen JSON del estado.
+- `scripts/tools/rotate_artifacts.py`: Archiva logs y modelos antiguos en `archive/` por modo; integrado con `make rotate-artifacts`.
+- `scripts/manage_bot.py`: Controla servicios systemd con validación opcional de `.env`, soporta reintentos (`--retries`) y exporta la traza de intentos.
+- `scripts/manage.sh`: Ahora coordina API, bot, Cerebro y el loop de estrategia (`encender-*`, `apagar-*`, `estado`, `tail`).
+- `run`: wrapper en la raíz; con `run SLS_Bot [start|stop|status|logs]` se orquesta todo sin recordar comandos largos.
 - `README.md`: Documentación general (instrucciones de entorno, pruebas, despliegue, explicación modos/prueba-real y comandos de entrenamiento/promoción).  
+- `docs/roadmap.md`: Estado detallado de los 10 objetivos del bot y los 10 objetivos del Cerebro IA con progreso por fases.
 - `.env.example`: Ejemplo de variables, incluye `SLSBOT_MODE`, credenciales panel y Bybit.  
 - `bot/tests/test_health.py`: Tests FastAPI ajustados para usar `logs/<mode>`; ejecutar `venv\Scripts\python -m pytest bot/tests -q`.
 
@@ -54,5 +165,3 @@ Este documento resume la arquitectura actual del repositorio **SLS_Bot** y sirve
 - **Nombres de archivos**: usa rutas relativas (`bot/sls_bot/app.py`) para que sean clicables desde la CLI.  
 - **Formato**: Markdown plano para mantener compatibilidad con cualquier editor. Añade secciones/separadores si crece el alcance.  
 - **Versionado**: incluye este archivo en cualquier PR/commit que modifique la arquitectura o instructivos operativos. De ese modo siempre estará sincronizado con la base de código.
-
-

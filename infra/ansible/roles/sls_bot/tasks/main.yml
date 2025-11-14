@@ -1,0 +1,93 @@
+- name: Ensure system packages present
+  ansible.builtin.package:
+    name: "{{ system_packages }}"
+    state: present
+
+- name: Ensure service group exists
+  ansible.builtin.group:
+    name: "{{ sls_user }}"
+    state: present
+
+- name: Ensure service user exists
+  ansible.builtin.user:
+    name: "{{ sls_user }}"
+    comment: "SLS Bot Service Account"
+    group: "{{ sls_user }}"
+    shell: /bin/bash
+    createhome: true
+
+- name: Ensure application root exists
+  ansible.builtin.file:
+    path: "{{ app_root }}"
+    state: directory
+    owner: "{{ sls_user }}"
+    group: "{{ sls_user }}"
+    mode: "0755"
+
+- name: Clone SLS_Bot repository
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_root }}"
+    version: "{{ repo_branch }}"
+    update: true
+    force: true
+  become: true
+  become_user: "{{ sls_user }}"
+
+- name: Ensure writable directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ sls_user }}"
+    group: "{{ sls_user }}"
+    mode: "0755"
+  loop:
+    - "{{ app_root }}/logs"
+    - "{{ app_root }}/tmp_logs"
+    - "{{ app_root }}/models"
+    - "{{ app_root }}/excel"
+    - "{{ app_root }}/tmp_metrics"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: "{{ env_template_path }}"
+    dest: "{{ environment_file }}"
+    owner: root
+    group: root
+    mode: "0640"
+
+- name: Run bootstrap script (instala venv, deps, systemd)
+  ansible.builtin.command: "./scripts/deploy/bootstrap.sh"
+  args:
+    chdir: "{{ app_root }}"
+    creates: "{{ app_root }}/venv/bin/python"
+  become: true
+  become_user: "{{ sls_user }}"
+  when: bootstrap_autorun | bool
+
+- name: Instalar y habilitar monitor guard
+  ansible.builtin.command: "make monitor-install"
+  args:
+    chdir: "{{ app_root }}"
+  become: true
+  when: bootstrap_autorun | bool
+
+- name: Instalar unidad systemd de backups restic
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: "sls-backup.service.j2", dest: "/etc/systemd/system/sls-backup.service" }
+    - { src: "sls-backup.timer.j2", dest: "/etc/systemd/system/sls-backup.timer" }
+  when: restic_enabled | bool
+
+- name: Recargar systemd y habilitar timer de backups
+  ansible.builtin.systemd:
+    name: sls-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: restic_enabled | bool

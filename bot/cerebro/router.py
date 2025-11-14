@@ -61,6 +61,24 @@ def cerebro_learn(payload: Dict[str, Any]):
     return {"ok": True}
 
 
+@cerebro_router.post("/simulate")
+def cerebro_simulate(payload: Dict[str, Any]):
+    cerebro = get_cerebro()
+    if not cerebro.config.enabled:
+        raise HTTPException(status_code=503, detail="Cerebro deshabilitado")
+    symbol = (payload.get("symbol") or "").upper()
+    timeframe = payload.get("timeframe") or "15m"
+    horizon = int(payload.get("horizon") or 30)
+    news_sentiment = float(payload.get("news_sentiment") or 0.0)
+    if not symbol:
+        raise HTTPException(status_code=400, detail="symbol requerido")
+    try:
+        result = cerebro.simulate_sequence(symbol=symbol, timeframe=timeframe, horizon=horizon, news_sentiment=news_sentiment)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return result
+
+
 @cerebro_router.get("/decisions")
 def cerebro_decisions(limit: int = Query(50, ge=1, le=200)):
     cerebro = get_cerebro()

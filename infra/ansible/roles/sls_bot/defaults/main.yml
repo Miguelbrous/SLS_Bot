@@ -1,0 +1,22 @@
+sls_user: "{{ lookup('vars', 'sls_user') | default('sls', true) }}"
+app_root: "{{ lookup('vars', 'app_root') | default('/opt/SLS_Bot', true) }}"
+repo_url: "{{ lookup('vars', 'repo_url') | default('https://github.com/your-org/SLS_Bot.git', true) }}"
+repo_branch: "{{ lookup('vars', 'repo_branch') | default('main', true) }}"
+system_packages:
+  - git
+  - python3
+  - python3-venv
+  - python3-pip
+  - nodejs
+  - npm
+  - docker.io
+  - make
+  - rsync
+  - curl
+log_dir: "{{ app_root }}/logs"
+tmp_dir: "{{ app_root }}/tmp_logs"
+bootstrap_autorun: "{{ lookup('vars', 'bootstrap_autorun') | default(true, true) }}"
+env_template_path: env.j2
+environment_file: /etc/sls_bot.env
+restic_enabled: "{{ lookup('vars', 'restic_enabled') | default(false, true) }}"
+restic_environment_file: /etc/sls_bot_backup.env

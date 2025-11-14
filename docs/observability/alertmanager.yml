@@ -1,0 +1,36 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "default"
+  group_by: ["alertname", "severity"]
+  routes:
+    - match:
+        severity: critical
+      receiver: "critical"
+    - match:
+        severity: warning
+      receiver: "warning"
+
+receivers:
+  - name: "default"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/CHANGE/ME/NOW"
+        channel: "#sls-alerts"
+        send_resolved: true
+        title: "{{ .CommonAnnotations.summary }}"
+        text: "{{ .CommonAnnotations.description }}"
+  - name: "critical"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/CHANGE/ME/NOW"
+        channel: "#sls-critical"
+        send_resolved: true
+        title: "[CRITICAL] {{ .CommonAnnotations.summary }}"
+        text: "{{ .CommonAnnotations.description }}"
+  - name: "warning"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/CHANGE/ME/NOW"
+        channel: "#sls-warning"
+        send_resolved: true
+        title: "[WARN] {{ .CommonAnnotations.summary }}"
+        text: "{{ .CommonAnnotations.description }}"

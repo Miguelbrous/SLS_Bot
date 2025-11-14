@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Card from "./components/Card";
 import Controls from "./components/Controls";
 
@@ -262,7 +263,6 @@ export default function Page() {
   }, [availableTimeframes, timeframeFilter]);
 
   const slsActive = !!status?.services?.["sls-bot"]?.active;
-  const aiActive = !!status?.services?.["ai-bridge"]?.active;
   const riskDetails: RiskStateDetails | undefined =
     (status?.bot?.risk_state_details as RiskStateDetails | undefined) ||
     (status?.bot?.risk_state as RiskStateDetails | undefined);
@@ -284,16 +284,20 @@ export default function Page() {
   return (
     <>
       <h1>SLS Panel</h1>
+      <div className="badges" style={{ marginBottom: 12 }}>
+        <Link href="/dashboard" className="badge ok">
+          Abrir dashboard visual
+        </Link>
+        <Link href="/arena" className="badge ok">
+          Arena
+        </Link>
+      </div>
 
       <Card title="Servicios">
         <div className="svc-grid">
           <div className="svc-col">
             <div className="svc-head">API (sls-bot)</div>
             <Controls service="sls-bot" />
-          </div>
-          <div className="svc-col">
-            <div className="svc-head">Auto (ai-bridge)</div>
-            <Controls service="ai-bridge" />
           </div>
         </div>
       </Card>
@@ -304,9 +308,6 @@ export default function Page() {
           <div className="badges">
             <span className={`badge ${slsActive ? "ok" : "fail"}`}>
               sls-bot: {slsActive ? "activo" : "inactivo"}
-            </span>
-            <span className={`badge ${aiActive ? "ok" : "fail"}`}>
-              ai-bridge: {aiActive ? "activo" : "inactivo"}
             </span>
           </div>
 
@@ -597,4 +598,3 @@ export default function Page() {
     </>
   );
 }
-

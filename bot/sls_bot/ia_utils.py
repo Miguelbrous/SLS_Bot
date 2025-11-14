@@ -42,7 +42,7 @@ def rsi(c: pd.Series, length: int = 14) -> pd.Series:
 def atr(h: pd.Series, l: pd.Series, c: pd.Series, length: int = 14) -> pd.Series:
     pc = c.shift(1)
     tr = pd.concat([(h-l).abs(), (h-pc).abs(), (l-pc).abs()], axis=1).max(axis=1)
-    return tr.rolling(length).mean().fillna(method="bfill")
+    return tr.rolling(length).mean().bfill()
 
 def avwap_daily(df: pd.DataFrame) -> pd.Series:
     dt = pd.to_datetime(df["ts"], unit="ms", utc=True)
@@ -52,7 +52,7 @@ def avwap_daily(df: pd.DataFrame) -> pd.Series:
         tpv = g["typical"]*g["volume"]
         cv = g["volume"].cumsum().replace(0, np.nan)
         out.append(tpv.cumsum()/cv)
-    return pd.concat(out, axis=0).reset_index(drop=True).fillna(method="ffill")
+    return pd.concat(out, axis=0).reset_index(drop=True).ffill()
 
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()

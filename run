@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MANAGER="${ROOT_DIR}/scripts/manage.sh"
+
+usage() {
+  cat <<EOF
+Uso rápido:
+  run SLS_Bot              # Enciende bot + API + Cerebro + estrategia
+  run SLS_Bot stop         # Apaga todos los servicios
+  run SLS_Bot status       # Muestra estado
+  run SLS_Bot logs [api|bot|cerebro|estrategia] # Sigue logs
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 0
+fi
+
+case "$1" in
+SLS_Bot)
+  shift || true
+  sub="${1:-start}"
+  case "${sub}" in
+  start|encender)
+    exec "${MANAGER}" encender-todo
+    ;;
+  stop|apagar)
+    exec "${MANAGER}" apagar-todo
+    ;;
+  status|estado)
+    exec "${MANAGER}" estado
+    ;;
+  logs)
+    shift || true
+    exec "${MANAGER}" tail "${1:-estrategia}"
+    ;;
+  help|-h|--help|"")
+    usage
+    ;;
+  *)
+    echo "Acción desconocida: ${sub}" >&2
+    usage
+    exit 1
+    ;;
+  esac
+  ;;
+*)
+  usage
+  exit 1
+  ;;
+esac

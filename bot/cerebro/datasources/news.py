@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import List, Sequence
 from xml.etree import ElementTree
@@ -21,6 +22,7 @@ class RSSNewsDataSource(DataSource):
     def __init__(self, feeds: Sequence[str]):
         self.feeds = list(feeds) or []
         self._sentiment = get_sentiment_analyzer()
+        self._error_backoff: dict[str, float] = {}
 
     def fetch(self, *, symbol: str | None = None, timeframe: str | None = None, limit: int = 20) -> List[dict]:
         items: List[dict] = []
@@ -48,5 +50,11 @@ class RSSNewsDataSource(DataSource):
                         NewsItem(title=title, url=link, published_at=ts, sentiment=sentiment_score).__dict__
                     )
             except Exception as exc:
-                log.warning("RSS fetch failed for %s: %s", url, exc)
+                now = time.time()
+                last = self._error_backoff.get(url, 0.0)
+                if now - last >= 300:
+                    log.warning("RSS fetch failed for %s (backoff 5m): %s", url, exc)
+                    self._error_backoff[url] = now
+                else:
+                    log.debug("RSS fetch failed for %s (silenced): %s", url, exc)
         return items[:limit]

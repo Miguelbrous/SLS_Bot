@@ -7,7 +7,7 @@ const STORAGE_KEY = "sls-control-auth";
 const CONTROL_AUTH_MODE = process.env.NEXT_PUBLIC_CONTROL_AUTH_MODE || "browser";
 const PROXY_TOKEN = "__proxy__";
 
-type Props = { service: "sls-bot" | "ai-bridge"; label?: string };
+type Props = { service: string; label?: string };
 
 export default function Controls({ service, label }: Props) {
   const [resp, setResp] = useState<string>("");
