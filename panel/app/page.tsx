@@ -413,10 +413,10 @@ export default function Page() {
                   <div className="empty small">Sin historial de confianza</div>
                 )}
               </div>
-              {riskDetails.dynamic_risk?.enabled ? (
+              {riskDetails?.dynamic_risk?.enabled ? (
                 <div className="risk-dynamic">
-                  Multiplicador dinámico: x{Number(riskDetails.dynamic_risk.multiplier ?? 1).toFixed(2)} · Equity {formatEquity(riskDetails.dynamic_risk.current_equity)} /{" "}
-                  {formatEquity(riskDetails.dynamic_risk.start_equity)}
+                  Multiplicador dinámico: x{Number(riskDetails?.dynamic_risk?.multiplier ?? 1).toFixed(2)} · Equity {formatEquity(riskDetails?.dynamic_risk?.current_equity)} /{" "}
+                  {formatEquity(riskDetails?.dynamic_risk?.start_equity)}
                 </div>
               ) : (
                 <div className="risk-dynamic muted">Riesgo dinámico inactivo</div>
