@@ -16,7 +16,10 @@ from typing import Any, Dict, List
 
 import requests
 
-from bot.config_loader import load_config
+try:
+    from bot.config_loader import load_config  # type: ignore
+except ImportError:
+    from bot.sls_bot.config_loader import load_config  # type: ignore
 from bot.arena.registry import ArenaRegistry
 from bot.arena.models import StrategyProfile, StrategyStats
 from bot.signal_engine.live_engine import LiveSignalEngine
@@ -38,6 +41,7 @@ LOGS_DIR = _resolve_logs_dir()
 LOGS_DIR.mkdir(exist_ok=True, parents=True)
 STATE_PATH = LOGS_DIR / "demo_emitter_state.json"
 HISTORY_PATH = LOGS_DIR / "demo_emitter_history.jsonl"
+LEARNING_STATE_PATH = LOGS_DIR / "demo_learning_state.json"
 DEFAULT_CONFIG_PATH = ROOT_DIR / "config" / "demo_emitter.json"
 SAMPLE_CONFIG_PATH = ROOT_DIR / "config" / "demo_emitter.sample.json"
 
@@ -66,12 +70,15 @@ class DemoEmitter:
         self.cfg_bybit = load_config().get("bybit", {})
         self.engine = LiveSignalEngine(config=BOT_CFG)
         self.state = self._load_state()
+        self.overrides: Dict[str, Dict[str, Any]] = {}
+        self._overrides_mtime: float | None = None
         self.logger = logging.getLogger("demo_emitter")
         self.logger.setLevel(logging.INFO)
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
         if not self.logger.handlers:
             self.logger.addHandler(handler)
+        self._refresh_overrides()
 
     def _load_state(self) -> Dict[str, Any]:
         today = datetime.utcnow().date().isoformat()
@@ -112,6 +119,10 @@ class DemoEmitter:
         if not winners:
             return []
         winners.sort(key=lambda p: (p.stats.balance if p.stats else 0.0), reverse=True)
+        winners = [p for p in winners if not self._is_disabled(p.id)]
+        if not winners:
+            self.logger.warning("Todas las estrategias elegibles están desactivadas (demo_evaluator)")
+            return []
         batch = self.config.get("batch_size", 3)
         return winners[:batch]
 
@@ -128,14 +139,16 @@ class DemoEmitter:
         digits = ''.join(ch for ch in tf if ch.isdigit())
         return digits or '15'
 
-    def _risk_pct(self, stats: StrategyStats | None) -> float:
+    def _risk_pct(self, strategy_id: str, stats: StrategyStats | None) -> float:
         base = self.config.get("min_risk_pct", 0.5)
         ceiling = self.config.get("max_risk_pct", 1.5)
         if not stats:
-            return round(random.uniform(base, ceiling), 3)
+            raw = random.uniform(base, ceiling)
+            return round(raw * self._risk_multiplier(strategy_id), 3)
         span = max(ceiling - base, 0.1)
         factor = min(max(stats.sharpe_ratio, -1.0), 2.5) / 2.5
-        return round(base + span * max(factor, random.random()), 3)
+        raw = base + span * max(factor, random.random())
+        return round(raw * self._risk_multiplier(strategy_id), 3)
 
     def _build_signal(self, profile: StrategyProfile) -> Dict[str, Any]:
         stats = profile.stats or StrategyStats(balance=5.0, goal=100.0)
@@ -155,7 +168,7 @@ class DemoEmitter:
                 "session": "demo-emitter",
                 "side": side,
                 "risk_score": engine_payload.get("risk_score", 0.5),
-                "risk_pct": self._risk_pct(stats),
+                "risk_pct": self._risk_pct(profile.id, stats),
                 "strategy_id": profile.id,
                 "leverage": int(self.cfg_bybit.get("default_leverage", 10)),
                 "move_sl_to_be_on_tp1": True,
@@ -177,7 +190,7 @@ class DemoEmitter:
             "session": "demo-emitter",
             "side": side,
             "risk_score": round(stats.sharpe_ratio, 3),
-            "risk_pct": self._risk_pct(stats),
+            "risk_pct": self._risk_pct(profile.id, stats),
             "strategy_id": profile.id,
             "leverage": int(self.cfg_bybit.get("default_leverage", 10)),
             "move_sl_to_be_on_tp1": True,
@@ -226,7 +239,52 @@ class DemoEmitter:
         with HISTORY_PATH.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry) + "\n")
 
+    def _refresh_overrides(self) -> None:
+        try:
+            stat = LEARNING_STATE_PATH.stat()
+        except FileNotFoundError:
+            self.overrides = {}
+            self._overrides_mtime = None
+            return
+        except OSError:
+            return
+        if self._overrides_mtime and stat.st_mtime <= self._overrides_mtime:
+            return
+        try:
+            data = json.loads(LEARNING_STATE_PATH.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self.logger.error("No se pudo leer %s: %s", LEARNING_STATE_PATH, exc)
+            return
+        overrides: Dict[str, Dict[str, Any]] = {}
+        for strategy_id, payload in (data.get("strategies") or {}).items():
+            plan = payload.get("plan") or {}
+            mult_raw = plan.get("risk_multiplier", 1.0)
+            try:
+                multiplier = float(mult_raw)
+            except Exception:
+                multiplier = 1.0
+            overrides[str(strategy_id)] = {
+                "action": plan.get("action"),
+                "risk_multiplier": max(0.0, min(multiplier, 5.0)),
+                "notes": plan.get("notes") or [],
+            }
+        self.overrides = overrides
+        self._overrides_mtime = stat.st_mtime
+
+    def _is_disabled(self, strategy_id: str) -> bool:
+        entry = self.overrides.get(strategy_id) or {}
+        return entry.get("action") == "disable" or (entry.get("risk_multiplier") == 0.0)
+
+    def _risk_multiplier(self, strategy_id: str) -> float:
+        entry = self.overrides.get(strategy_id) or {}
+        mult = entry.get("risk_multiplier", 1.0)
+        try:
+            return max(0.0, min(float(mult), 5.0))
+        except Exception:
+            return 1.0
+
     def _tick(self) -> None:
+        self._refresh_overrides()
         if self._risk_blocked():
             self.logger.warning("Bot en cooldown segun risk_state.json; esperando...")
             time.sleep(self.config.get("interval_seconds", 60))

@@ -11,7 +11,10 @@ except ImportError:
 
 from pybit.unified_trading import HTTP
 
-from bot.config_loader import load_config
+try:
+    from bot.config_loader import load_config  # type: ignore
+except ImportError:
+    from bot.sls_bot.config_loader import load_config  # type: ignore
 
 
 def _parse_float(value: Any, default: float = 0.0) -> float:

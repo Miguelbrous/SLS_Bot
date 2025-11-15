@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter
+\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter demo-eval demo-promote demo-watchdog
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -174,3 +174,14 @@ autopilot-ci: ## Valida dataset + dry-run del autopilot (usa MODE=test, DATASET=
 
 
 \ndemo-up: ## Orquesta API + emisor demo mainnet\n\t@$(PYTHON_BIN) scripts/demo_runner.py $(if $(CONFIG),--config $(CONFIG),)\n\ndemo-emitter: ## Ejecuta solo el emisor demo\n\t@$(PYTHON_BIN) scripts/demo_emitter.py --config $(if $(CONFIG),$(CONFIG),config/demo_emitter.json)\n
+demo-eval: ## Procesa los logs demo y genera guardrails automáticos
+	@$(PYTHON_BIN) scripts/demo_evaluator.py $(if $(LOOKBACK),--lookback-hours $(LOOKBACK),) $(if $(ARGS),$(ARGS),)
+
+
+demo-promote: ## Promueve una estrategia demo->real usando metricas vivas (requiere STRATEGY=id)
+	@if [ -z "$(STRATEGY)" ]; then echo " >> STRATEGY=<id> es obligatorio (ej. make demo-promote STRATEGY=scalp_42)"; exit 1; fi
+	@$(PYTHON_BIN) scripts/demo_promote.py $(STRATEGY) $(if $(ARGS),$(ARGS),)
+
+
+demo-watchdog: ## Verifica salud del emisor demo y alerta si esta detenido/bloqueado
+	@$(PYTHON_BIN) scripts/demo_watchdog.py $(if $(ARGS),$(ARGS),)
