@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter demo-eval demo-promote demo-watchdog real-watchdog
+\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter demo-eval demo-promote demo-watchdog real-watchdog smoke-real
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -80,6 +80,12 @@ smoke: ## Smoke test completo usando scripts/tests/e2e_smoke.py.
 	 SLS_CONTROL_USER=$(CONTROL_USER) \
 	 SLS_CONTROL_PASSWORD=$(CONTROL_PASSWORD) \
 	 $(PYTHON_BIN) scripts/tests/e2e_smoke.py
+
+smoke-real: ## Smoke test real (dry_run via /webhook)
+	@SLS_API_BASE=$${API_BASE:-http://127.0.0.1:8880} \
+	 SLS_PANEL_TOKEN=$(PANEL_TOKEN) \
+	 SMOKE_REAL_SYMBOL=$(if $(SYMBOL),$(SYMBOL),BTCUSDT) \
+	 $(PYTHON_BIN) scripts/tests/e2e_smoke_real.py
 
 monitor-check: ## Ejecuta el monitor de arena (/arena/state + /metrics). Pensado para cron/CI.
 	@$(PYTHON_BIN) scripts/ops.py monitor check \

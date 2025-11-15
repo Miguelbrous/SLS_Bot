@@ -110,7 +110,7 @@ SLS_CONTROL_USER=panel ^
 SLS_CONTROL_PASSWORD=cambia_est0 ^
 venv\Scripts\python scripts/tests/e2e_smoke.py
 ```
-Las pruebas de pytest usan `config/config.sample.json`, escriben `logs/test_pnl.jsonl` y fijan `SLS_SKIP_TIME_SYNC=1`. El script `scripts/tests/e2e_smoke.py` realiza un smoke test end-to-end contra una API en ejecucin verificando `/health`, `/pnl/diario` y `/control`.
+Las pruebas de pytest usan `config/config.sample.json`, escriben `logs/test_pnl.jsonl` y fijan `SLS_SKIP_TIME_SYNC=1`. El script `scripts/tests/e2e_smoke.py` realiza un smoke test end-to-end contra una API en ejecución verificando `/health`, `/pnl/diario` y `/control`; para modo real existe `scripts/tests/e2e_smoke_real.py`, que envía un `SLS_*` con `dry_run=True` para asegurarse de que el webhook puede colocar órdenes sin tocar Bybit.
 
 ## Modelo Cerebro (entrenamiento y despliegue)
 ```
@@ -281,6 +281,7 @@ npm run build
 - `make rotate-artifacts DAYS=14` archiva logs/modelos antiguos en `logs/*/archive` y `models/cerebro/*/archive`.
 - `make health PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` ejecuta un ping rpido a `/health`, `/status`, `/cerebro/status` y `/control/sls-bot/status`.
 - `make smoke PANEL_TOKEN=... CONTROL_USER=... CONTROL_PASSWORD=...` corre `scripts/tests/e2e_smoke.py` contra el despliegue activo.
+- `make smoke-real PANEL_TOKEN=...` ejecuta `scripts/tests/e2e_smoke_real.py`, que envía un `SLS_LONG_ENTRY` con `dry_run=true` para validar el webhook real sin abrir operaciones.
 - `python3 scripts/manage_bot.py encender --retries 3 --retry-delay 10` reintenta acciones systemd automticamente cuando fallan.
 
 ## Estructura
@@ -329,7 +330,7 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 - `make demo-promote STRATEGY=scalp_42 ARGS="--min-win-rate 60 --control-api https://api.real --control-user panel --control-password secret"` valida las métricas demo, genera el paquete (`scripts/ops.py arena promote-real`), reinicia el webhook real (opcional) y registra la acción en `logs/promotions/demo_to_real.jsonl`.
 - Cada promoción crea `logs/promotions/<strategy>/<timestamp>/` con `metadata.json`, `checklist.md`, `package.tar.gz` (captura del paquete exportado) y, si usas `--smoke-cmd "make smoke ..."`, el `smoke.log`. El checklist incluye las tareas manuales pendientes (QA, smoke, monitoreo) y deja constancia del control API ejecutado.
 - Añade `--package-config` para guardar también `snapshot/` con las versiones de `logs/demo_learning_state.json` y `config/config.json` que se usaron al promover (útil para reproducibilidad / auditoría).
-- `scripts/demo_promote.py` acepta parámetros como `--artifact-dir`, `--smoke-cmd`, `--auto-smoke/--no-auto-smoke`, `--smoke-api-base`, `--smoke-panel-token`, `--notes`, `--qa-owner`, `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*`. Por defecto ejecuta `scripts/tests/e2e_smoke.py` con las credenciales/URLs que le pases (`--api-base`, `--panel-token`, `--control-*`). Usa `--dry-run` cuando sólo necesites el informe y `--allow-smoke-fail` si quieres registrar un smoke fallido sin abortar el proceso.
+- `scripts/demo_promote.py` acepta parámetros como `--artifact-dir`, `--smoke-cmd`, `--auto-smoke/--no-auto-smoke`, `--smoke-api-base`, `--smoke-panel-token`, `--notes`, `--qa-owner`, `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*`. Por defecto ejecuta `scripts/tests/e2e_smoke_real.py` con las credenciales/URLs que le pases (`--api-base`, `--panel-token`, `--control-*`). Usa `--dry-run` cuando sólo necesites el informe y `--allow-smoke-fail` si quieres registrar un smoke fallido sin abortar el proceso.
 
 ### Demo watchdog
 - `make demo-watchdog ARGS="--slack-webhook https://hooks.slack/... --target-deadline 21:30"` valida que el emisor esté publicando señales, que el conteo diario alcance la meta y que `risk_state.json` no se quede bloqueado.

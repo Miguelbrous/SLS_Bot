@@ -89,6 +89,7 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
      --control-password SECRET" 
    ```
    El comando exporta el paquete (`scripts/ops.py arena promote-real`), reinicia el webhook real vía `/control/*`, ejecuta `scripts/tests/e2e_smoke.py` automáticamente y guarda los artefactos en `logs/promotions/<estrategia>/<timestamp>/` (`metadata.json`, `checklist.md`, `package.tar.gz`, `smoke.log`, `snapshot/`).
+   Si prefieres ejecutarlo manualmente después usa `make smoke-real PANEL_TOKEN=... API_BASE=https://api.real`.
 
 3. **Firmar checklist y QA.** Abre el `checklist.md` generado, marca los pasos manuales (QA visual del paquete, verificación de config real, smoke/monitoreo) y archiva una copia en tu runbook/notas internas. Si necesitas repetir el proceso sin tocar prod usa `make demo-promote ... ARGS="--dry-run"`.
 
