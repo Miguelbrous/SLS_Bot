@@ -309,11 +309,13 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 
 1. Configura `config/demo_emitter.json` (o copia `demo_emitter.sample.json`). Define `webhook_url` (endpoint demo), `panel_token` (token demo), lista de `symbol_pool`, limites de riesgo y objetivo diario de operaciones.
 2. Exporta los secretos necesarios (`PANEL_API_TOKEN`, `WEBHOOK_SHARED_SECRET` si el webhook lo exige) o declaralos en el JSON.
-3. Lanza el emisor en bucle:
+3. Lanza todo con el orquestador:
    ```bash
-   python scripts/demo_emitter.py --config config/demo_emitter.json
+   make demo-up CONFIG=config/demo_emitter.json
+   # o equivalentemente
+   python scripts/demo_runner.py --config config/demo_emitter.json
    ```
-   Usa `--once` para un batch puntual o `--dry-run` para ver el payload sin enviar.
+   Usa `--once` y/o `--dry-run` para controlar el emisor (`python scripts/demo_runner.py --only-emitter --once`).
 4. El estado (trades diarios, fallos) se guarda en `logs/demo_emitter_state.json` y el historial en `logs/demo_emitter_history.jsonl`. Si el bot entra en cooldown (`logs/demo/risk_state.json`), el emisor espera hasta que se libere.
 
 Con este flujo el bot opera continuamente en demo (precios reales), ajusta riesgo segun Arena/Cerebro y puedes validar la meta diaria antes de pasar a mainnet real.
