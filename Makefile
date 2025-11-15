@@ -14,7 +14,7 @@ endif
 
 export PYTHONPATH := $(ROOT)/bot
 
-\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter demo-eval demo-promote demo-watchdog
+\.PHONY: bootstrap deps backend-deps run-api run-bot run-panel panel-build test lint clean encender apagar reiniciar diagnostico infra-check setup-dirs rotate-artifacts health smoke monitor-check monitor-install provision observability-up observability-down observability-check textfile-smoke autopilot-ci demo-up demo-emitter demo-eval demo-promote demo-watchdog real-watchdog
 
 bootstrap: deps panel-deps ## Crea el entorno virtual, instala dependencias backend y frontend.
 
@@ -185,3 +185,5 @@ demo-promote: ## Promueve una estrategia demo->real usando metricas vivas (requi
 
 demo-watchdog: ## Verifica salud del emisor demo y alerta si esta detenido/bloqueado
 	@$(PYTHON_BIN) scripts/demo_watchdog.py $(if $(ARGS),$(ARGS),)
+real-watchdog: ## Vigila el modo real (pnl/riesgo/API)
+	@$(PYTHON_BIN) scripts/real_watchdog.py $(if $(ARGS),$(ARGS),)

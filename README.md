@@ -335,5 +335,9 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 - `make demo-watchdog ARGS="--slack-webhook https://hooks.slack/... --target-deadline 21:30"` valida que el emisor esté publicando señales, que el conteo diario alcance la meta y que `risk_state.json` no se quede bloqueado.
 - El script (`scripts/demo_watchdog.py`) consume `demo_emitter_state.json`, `demo_emitter_history.jsonl` y `risk_state.json`, calcula la frescura (`--max-stale-seconds`) y alerta por Slack/Telegram si el loop se detuvo o si la meta diaria no se cumplió.
 
+### Real watchdog
+- `make real-watchdog ARGS="--api-base https://api.real --panel-token XXX --slack-webhook https://hooks.slack..."` vigila el modo real: verifica que `logs/real/pnl.jsonl` tenga cierres recientes, que el conteo diario de operaciones alcance el mínimo configurado y que `risk_state.json` no se quede en cooldown. También golpea `/health` y `/risk` del API real para asegurar que los servicios estén de pie.
+- `scripts/real_watchdog.py` acepta `--mode` (default `real`), `--min-trades`, `--deadline`, `--max-pnl-stale-seconds`, `--panel-token`, `--slack-webhook`, `--telegram-token`, etc. Usa `--dry-run` para obtener un resumen sin disparar alertas y programa el comando en cron/systemd para supervisión continua.
+
 Con este flujo el bot opera continuamente en demo (precios reales), ajusta riesgo segun Arena/Cerebro y puedes validar la meta diaria antes de pasar a mainnet real.
 
