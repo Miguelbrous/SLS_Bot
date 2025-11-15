@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -19,6 +19,7 @@ import requests
 from bot.config_loader import load_config
 from bot.arena.registry import ArenaRegistry
 from bot.arena.models import StrategyProfile, StrategyStats
+from bot.signal_engine.live_engine import LiveSignalEngine
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 BOT_CFG = load_config()
@@ -63,6 +64,7 @@ class DemoEmitter:
         self.registry = ArenaRegistry()
         self.session = requests.Session()
         self.cfg_bybit = load_config().get("bybit", {})
+        self.engine = LiveSignalEngine(config=BOT_CFG)
         self.state = self._load_state()
         self.logger = logging.getLogger("demo_emitter")
         self.logger.setLevel(logging.INFO)
@@ -120,6 +122,12 @@ class DemoEmitter:
             return "LONG"
         return "SHORT"
 
+    def _normalize_timeframe(self, tf: str | None) -> str:
+        if not tf:
+            return "15"
+        digits = ''.join(ch for ch in tf if ch.isdigit())
+        return digits or '15'
+
     def _risk_pct(self, stats: StrategyStats | None) -> float:
         base = self.config.get("min_risk_pct", 0.5)
         ceiling = self.config.get("max_risk_pct", 1.5)
@@ -131,14 +139,40 @@ class DemoEmitter:
 
     def _build_signal(self, profile: StrategyProfile) -> Dict[str, Any]:
         stats = profile.stats or StrategyStats(balance=5.0, goal=100.0)
-        side = self._decide_side(stats)
-        signal = "SLS_LONG_ENTRY" if side == "LONG" else "SLS_SHORT_ENTRY"
+        timeframe = profile.timeframe or self.config.get("default_timeframe", "15m")
+        normalized_tf = self._normalize_timeframe(timeframe)
         symbol_pool = self.config.get("symbol_pool") or self.cfg_bybit.get("symbols", ["BTCUSDT"])
         symbol = random.choice(symbol_pool)
-        payload: Dict[str, Any] = {
+        engine_payload = self.engine.generate(symbol, normalized_tf, stats)
+        if engine_payload:
+            side = engine_payload["side"]
+            signal = "SLS_LONG_ENTRY" if side == "LONG" else "SLS_SHORT_ENTRY"
+            payload: Dict[str, Any] = {
+                "signal": signal,
+                "symbol": symbol,
+                "tf": timeframe,
+                "timestamp": datetime.utcnow().isoformat(),
+                "session": "demo-emitter",
+                "side": side,
+                "risk_score": engine_payload.get("risk_score", 0.5),
+                "risk_pct": self._risk_pct(stats),
+                "strategy_id": profile.id,
+                "leverage": int(self.cfg_bybit.get("default_leverage", 10)),
+                "move_sl_to_be_on_tp1": True,
+                "tp1_close_pct": 50,
+                "order_type": "Market",
+                "price": engine_payload.get("price"),
+                "stop_loss": engine_payload.get("stop_loss"),
+                "take_profit": engine_payload.get("take_profit")
+            }
+            return payload
+        # fallback simple cuando no hay datos de mercado
+        side = self._decide_side(stats)
+        signal = "SLS_LONG_ENTRY" if side == "LONG" else "SLS_SHORT_ENTRY"
+        payload = {
             "signal": signal,
             "symbol": symbol,
-            "tf": profile.timeframe or self.config.get("default_timeframe", "15m"),
+            "tf": timeframe,
             "timestamp": datetime.utcnow().isoformat(),
             "session": "demo-emitter",
             "side": side,
@@ -250,3 +284,5 @@ if __name__ == "__main__":
         config["dry_run"] = True
     emitter = DemoEmitter(config=config, loop=not args.once)
     emitter.run()
+
+
