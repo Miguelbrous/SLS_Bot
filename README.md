@@ -329,7 +329,7 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 - `make demo-promote STRATEGY=scalp_42 ARGS="--min-win-rate 60 --control-api https://api.real --control-user panel --control-password secret"` valida las métricas demo, genera el paquete (`scripts/ops.py arena promote-real`), reinicia el webhook real (opcional) y registra la acción en `logs/promotions/demo_to_real.jsonl`.
 - Cada promoción crea `logs/promotions/<strategy>/<timestamp>/` con `metadata.json`, `checklist.md`, `package.tar.gz` (captura del paquete exportado) y, si usas `--smoke-cmd "make smoke ..."`, el `smoke.log`. El checklist incluye las tareas manuales pendientes (QA, smoke, monitoreo) y deja constancia del control API ejecutado.
 - Añade `--package-config` para guardar también `snapshot/` con las versiones de `logs/demo_learning_state.json` y `config/config.json` que se usaron al promover (útil para reproducibilidad / auditoría).
-- `scripts/demo_promote.py` acepta parámetros como `--artifact-dir`, `--smoke-cmd`, `--notes`, `--qa-owner`, `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*`. Usa `--dry-run` cuando sólo necesites el informe y `--allow-smoke-fail` si quieres registrar un smoke fallido sin abortar el proceso.
+- `scripts/demo_promote.py` acepta parámetros como `--artifact-dir`, `--smoke-cmd`, `--auto-smoke/--no-auto-smoke`, `--smoke-api-base`, `--smoke-panel-token`, `--notes`, `--qa-owner`, `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*`. Por defecto ejecuta `scripts/tests/e2e_smoke.py` con las credenciales/URLs que le pases (`--api-base`, `--panel-token`, `--control-*`). Usa `--dry-run` cuando sólo necesites el informe y `--allow-smoke-fail` si quieres registrar un smoke fallido sin abortar el proceso.
 
 ### Demo watchdog
 - `make demo-watchdog ARGS="--slack-webhook https://hooks.slack/... --target-deadline 21:30"` valida que el emisor esté publicando señales, que el conteo diario alcance la meta y que `risk_state.json` no se quede bloqueado.
@@ -338,6 +338,11 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 ### Real watchdog
 - `make real-watchdog ARGS="--api-base https://api.real --panel-token XXX --slack-webhook https://hooks.slack..."` vigila el modo real: verifica que `logs/real/pnl.jsonl` tenga cierres recientes, que el conteo diario de operaciones alcance el mínimo configurado y que `risk_state.json` no se quede en cooldown. También golpea `/health` y `/risk` del API real para asegurar que los servicios estén de pie.
 - `scripts/real_watchdog.py` acepta `--mode` (default `real`), `--min-trades`, `--deadline`, `--max-pnl-stale-seconds`, `--panel-token`, `--slack-webhook`, `--telegram-token`, etc. Usa `--dry-run` para obtener un resumen sin disparar alertas y programa el comando en cron/systemd para supervisión continua.
+- Para automatizarlo usa `scripts/cron/real_watchdog.sh` (lee variables `REAL_WATCHDOG_API_BASE`, `REAL_WATCHDOG_SLACK_WEBHOOK`, `REAL_WATCHDOG_PANEL_TOKEN`, `REAL_WATCHDOG_MIN_TRADES`, etc.). Ejemplo cron cada 5 minutos:
+  ```bash
+  */5 * * * * REAL_WATCHDOG_API_BASE=https://api.real REAL_WATCHDOG_SLACK_WEBHOOK=https://hooks.slack/... \
+    REAL_WATCHDOG_PANEL_TOKEN=token bash /opt/SLS_Bot/scripts/cron/real_watchdog.sh
+  ```
 
 Con este flujo el bot opera continuamente en demo (precios reales), ajusta riesgo segun Arena/Cerebro y puedes validar la meta diaria antes de pasar a mainnet real.
 

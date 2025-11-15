@@ -7,16 +7,20 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 try:
     from bot.config_loader import load_config  # type: ignore
 except ImportError:
     from bot.sls_bot.config_loader import load_config  # type: ignore
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 def _parse_iso(ts_raw: Optional[str]) -> Optional[datetime]:

@@ -38,6 +38,66 @@ Guía de referencia para mantener el bot operativo las 24 horas, con arranque au
    ```
    El timer ejecuta `monitor_guard.py` cada 5 minutos y envía alertas a Slack/Telegram.
 
+   Para el modo real instala un cron/timer adicional que ejecute `scripts/cron/real_watchdog.sh` con tus credenciales (`REAL_WATCHDOG_API_BASE`, `REAL_WATCHDOG_SLACK_WEBHOOK`, `REAL_WATCHDOG_PANEL_TOKEN`, etc.). Ejemplo systemd simple:
+   ```bash
+   cat <<'EOF' | sudo tee /etc/systemd/system/sls-real-watchdog.service
+   [Unit]
+   Description=SLS Bot real watchdog
+
+   [Service]
+   Type=oneshot
+   Environment=REAL_WATCHDOG_API_BASE=https://api.real
+   Environment=REAL_WATCHDOG_SLACK_WEBHOOK=https://hooks.slack/...
+   Environment=REAL_WATCHDOG_PANEL_TOKEN=token
+   ExecStart=/opt/SLS_Bot/scripts/cron/real_watchdog.sh
+   EOF
+
+   cat <<'EOF' | sudo tee /etc/systemd/system/sls-real-watchdog.timer
+   [Unit]
+   Description=Run real watchdog every 5 minutes
+
+   [Timer]
+   OnBootSec=2m
+   OnUnitActiveSec=5m
+   AccuracySec=30s
+   Unit=sls-real-watchdog.service
+
+   [Install]
+   WantedBy=timers.target
+   EOF
+
+   sudo systemctl enable --now sls-real-watchdog.timer
+   ```
+
+### Checklist demo → real
+1. **Validar métricas demo.**
+   ```bash
+   make demo-eval LOOKBACK=72
+   ```
+   Revisa `logs/demo_learning_state.json` / `logs/demo_learning_ledger.jsonl` para confirmar que la estrategia candidata cumple win rate, Sharpe y drawdown.
+
+2. **Promoción asistida con smoke integrado.**
+   ```bash
+   make demo-promote STRATEGY=scalp_42 ARGS="\
+     --notes 'QA nocturna' \
+     --qa-owner migue \
+     --package-config \
+     --smoke-api-base https://api.real \
+     --smoke-panel-token TOKEN_REAL \
+     --control-api https://api.real \
+     --control-user panel \
+     --control-password SECRET" 
+   ```
+   El comando exporta el paquete (`scripts/ops.py arena promote-real`), reinicia el webhook real vía `/control/*`, ejecuta `scripts/tests/e2e_smoke.py` automáticamente y guarda los artefactos en `logs/promotions/<estrategia>/<timestamp>/` (`metadata.json`, `checklist.md`, `package.tar.gz`, `smoke.log`, `snapshot/`).
+
+3. **Firmar checklist y QA.** Abre el `checklist.md` generado, marca los pasos manuales (QA visual del paquete, verificación de config real, smoke/monitoreo) y archiva una copia en tu runbook/notas internas. Si necesitas repetir el proceso sin tocar prod usa `make demo-promote ... ARGS="--dry-run"`.
+
+4. **Verificar watchdogs.** Tras el smoke confirma que:
+   - `make real-watchdog ARGS="--api-base https://api.real --panel-token ... --dry-run"` devuelve “Todo en orden”.
+   - El timer `sls-real-watchdog` y `sls-monitor` están activos (`systemctl list-timers | grep watchdog`).
+
+5. **Rollback rápido (si algo falla).** Ejecuta `make demo-promote STRATEGY=scalp_42 ARGS="--dry-run"` para inspeccionar métricas actuales. Si el webhook real debe pausar, usa `/control/sls-bot/stop` y ajusta el `risk_state.json` (bloqueado) hasta resolver el incidente.
+
 6. **Provisioning reproducible (Ansible)**:
    1. Instala Ansible en tu máquina de control (`pip install ansible`).
    2. Duplica el inventario de ejemplo:

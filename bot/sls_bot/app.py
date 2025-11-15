@@ -239,6 +239,7 @@ class Signal(BaseModel):
     max_margin_pct: Optional[float] = None
     max_risk_pct: Optional[float] = None
     min_stop_distance_pct: Optional[float] = None
+    dry_run: Optional[bool] = False
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -941,6 +942,8 @@ def _process_signal(sig: Signal):
 
         # ====== CIERRE ======
         if sig.signal == "SLS_EXIT":
+            if sig.dry_run:
+                return {"status": "dry_run", "action": "exit"}
             before = balance
             resp = _close_position_reduce_only(sig.symbol)
             after = bb.get_balance()
@@ -1129,6 +1132,14 @@ def _process_signal(sig: Signal):
 
         tp_ref = limit_price if limit_price is not None else float(price_reference or price_live)
         _add_tp_sl(payload, side, tp_ref, symbol)
+
+        if sig.dry_run:
+            return {
+                "status": "dry_run",
+                "payload": payload,
+                "symbol": symbol,
+                "qty": qty_str,
+            }
 
         # leverage tolerante
         try:

@@ -211,3 +211,15 @@ def test_low_capital_guard_adjusts_leverage(bot_module_factory, monkeypatch: pyt
     assert response.status_code == 200
     assert captured["leverage"] is not None
     assert captured["leverage"] >= 10
+
+
+def test_webhook_dry_run_skips_order(bot_module_factory):
+    module = bot_module_factory()
+    client = TestClient(module.app)
+    payload = _default_payload()
+    payload["dry_run"] = True
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "dry_run"
+    assert getattr(module.bb.session, "orders", []) == []

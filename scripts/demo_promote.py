@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -67,6 +68,21 @@ def _archive_package(package_path: Path, dest_dir: Path) -> Optional[Path]:
         return Path(archive)
     except Exception:
         return None
+
+
+def _run_internal_smoke(api_base: Optional[str], panel_token: Optional[str], control_user: Optional[str], control_password: Optional[str]) -> Tuple[int, str, str]:
+    env = os.environ.copy()
+    if api_base:
+        env["SLS_API_BASE"] = api_base
+    if panel_token:
+        env["SLS_PANEL_TOKEN"] = panel_token
+    if control_user:
+        env["SLS_CONTROL_USER"] = control_user
+    if control_password:
+        env["SLS_CONTROL_PASSWORD"] = control_password
+    cmd = [sys.executable, str(ROOT_DIR / "scripts" / "tests" / "e2e_smoke_real.py")]
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    return proc.returncode, proc.stdout, proc.stderr
 
 
 def _tail_promotion_log(strategy_id: str) -> Optional[Dict[str, Any]]:
@@ -271,6 +287,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--artifact-dir", type=Path, default=None, help="Directorio raíz para guardar checklist/metadata")
     parser.add_argument("--smoke-cmd", help="Comando para ejecutar smoke test tras la promoción")
     parser.add_argument("--allow-smoke-fail", action="store_true", help="No aborta aunque el smoke falle")
+    parser.add_argument("--auto-smoke", dest="auto_smoke", action="store_true", default=True, help="Ejecuta el smoke integrado e2e si no se pasa --smoke-cmd")
+    parser.add_argument("--no-auto-smoke", dest="auto_smoke", action="store_false")
+    parser.add_argument("--smoke-api-base", help="Override para SLS_API_BASE al ejecutar el smoke integrado")
+    parser.add_argument("--smoke-panel-token", help="Override para SLS_PANEL_TOKEN")
+    parser.add_argument("--smoke-control-user", help="Override para SLS_CONTROL_USER")
+    parser.add_argument("--smoke-control-password", help="Override para SLS_CONTROL_PASSWORD")
     parser.add_argument("--qa-owner", help="Responsable que firmará el checklist")
     parser.add_argument("--notes", help="Notas adicionales para el checklist")
     parser.add_argument("--package-config", action="store_true", help="Incluye snapshot de config/demo_learning_state en la carpeta")
@@ -390,24 +412,43 @@ def main() -> int:
     context["control_detail"] = control_detail
 
     smoke_result: Optional[Dict[str, Any]] = None
+    smoke_stdout = ""
+    smoke_stderr = ""
     if args.smoke_cmd:
         print(f"[demo-promote] Ejecutando smoke cmd: {args.smoke_cmd}")
-        proc = subprocess.run(args.smoke_cmd, shell=True, capture_output=True, text=True)
+        proc = subprocess.run(args.smoke_cmd, shell=True, capture_output=True, text=True, env=os.environ.copy())
         smoke_result = {
             "cmd": args.smoke_cmd,
             "returncode": proc.returncode,
             "stdout": proc.stdout,
             "stderr": proc.stderr,
         }
+        smoke_stdout, smoke_stderr = proc.stdout, proc.stderr
+    elif args.auto_smoke:
+        auto_api_base = args.smoke_api_base or args.api_base
+        auto_panel_token = args.smoke_panel_token or args.panel_token
+        auto_control_user = args.smoke_control_user or args.control_user
+        auto_control_password = args.smoke_control_password or args.control_password
+        print("[demo-promote] Ejecutando smoke interno scripts/tests/e2e_smoke.py")
+        rc, out, err = _run_internal_smoke(auto_api_base, auto_panel_token, auto_control_user, auto_control_password)
+        smoke_result = {
+            "cmd": "internal_e2e_smoke",
+            "returncode": rc,
+            "stdout": out,
+            "stderr": err,
+            "api_base": auto_api_base,
+        }
+        smoke_stdout, smoke_stderr = out, err
+    if smoke_result:
         context["smoke"] = smoke_result
         if promotion_dir:
             (promotion_dir / "smoke.log").write_text(
-                proc.stdout + "\n--- stderr ---\n" + proc.stderr,
+                smoke_stdout + "\n--- stderr ---\n" + smoke_stderr,
                 encoding="utf-8",
             )
-        if proc.returncode != 0 and not args.allow_smoke_fail:
+        if smoke_result["returncode"] != 0 and not args.allow_smoke_fail:
             print("[demo-promote] Smoke test falló; abortando promoción.", file=sys.stderr)
-            return proc.returncode or 4
+            return smoke_result["returncode"] or 4
 
     if promotion_dir:
         if args.package_config:
