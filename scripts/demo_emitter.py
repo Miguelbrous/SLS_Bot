@@ -21,8 +21,20 @@ from bot.arena.registry import ArenaRegistry
 from bot.arena.models import StrategyProfile, StrategyStats
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-LOGS_DIR = ROOT_DIR / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
+BOT_CFG = load_config()
+PATHS_CFG = BOT_CFG.get("paths", {}) if isinstance(BOT_CFG, dict) else {}
+
+def _resolve_logs_dir() -> Path:
+    raw = PATHS_CFG.get("logs_dir") if isinstance(PATHS_CFG, dict) else None
+    if isinstance(raw, str) and raw:
+        candidate = Path(raw)
+        if candidate.is_absolute():
+            return candidate
+        return (ROOT_DIR / candidate).resolve()
+    return ROOT_DIR / "logs"
+
+LOGS_DIR = _resolve_logs_dir()
+LOGS_DIR.mkdir(exist_ok=True, parents=True)
 STATE_PATH = LOGS_DIR / "demo_emitter_state.json"
 HISTORY_PATH = LOGS_DIR / "demo_emitter_history.jsonl"
 DEFAULT_CONFIG_PATH = ROOT_DIR / "config" / "demo_emitter.json"
