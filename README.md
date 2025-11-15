@@ -326,8 +326,10 @@ Para que el bot abra operaciones constantes en Bybit demo/mainnet sin intervenci
 
 ### Promoción demo->real
 - Ejecuta `make demo-eval` para refrescar `logs/demo_learning_state.json` y validar qué estrategias cumplen los umbrales.
-- `make demo-promote STRATEGY=scalp_42 ARGS="--min-win-rate 60 --control-api https://api.real --control-user panel --control-password secret"` valida las métricas, genera el paquete (`scripts/ops.py arena promote-real`) y escribe `logs/promotions/demo_to_real.jsonl`.
-- `scripts/demo_promote.py` acepta parámetros como `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*` para reiniciar automáticamente el servicio real (`/control/<service>/<action>`). Usa `--dry-run` cuando sólo necesites el reporte y `--force` para omitir validaciones en escenarios de emergencia.
+- `make demo-promote STRATEGY=scalp_42 ARGS="--min-win-rate 60 --control-api https://api.real --control-user panel --control-password secret"` valida las métricas demo, genera el paquete (`scripts/ops.py arena promote-real`), reinicia el webhook real (opcional) y registra la acción en `logs/promotions/demo_to_real.jsonl`.
+- Cada promoción crea `logs/promotions/<strategy>/<timestamp>/` con `metadata.json`, `checklist.md`, `package.tar.gz` (captura del paquete exportado) y, si usas `--smoke-cmd "make smoke ..."`, el `smoke.log`. El checklist incluye las tareas manuales pendientes (QA, smoke, monitoreo) y deja constancia del control API ejecutado.
+- Añade `--package-config` para guardar también `snapshot/` con las versiones de `logs/demo_learning_state.json` y `config/config.json` que se usaron al promover (útil para reproducibilidad / auditoría).
+- `scripts/demo_promote.py` acepta parámetros como `--artifact-dir`, `--smoke-cmd`, `--notes`, `--qa-owner`, `--min-trades`, `--min-sharpe`, `--min-auc`, `--control-*`. Usa `--dry-run` cuando sólo necesites el informe y `--allow-smoke-fail` si quieres registrar un smoke fallido sin abortar el proceso.
 
 ### Demo watchdog
 - `make demo-watchdog ARGS="--slack-webhook https://hooks.slack/... --target-deadline 21:30"` valida que el emisor esté publicando señales, que el conteo diario alcance la meta y que `risk_state.json` no se quede bloqueado.
