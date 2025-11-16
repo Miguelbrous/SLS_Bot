@@ -168,6 +168,16 @@ def _append_jsonl(path: Path, payload: dict) -> None:
         pass
 
 
+def _coerce_float(value: Any, fallback: float = 0.0) -> float:
+    """Convierte valores ruidosos (str/None) a float con un fallback seguro."""
+    try:
+        if value is None:
+            return float(fallback)
+        return float(value)
+    except (TypeError, ValueError):
+        return float(fallback)
+
+
 def _append_bridge_log(message: str) -> None:
     try:
         BRIDGE_LOG.parent.mkdir(parents=True, exist_ok=True)
@@ -944,16 +954,12 @@ def _process_signal(sig: Signal):
         if sig.signal == "SLS_EXIT":
             if sig.dry_run:
                 return {"status": "dry_run", "action": "exit"}
-            before = float(balance or 0.0)
+            before = _coerce_float(balance, 0.0)
             resp = _close_position_reduce_only(sig.symbol)
             after_raw = bb.get_balance()
-            after = float(after_raw) if after_raw is not None else before
+            after = _coerce_float(after_raw, before)
             epsilon = float(cfg.get("risk", {}).get("pnl_epsilon", 0.05))
-            last_entry_raw = st.get("last_entry_equity")
-            try:
-                last_entry = float(last_entry_raw) if last_entry_raw is not None else before
-            except Exception:
-                last_entry = before
+            last_entry = _coerce_float(st.get("last_entry_equity"), before)
             pnl = after - last_entry
             if pnl < -epsilon:
                 st["consecutive_losses"] = int(st.get("consecutive_losses", 0)) + 1
