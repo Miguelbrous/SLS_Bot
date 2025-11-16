@@ -944,11 +944,16 @@ def _process_signal(sig: Signal):
         if sig.signal == "SLS_EXIT":
             if sig.dry_run:
                 return {"status": "dry_run", "action": "exit"}
-            before = balance
+            before = float(balance or 0.0)
             resp = _close_position_reduce_only(sig.symbol)
-            after = bb.get_balance()
+            after_raw = bb.get_balance()
+            after = float(after_raw) if after_raw is not None else before
             epsilon = float(cfg.get("risk", {}).get("pnl_epsilon", 0.05))
-            last_entry = float(st.get("last_entry_equity") or before)
+            last_entry_raw = st.get("last_entry_equity")
+            try:
+                last_entry = float(last_entry_raw) if last_entry_raw is not None else before
+            except Exception:
+                last_entry = before
             pnl = after - last_entry
             if pnl < -epsilon:
                 st["consecutive_losses"] = int(st.get("consecutive_losses", 0)) + 1
