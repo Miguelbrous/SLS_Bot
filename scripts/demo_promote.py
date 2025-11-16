@@ -85,6 +85,36 @@ def _run_internal_smoke(api_base: Optional[str], panel_token: Optional[str], con
     return proc.returncode, proc.stdout, proc.stderr
 
 
+def _run_preflight_checks(api_base: Optional[str], panel_token: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not api_base:
+        return None
+    headers: Dict[str, str] = {}
+    if panel_token:
+        headers["X-Panel-Token"] = panel_token
+    endpoints = ("health", "risk")
+    summary: Dict[str, Any] = {"api_base": api_base, "results": {}}
+    for ep in endpoints:
+        url = f"{api_base.rstrip('/')}/{ep}"
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            try:
+                body = resp.json()
+            except ValueError:
+                body = resp.text[:2000]
+            summary["results"][ep] = {
+                "status_code": resp.status_code,
+                "ok": resp.ok,
+                "body": body,
+            }
+        except Exception as exc:
+            summary["results"][ep] = {
+                "status_code": None,
+                "ok": False,
+                "error": str(exc),
+            }
+    return summary
+
+
 def _tail_promotion_log(strategy_id: str) -> Optional[Dict[str, Any]]:
     if not OPS_PROMOTION_LOG.exists():
         return None
@@ -284,6 +314,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--control-action", default="restart", help="Acción systemctl (start/stop/restart)")
     parser.add_argument("--control-user", help="Usuario Basic Auth para /control/*")
     parser.add_argument("--control-password", help="Contraseña Basic Auth")
+    parser.add_argument("--api-base", help="URL base del API (usada para preflight /health,/risk y smoke)")
+    parser.add_argument("--panel-token", help="Token X-Panel-Token para validar endpoints reales")
     parser.add_argument("--artifact-dir", type=Path, default=None, help="Directorio raíz para guardar checklist/metadata")
     parser.add_argument("--smoke-cmd", help="Comando para ejecutar smoke test tras la promoción")
     parser.add_argument("--allow-smoke-fail", action="store_true", help="No aborta aunque el smoke falle")
@@ -333,6 +365,20 @@ def main() -> int:
     }
     if CONFIG_FILE:
         context["config_file"] = str(CONFIG_FILE)
+    preflight_payload = _run_preflight_checks(args.api_base, args.panel_token)
+    if preflight_payload:
+        context["preflight"] = preflight_payload
+        failed = [
+            name for name, result in preflight_payload.get("results", {}).items()
+            if not result.get("ok")
+        ]
+        if failed and not args.force:
+            print(f"[demo-promote] Preflight falló en: {', '.join(failed)}", file=sys.stderr)
+            return 5
+        if failed:
+            print(f"[demo-promote] Preflight con problemas (force activo): {', '.join(failed)}", file=sys.stderr)
+        else:
+            print(f"[demo-promote] Preflight OK contra {args.api_base}")
 
     issues = [] if args.force else _validate_metrics(metrics, plan, args)
     if issues:
@@ -429,7 +475,7 @@ def main() -> int:
         auto_panel_token = args.smoke_panel_token or args.panel_token
         auto_control_user = args.smoke_control_user or args.control_user
         auto_control_password = args.smoke_control_password or args.control_password
-        print("[demo-promote] Ejecutando smoke interno scripts/tests/e2e_smoke.py")
+        print("[demo-promote] Ejecutando smoke interno scripts/tests/e2e_smoke_real.py")
         rc, out, err = _run_internal_smoke(auto_api_base, auto_panel_token, auto_control_user, auto_control_password)
         smoke_result = {
             "cmd": "internal_e2e_smoke",
@@ -466,6 +512,8 @@ def main() -> int:
             qa_owner=args.qa_owner,
         )
         _write_json(promotion_dir / "metadata.json", context)
+        if preflight_payload:
+            _write_json(promotion_dir / "preflight.json", preflight_payload)
         (promotion_dir / "checklist.md").write_text(checklist, encoding="utf-8")
         print(f"[demo-promote] Artefactos almacenados en {promotion_dir}")
 
