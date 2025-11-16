@@ -933,6 +933,9 @@ def _process_signal(sig: Signal):
     try:
         if sig.signal not in ("SLS_LONG_ENTRY", "SLS_SHORT_ENTRY", "SLS_EXIT", "SLS_UPDATE"):
             return {"status": "ignored", "reason": "unknown signal"}
+        if sig.dry_run:
+            action = "exit" if sig.signal == "SLS_EXIT" else sig.signal
+            return {"status": "dry_run", "action": action}
 
         # ====== RESET DIARIO & GUARDAS ======
         st = _reset_daily_if_needed()
