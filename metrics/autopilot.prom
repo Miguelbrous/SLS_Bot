@@ -1,0 +1,24 @@
+# HELP sls_autopilot_dataset_rows Total rows in cerebro dataset
+# TYPE sls_autopilot_dataset_rows gauge
+sls_autopilot_dataset_rows 4
+# HELP sls_autopilot_dataset_win_rate Win rate of dataset
+# TYPE sls_autopilot_dataset_win_rate gauge
+sls_autopilot_dataset_win_rate 0.7500
+# HELP sls_autopilot_dataset_violations_count Number of dataset violations
+# TYPE sls_autopilot_dataset_violations_count gauge
+sls_autopilot_dataset_violations_count 1
+# HELP sls_autopilot_candidates_total Number of accepted candidates
+# TYPE sls_autopilot_candidates_total gauge
+sls_autopilot_candidates_total 3178
+# HELP sls_autopilot_candidates_rejected Number of rejected candidates
+# TYPE sls_autopilot_candidates_rejected gauge
+sls_autopilot_candidates_rejected 1822
+# HELP sls_autopilot_top_score Score of top candidate
+# TYPE sls_autopilot_top_score gauge
+sls_autopilot_top_score 1.4200
+# HELP sls_autopilot_top_drawdown Drawdown of top candidate (%)
+# TYPE sls_autopilot_top_drawdown gauge
+sls_autopilot_top_drawdown 1.1000
+# HELP sls_autopilot_top_sharpe Sharpe ratio of top candidate
+# TYPE sls_autopilot_top_sharpe gauge
+sls_autopilot_top_sharpe 2.3462
