@@ -1,7 +1,5 @@
-﻿from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
-from fastapi.exceptions import RequestValidationError
+﻿from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from pathlib import Path
@@ -11,7 +9,6 @@ import os
 import secrets
 import time, hmac, hashlib, json, requests
 import threading, math
-import logging
 
 from .config_loader import load_config, CFG_PATH_IN_USE
 from .bybit import BybitClient
@@ -24,11 +21,6 @@ try:
     from cerebro import get_cerebro  # type: ignore
 except Exception:
     get_cerebro = None  # type: ignore
-
-try:
-    from . import ia_signal_engine
-except Exception:  # pragma: no cover - legacy IA opcional
-    ia_signal_engine = None  # type: ignore
 
 # ==== CARGA CONFIG ====
 cfg = load_config()
@@ -73,6 +65,9 @@ DECISIONS_LOG = LOGS_DIR / "decisions.jsonl"
 BRIDGE_LOG = LOGS_DIR / "bridge.log"
 PNL_LOG = LOGS_DIR / "pnl.jsonl"
 PNL_SYMBOLS_JSON = LOGS_DIR / "pnl_daily_symbols.json"
+SCALP_TELEMETRY_LOG = LOGS_DIR / "scalp_telemetry.jsonl"
+SCALP_DAILY_LOG = LOGS_DIR / "scalp_daily.jsonl"
+ALERTS_LOG = LOGS_DIR / "alerts.log"
 
 # ==== CLIENTE BYBIT (pybit) ====
 bb = BybitClient(
@@ -86,30 +81,6 @@ BASE_URL = cfg["bybit"]["base_url"].rstrip("/")
 
 # ==== FASTAPI ====
 app = FastAPI(title="SLS Bot Webhook")
-log = logging.getLogger("uvicorn.error")
-
-
-@app.exception_handler(RequestValidationError)
-async def _validation_error_handler(request: Request, exc: RequestValidationError):
-    body_preview = ""
-    try:
-        body_bytes = await request.body()
-        if body_bytes:
-            body_preview = body_bytes.decode("utf-8", errors="replace")
-            if len(body_preview) > 1000:
-                body_preview = body_preview[:1000] + "...<truncated>"
-    except Exception:
-        body_preview = "<unavailable>"
-    log.warning(
-        "Request validation error en %s: %s payload=%s",
-        request.url.path,
-        exc.errors(),
-        body_preview,
-    )
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors()},
-    )
 
 
 def _parse_origins() -> list[str]:
@@ -131,9 +102,6 @@ control_cfg = cfg.get("auth") or {}
 CONTROL_USER = os.getenv("CONTROL_USER") or control_cfg.get("control_user")
 CONTROL_PASSWORD = os.getenv("CONTROL_PASSWORD") or control_cfg.get("control_password")
 security = HTTPBasic()
-WEBHOOK_SECRET = os.getenv("WEBHOOK_SHARED_SECRET")
-WEBHOOK_SIGNATURE_HEADER = os.getenv("WEBHOOK_SIGNATURE_HEADER", "x-webhook-signature")
-SKIP_BACKGROUND_JOBS = os.getenv("SLS_BOT_SKIP_THREADS") == "1"
 
 app.add_middleware(
     CORSMiddleware,
@@ -168,15 +136,14 @@ def _append_jsonl(path: Path, payload: dict) -> None:
         pass
 
 
-def _coerce_float(value: Any, fallback: float = 0.0) -> float:
-    """Convierte valores ruidosos (str/None) a float con un fallback seguro."""
+
+def _coerce_float(value, fallback=0.0):
     try:
         if value is None:
             return float(fallback)
         return float(value)
     except (TypeError, ValueError):
         return float(fallback)
-
 
 def _append_bridge_log(message: str) -> None:
     try:
@@ -190,6 +157,82 @@ def _append_bridge_log(message: str) -> None:
 def _append_pnl_entry(entry: dict) -> None:
     entry.setdefault("ts", utc_now_iso(z_suffix=True))
     _append_jsonl(PNL_LOG, entry)
+
+
+def _append_scalp_telemetry(entry: dict) -> None:
+    entry.setdefault("ts", utc_now_iso(z_suffix=True))
+    _append_jsonl(SCALP_TELEMETRY_LOG, entry)
+
+
+def _needs_scalp_push(meta: dict | None, st: dict) -> bool:
+    if not meta or meta.get("strategy") != "scalping_v1":
+        return False
+    min_trades = int(meta.get("min_trades_per_day") or 0)
+    daily_target_pct = float(meta.get("daily_target_pct") or 0.0)
+    trades_done = int(st.get("scalp_trades_today") or 0)
+    profit_done = float(st.get("scalp_profit_today") or 0.0)
+    start_eq = float(st.get("start_equity") or 0.0)
+    target_profit = start_eq * (daily_target_pct / 100.0) if daily_target_pct > 0 and start_eq > 0 else None
+    if target_profit is not None and profit_done >= target_profit:
+        st["scalp_objective_met"] = True
+    objective_met = bool(st.get("scalp_objective_met"))
+
+    if min_trades and trades_done < min_trades:
+        return True
+    if target_profit is not None and not objective_met:
+        return True
+    return False
+
+
+def _bump_scalp_entry(st: dict, forced: bool) -> None:
+    st["scalp_trades_today"] = int(st.get("scalp_trades_today") or 0) + 1
+    if forced:
+        st["scalp_forced_entries"] = int(st.get("scalp_forced_entries") or 0) + 1
+    _save_state(st)
+
+
+def _bump_scalp_pnl(st: dict, pnl: float) -> None:
+    st["scalp_profit_today"] = float(st.get("scalp_profit_today") or 0.0) + float(pnl)
+    _save_state(st)
+
+
+def _evaluate_scalp_objectives(st: dict, meta: Optional[dict]) -> None:
+    if not meta or meta.get("strategy") != "scalping_v1":
+        return
+    target_pct = float(meta.get("daily_target_pct") or 0.0)
+    if target_pct <= 0:
+        return
+    start_eq = float(st.get("start_equity") or 0.0)
+    target_profit = start_eq * (target_pct / 100.0) if start_eq > 0 else 0.0
+    if target_profit <= 0:
+        return
+    profit_done = float(st.get("scalp_profit_today") or 0.0)
+    if profit_done >= target_profit and not st.get("scalp_objective_met"):
+        st["scalp_objective_met"] = True
+        _append_alert("Objetivo diario de scalping alcanzado", {
+            "profit": profit_done,
+            "target": target_profit,
+        })
+        _save_state(st)
+
+
+def _append_alert(message: str, details: Optional[dict] = None) -> None:
+    payload = {
+        "ts": utc_now_iso(z_suffix=True),
+        "message": message,
+        "details": details or {},
+    }
+    _append_jsonl(ALERTS_LOG, payload)
+
+
+def _append_scalp_daily_summary(st: dict) -> None:
+    payload = {
+        "date": st.get("date"),
+        "trades": st.get("scalp_trades_today"),
+        "forced_entries": st.get("scalp_forced_entries"),
+        "profit": st.get("scalp_profit_today"),
+    }
+    _append_jsonl(SCALP_DAILY_LOG, payload)
 
 
 def _load_symbol_pnl_cache() -> dict:
@@ -240,16 +283,8 @@ class Signal(BaseModel):
     confirmations: Optional[Confirmations] = None
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
-    order_type: Optional[str] = None
-    trigger_price: Optional[float] = None
-    trigger_direction: Optional[int] = None
-    order_filter: Optional[str] = None
-    reduce_only: Optional[bool] = False
-    strategy_id: Optional[str] = None
-    max_margin_pct: Optional[float] = None
-    max_risk_pct: Optional[float] = None
-    min_stop_distance_pct: Optional[float] = None
     dry_run: Optional[bool] = False
+    strategy_meta: Optional[dict] = None
 
 
 def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_info: dict, price_used: float | None) -> None:
@@ -262,23 +297,11 @@ def _append_decision_log(symbol: str, side: str, sig: Signal, qty: str, order_in
         "leverage": sig.leverage,
         "tf": sig.tf,
         "session": sig.session,
-        "strategy_id": sig.strategy_id,
         "qty": qty,
         "price": price_used,
         "order_id": order_info.get("orderId"),
     }
     _append_jsonl(DECISIONS_LOG, entry)
-
-
-def _verify_webhook_signature(request: Request, body: bytes) -> None:
-    if not WEBHOOK_SECRET:
-        return
-    header = request.headers.get(WEBHOOK_SIGNATURE_HEADER) or request.headers.get(WEBHOOK_SIGNATURE_HEADER.lower())
-    if not header:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook ausente")
-    expected = hmac.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
-    if not secrets.compare_digest(header, expected):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Firma del webhook inválida")
 
 # ----- UTILS BÁSICAS -----
 QTY_STEP = {"BTCUSDT": 0.001, "ETHUSDT": 0.01}
@@ -556,68 +579,6 @@ def _autopilot_tp1_and_be(symbol: str, opened_side: str,
     except Exception:
         return
 
-
-class LowCapitalError(Exception):
-    """Se lanza cuando el capital no alcanza para cumplir con las restricciones configuradas."""
-
-
-def _low_capital_config() -> dict:
-    return (cfg.get("risk", {}).get("low_capital") or {})
-
-
-def _apply_low_capital_constraints(sig: Signal, balance: float, price_live: float,
-                                   qty_num: float, filters: Dict[str, float]) -> float:
-    guard_cfg = _low_capital_config()
-    if not guard_cfg and sig.max_margin_pct is None and sig.max_risk_pct is None:
-        return qty_num
-
-    max_margin_pct = sig.max_margin_pct
-    if max_margin_pct is None:
-        max_margin_pct = guard_cfg.get("max_margin_pct")
-    max_margin_pct = float(max_margin_pct or 0.0)
-    if max_margin_pct <= 0:
-        return qty_num
-
-    max_risk_pct_cfg = guard_cfg.get("max_risk_pct")
-    if sig.max_risk_pct is not None:
-        max_risk_pct_cfg = sig.max_risk_pct
-    if max_risk_pct_cfg is not None and (sig.risk_pct or 0.0) > float(max_risk_pct_cfg):
-        sig.risk_pct = float(max_risk_pct_cfg)
-
-    min_leverage = int(guard_cfg.get("min_leverage") or max(1, sig.leverage or 1))
-    max_leverage = int(guard_cfg.get("max_leverage") or max(min_leverage, sig.leverage or min_leverage))
-    leverage = int(sig.leverage or min_leverage)
-    leverage = max(min_leverage, min(leverage, max_leverage))
-    sig.leverage = leverage
-
-    allowed_margin = max(0.0, balance * max_margin_pct)
-    if allowed_margin <= 0:
-        raise LowCapitalError("capital_guard_disabled")
-
-    def _margin(qty: float, lev: int) -> float:
-        if price_live <= 0 or lev <= 0:
-            return float("inf")
-        return price_live * qty / float(lev)
-
-    current_margin = _margin(qty_num, sig.leverage)
-    if current_margin <= allowed_margin:
-        return qty_num
-
-    required_leverage = int(math.ceil((price_live * qty_num) / max(allowed_margin, 1e-9)))
-    if required_leverage <= max_leverage:
-        sig.leverage = max(sig.leverage, max(required_leverage, 1))
-        current_margin = _margin(qty_num, sig.leverage)
-        if current_margin <= allowed_margin:
-            return qty_num
-
-    max_qty_allowed = allowed_margin * max_leverage / price_live if price_live > 0 else 0.0
-    max_qty_allowed = _floor_to(max_qty_allowed, filters.get("step", 0.001))
-    if max_qty_allowed < filters.get("min", 0.0) or max_qty_allowed <= 0:
-        raise LowCapitalError("capital_insufficient")
-
-    sig.leverage = max_leverage
-    return max_qty_allowed
-
 # ====== RISK STATE (cooldown + DD intradía) ======
 _STATE_FILE = LOGS_DIR / "risk_state.json"
 
@@ -668,6 +629,13 @@ def _reset_daily_if_needed():
             "active_cooldown_reason": None,
             "last_cerebro_decision": None,
             "dynamic_risk": {"enabled": False},
+            "scalp_trades_today": 0,
+            "scalp_profit_today": 0.0,
+            "scalp_forced_entries": 0,
+            "scalp_forced_loss_streak": 0,
+            "scalp_open_forced": False,
+            "scalp_open_strategy_meta": None,
+            "scalp_objective_met": False,
         }
         _save_state(st)
         append_evento(EXCEL_DIR, {
@@ -822,6 +790,56 @@ def _apply_dynamic_risk(sig: Signal, balance: float, st: dict) -> None:
         "applied_ts": _now_ts(),
     }
 
+
+def _apply_guardrails(sig: Signal, price_live: float, st: dict) -> dict | None:
+    guard_cfg = (cfg.get("risk", {}).get("guardrails") or {})
+    if not guard_cfg:
+        return None
+    symbol = sig.symbol.upper()
+    guard_state = {"hits": []}
+    st_hits = st.setdefault("guardrail_hits", [])
+
+    def _record(hit: dict) -> None:
+        hit["ts"] = _now_ts()
+        st_hits.append(hit)
+        guard_state["hits"].append(hit)
+
+    max_global = float(guard_cfg.get("max_risk_pct") or 0)
+    if max_global and sig.risk_pct and sig.risk_pct > max_global:
+        sig.risk_pct = max_global
+        _record({"type": "cap_global_risk", "value": max_global})
+
+    per_symbol = (guard_cfg.get("per_symbol") or {}).get(symbol, {})
+    max_symbol_risk = per_symbol.get("max_risk_pct")
+    if max_symbol_risk and sig.risk_pct and sig.risk_pct > max_symbol_risk:
+        sig.risk_pct = max_symbol_risk
+        _record({"type": "cap_symbol_risk", "symbol": symbol, "value": max_symbol_risk})
+    max_symbol_lev = per_symbol.get("max_leverage")
+    if max_symbol_lev and sig.leverage and sig.leverage > max_symbol_lev:
+        sig.leverage = max_symbol_lev
+        _record({"type": "cap_symbol_leverage", "symbol": symbol, "value": max_symbol_lev})
+
+    min_conf = float(guard_cfg.get("min_confidence") or 0)
+    confidence = float(sig.risk_score or 0)
+    if min_conf and confidence < min_conf:
+        hit = {"type": "block_confidence", "required": min_conf, "value": confidence}
+        _record(hit)
+        return {"blocked": True, "reason": "guardrails.confidence", "details": hit}
+
+    vol_cfg = guard_cfg.get("volatility") or {}
+    atr = getattr(getattr(sig, "confirmations", None) or object(), "atr", None)
+    max_atr_pct = float(vol_cfg.get("max_atr_pct") or 0)
+    if max_atr_pct and atr and price_live:
+        atr_pct = (atr / price_live) * 100
+        if atr_pct > max_atr_pct:
+            hit = {"type": "block_volatility", "atr_pct": round(atr_pct, 3), "max_atr_pct": max_atr_pct}
+            _record(hit)
+            return {"blocked": True, "reason": "guardrails.volatility", "details": hit}
+
+    if guard_state["hits"]:
+        return guard_state
+    return None
+
 # ----- ENDPOINTS BÁSICOS -----
 @app.get("/health")
 def health():
@@ -927,9 +945,108 @@ def _close_position_reduce_only(symbol: str):
     except Exception as e:
         return {"error": str(e)}
 
-# ----- WEBHOOK -----
 
-def _process_signal(sig: Signal):
+class ScalpPositionManager:
+    def __init__(self):
+        self._positions: Dict[str, dict] = {}
+        self._lock = threading.Lock()
+        self._thread: Optional[threading.Thread] = None
+        self._stop = threading.Event()
+
+    def register(self, *, symbol: str, side: str, ttl_minutes: float, expected_price: float,
+                 latency_ms: float, strategy_meta: dict) -> None:
+        entry = {
+            "symbol": symbol.upper(),
+            "side": side.upper(),
+            "start_ts": time.time(),
+            "ttl_s": max(60.0, float(ttl_minutes) * 60.0),
+            "expected_price": float(expected_price),
+            "latency_ms": latency_ms,
+            "strategy_meta": strategy_meta,
+        }
+        with self._lock:
+            self._positions[entry["symbol"]] = entry
+        self._ensure_loop()
+        threading.Thread(target=self._capture_fill_snapshot, args=(entry,), daemon=True).start()
+
+    def _ensure_loop(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+
+        def _loop() -> None:
+            while not self._stop.is_set():
+                time.sleep(5)
+                now = time.time()
+                targets: list[dict] = []
+                with self._lock:
+                    for symbol, entry in list(self._positions.items()):
+                        pos = self._fetch_position(symbol)
+                        if not pos or pos.get("size", 0.0) <= 0:
+                            self._positions.pop(symbol, None)
+                            continue
+                        if now - entry["start_ts"] >= entry["ttl_s"]:
+                            targets.append(entry)
+                            self._positions.pop(symbol, None)
+                for entry in targets:
+                    resp = _close_position_reduce_only(entry["symbol"])
+                    _append_bridge_log(
+                        f"scalp_guard ttl_close symbol={entry['symbol']} ttl_s={entry['ttl_s']:.0f} resp={resp}"
+                    )
+                    telemetry = {
+                        "symbol": entry["symbol"],
+                        "side": entry["side"],
+                        "reason": "ttl_expired",
+                        "max_hold_minutes": entry["ttl_s"] / 60.0,
+                        "strategy": entry["strategy_meta"].get("strategy"),
+                        "forced_entry": entry["strategy_meta"].get("forced_entry"),
+                        "telemetry": resp,
+                    }
+                    _append_scalp_telemetry(telemetry)
+
+        self._thread = threading.Thread(target=_loop, daemon=True, name="scalp-ttl-guard")
+        self._thread.start()
+
+    def _fetch_position(self, symbol: str) -> Optional[dict]:
+        try:
+            resp = bb.session.get_positions(category="linear", symbol=symbol)
+            if resp.get("retCode") != 0:
+                return None
+            for row in resp.get("result", {}).get("list", []):
+                size = float(row.get("size") or 0)
+                if size > 0:
+                    return {"size": size, "avg_price": float(row.get("avgPrice") or 0.0)}
+        except Exception:
+            return None
+        return None
+
+    def _capture_fill_snapshot(self, entry: dict) -> None:
+        time.sleep(4)
+        pos = self._fetch_position(entry["symbol"])
+        if not pos or pos.get("avg_price", 0) <= 0:
+            return
+        avg_price = pos["avg_price"]
+        expected = entry["expected_price"] or avg_price
+        slippage_bps = ((avg_price - expected) / expected) * 10000 if expected else 0.0
+        telemetry = {
+            "symbol": entry["symbol"],
+            "side": entry["side"],
+            "expected_price": expected,
+            "fill_price": avg_price,
+            "slippage_bps": round(slippage_bps, 3),
+            "latency_ms": round(entry.get("latency_ms", 0.0), 2),
+            "strategy": entry["strategy_meta"].get("strategy"),
+            "forced_entry": entry["strategy_meta"].get("forced_entry"),
+            "max_hold_minutes": entry["ttl_s"] / 60.0,
+        }
+        _append_scalp_telemetry(telemetry)
+
+
+_SCALP_MANAGER = ScalpPositionManager()
+
+# ----- WEBHOOK -----
+@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
+def webhook(sig: Signal):
     try:
         if sig.signal not in ("SLS_LONG_ENTRY", "SLS_SHORT_ENTRY", "SLS_EXIT", "SLS_UPDATE"):
             return {"status": "ignored", "reason": "unknown signal"}
@@ -1000,18 +1117,43 @@ def _process_signal(sig: Signal):
             if st["consecutive_losses"] >= nloss:
                 _start_cooldown("losses", mins)
 
-            st = _register_trade_result(st, pnl)
-            _save_state(st)
-            loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
-            if _loss_streak_reached(st):
-                _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
-                    "recent_results": len(st.get("recent_results") or []),
-                    "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
+        forced_open = bool(st.get("scalp_open_forced"))
+        open_meta = st.get("scalp_open_strategy_meta") or {}
+        st["scalp_open_forced"] = False
+        st["scalp_open_strategy_meta"] = None
+        st = _register_trade_result(st, pnl)
+        _bump_scalp_pnl(st, pnl)
+        _evaluate_scalp_objectives(st, open_meta)
+        if forced_open:
+            limit = int(open_meta.get("forced_loss_backoff") or 0)
+            backoff_minutes = int(open_meta.get("forced_backoff_minutes") or 30)
+            if pnl < -epsilon:
+                st["scalp_forced_loss_streak"] = int(st.get("scalp_forced_loss_streak") or 0) + 1
+            else:
+                st["scalp_forced_loss_streak"] = 0
+            if limit and st.get("scalp_forced_loss_streak", 0) >= limit:
+                _append_alert("Activando backoff por pérdidas forzadas", {
+                    "streak": st.get("scalp_forced_loss_streak"),
+                    "limit": limit,
+                    "minutes": backoff_minutes,
                 })
-            _notify_cerebro_learn(sig.symbol, sig.tf, pnl, st)
+                _save_state(st)
+                _start_cooldown("scalp_forced_losses", backoff_minutes, extra={"streak": st.get("scalp_forced_loss_streak")})
+                st = _load_state()
+                st["scalp_forced_loss_streak"] = 0
+        else:
+            st["scalp_forced_loss_streak"] = 0
+        _save_state(st)
+        loss_cooldown_minutes = int(cfg.get("risk", {}).get("cooldown_loss_minutes", 30))
+        if _loss_streak_reached(st):
+            _start_cooldown("loss_streak", loss_cooldown_minutes, extra={
+                "recent_results": len(st.get("recent_results") or []),
+                "threshold": int(cfg.get("risk", {}).get("cooldown_loss_streak", 0))
+            })
+        _notify_cerebro_learn(sig.symbol, sig.tf, pnl, st)
 
-            return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
-                    "consecutive_losses": st.get("consecutive_losses", 0)}
+        return {"status": "ok", "close_resp": resp, "pnl_from_last_entry": round(pnl, 4),
+                "consecutive_losses": st.get("consecutive_losses", 0)}
 
         # ====== APERTURA ======
         side = sig.side or ("LONG" if "LONG" in sig.signal else "SHORT")
@@ -1019,141 +1161,79 @@ def _process_signal(sig: Signal):
         if not sig.tf:
             sig.tf = CEREBRO_DEFAULT_TF
 
+        strategy_meta = sig.strategy_meta or {}
+        force_scalp = False
+        if strategy_meta.get("strategy") == "scalping_v1" and not strategy_meta.get("forced_entry"):
+            if _needs_scalp_push(strategy_meta, st):
+                force_scalp = True
+                strategy_meta["forced_entry"] = True
+                strategy_meta["force_reason"] = "daily_objective"
+                sig.strategy_meta = strategy_meta
+                _append_alert("Scalping forzado por objetivos diarios", {
+                    "symbol": symbol,
+                    "trades_done": st.get("scalp_trades_today"),
+                    "profit": st.get("scalp_profit_today"),
+                })
+
         price_live = bb.get_mark_price(symbol) or (60000.0 if "BTC" in symbol else 3000.0)
-        cere_decision = _maybe_apply_cerebro(sig, price_live, st)
+        cere_decision = None if force_scalp else _maybe_apply_cerebro(sig, price_live, st)
         if cere_decision and cere_decision.get("blocked"):
             return {"status": "filtered", "reason": cere_decision.get("reason", "cerebro")}
         _apply_dynamic_risk(sig, balance, st)
+        guardrail = _apply_guardrails(sig, price_live, st)
+        if guardrail and guardrail.get("blocked") and not force_scalp:
+            _save_state(st)
+            return {"status": "filtered", "reason": guardrail.get("reason", "guardrails"), "details": guardrail}
+        if guardrail and guardrail.get("blocked") and force_scalp:
+            _append_bridge_log(f"scalp_guard overridden symbol={symbol} reason={guardrail.get('reason')}")
+        if force_scalp:
+            min_risk = float(strategy_meta.get("min_risk_pct") or 0.25)
+            sig.risk_pct = max(float(sig.risk_pct or min_risk), min_risk)
         _save_state(st)
         qty_raw = _calc_qty_base(balance, sig.risk_pct or 1.0, sig.leverage or 10, price_live)
         qty_num, qty_str, filters = _quantize_qty(symbol, qty_raw)
-        try:
-            adjusted_qty = _apply_low_capital_constraints(sig, balance, price_live, qty_num, filters)
-        except LowCapitalError as exc:
-            return {
-                "status": "blocked",
-                "reason": str(exc),
-                "balance": balance,
-                "leverage": sig.leverage,
-                "requested_qty": qty_num,
-            }
-        if abs(adjusted_qty - qty_num) > 1e-8:
-            qty_num, qty_str, filters = _quantize_qty(symbol, adjusted_qty)
-        if qty_num <= 0:
-            return {
-                "status": "blocked",
-                "reason": "qty_zero",
-                "balance": balance,
-                "leverage": sig.leverage,
-            }
         tick = filters["tick"]
 
         api_key = cfg["bybit"]["api_key"]
         api_secret = cfg["bybit"]["api_secret"]
         url = f"{BASE_URL}/v5/order/create"
 
-        # helper para SL/TP válidos (>0) respetando el lado y el precio de referencia
-        def _add_tp_sl(payload: dict, side_ref: str, price_ref: float, symbol_ref: str):
-            guard_price = float(price_ref or 0)
-            if guard_price <= 0:
-                try:
-                    guard_price = float(bb.get_mark_price(symbol_ref) or 0)
-                except Exception:
-                    guard_price = 0.0
+        # helper para SL/TP válidos (>0)
+        def _add_tp_sl(payload: dict):
+            sl_value = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
+            if sl_value is not None and sl_value > 0:
+                payload["stopLoss"] = str(_quantize_price(sl_value, tick))
+            tp_value = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
+            if tp_value is None:
+                tp_value = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
+            if tp_value is not None:
+                payload["takeProfit"] = str(_quantize_price(tp_value, tick))
+                payload["tpSlMode"]   = "Full"
 
-            filters = _get_instrument_filters(symbol_ref)
-            tick_size = max(filters.get("tick", 0.1), 1e-6)
-            min_pct = max(float(cfg.get("risk", {}).get("min_tp_sl_pct", 0.001)), 0.0005)
-            if sig.min_stop_distance_pct is not None:
-                min_pct = max(min_pct, float(sig.min_stop_distance_pct))
-
-            def _ensure_valid(value: Optional[float], direction: str) -> Optional[float]:
-                if value is None or value <= 0:
-                    return None
-                if guard_price <= 0:
-                    return None
-                if direction == "tp_long":
-                    target = max(value, guard_price * (1 + min_pct))
-                elif direction == "tp_short":
-                    target = min(value, guard_price * (1 - min_pct))
-                elif direction == "sl_long":
-                    target = min(value, guard_price * (1 - min_pct))
-                else:  # sl_short
-                    target = max(value, guard_price * (1 + min_pct))
-                # Evita precios negativos
-                target = max(target, tick_size)
-                return _quantize_price(target, tick_size)
-
-            stop_raw = sig.stop_loss if (sig.stop_loss and sig.stop_loss > 0) else sig.sl
-            take_raw = sig.take_profit if (sig.take_profit and sig.take_profit > 0) else None
-            if take_raw is None:
-                take_raw = sig.tp2 if (sig.tp2 and sig.tp2 > 0) else (sig.tp1 if (sig.tp1 and sig.tp1 > 0) else None)
-
-            if side_ref == "LONG":
-                stop_val = _ensure_valid(stop_raw, "sl_long")
-                take_val = _ensure_valid(take_raw, "tp_long")
-            else:
-                stop_val = _ensure_valid(stop_raw, "sl_short")
-                take_val = _ensure_valid(take_raw, "tp_short")
-
-            tp_sl_assigned = False
-            if stop_val is not None:
-                payload["stopLoss"] = str(stop_val)
-                tp_sl_assigned = True
-            if take_val is not None:
-                payload["takeProfit"] = str(take_val)
-                tp_sl_assigned = True
-
-            if tp_sl_assigned:
-                payload["tpSlMode"] = "Full"
-                try:
-                    _append_bridge_log(
-                        f"tp_sl_applied {side_ref} {symbol_ref} tp={payload.get('takeProfit')} sl={payload.get('stopLoss')} ref={guard_price}"
-                    )
-                except Exception:
-                    pass
-
-        order_kind = (sig.order_type or ("LIMIT" if (sig.post_only and sig.price) else "MARKET")).upper()
-        order_kind = order_kind.replace("-", "_")
-        payload = {
-            "category": "linear",
-            "symbol": symbol,
-            "side": "Buy" if side == "LONG" else "Sell",
-            "qty": qty_str,
-            "isLeverage": 1,
-        }
-
-        price_reference = sig.price if (sig.price and sig.price > 0) else price_live
-        limit_price = None
-        if order_kind in {"LIMIT", "STOP_LIMIT"}:
-            limit_price = _quantize_price(price_reference, tick)
-            payload["orderType"] = "Limit"
-            payload["price"] = str(limit_price)
-            payload["timeInForce"] = "PostOnly" if sig.post_only else payload.get("timeInForce", "GTC")
-        else:
-            payload["orderType"] = "Market"
-
-        if order_kind in {"STOP_MARKET", "STOP_LIMIT"}:
-            trigger_source = sig.trigger_price if (sig.trigger_price and sig.trigger_price > 0) else price_reference
-            trigger_price = _quantize_price(trigger_source, tick)
-            payload["triggerPrice"] = str(trigger_price)
-            payload["triggerDirection"] = int(sig.trigger_direction or (1 if side == "LONG" else 2))
-            payload["orderFilter"] = sig.order_filter or "StopOrder"
-            payload.setdefault("triggerBy", "LastPrice")
-
-        if sig.reduce_only:
-            payload["reduceOnly"] = True
-
-        tp_ref = limit_price if limit_price is not None else float(price_reference or price_live)
-        _add_tp_sl(payload, side, tp_ref, symbol)
-
-        if sig.dry_run:
-            return {
-                "status": "dry_run",
-                "payload": payload,
+        # LIMIT vs MARKET
+        if sig.post_only and sig.price:
+            price_ref = _quantize_price(sig.price, tick)
+            payload = {
+                "category": "linear",
                 "symbol": symbol,
+                "side": "Buy" if side == "LONG" else "Sell",
+                "orderType": "Limit",
                 "qty": qty_str,
+                "price": str(price_ref),
+                "timeInForce": "PostOnly",
+                "isLeverage": 1
             }
+            _add_tp_sl(payload)
+        else:
+            payload = {
+                "category": "linear",
+                "symbol": symbol,
+                "side": "Buy" if side == "LONG" else "Sell",
+                "orderType": "Market",
+                "qty": qty_str,
+                "isLeverage": 1
+            }
+            _add_tp_sl(payload)
 
         # leverage tolerante
         try:
@@ -1163,6 +1243,7 @@ def _process_signal(sig: Signal):
 
         # ---- Crear orden con reintentos + fallback Market→Limit IOC ----
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        order_started = time.time()
         last_exc = None
         placed = None
         for i in range(4):
@@ -1206,10 +1287,6 @@ def _process_signal(sig: Signal):
                     time.sleep(0.6 + i * 0.6)
                     continue
 
-                try:
-                    _append_bridge_log(f"order_error {side} {symbol} ret={data}")
-                except Exception:
-                    pass
                 raise RuntimeError(data)
             except Exception as e:
                 last_exc = e
@@ -1218,21 +1295,15 @@ def _process_signal(sig: Signal):
                     _sync_server_time()
                     time.sleep(0.6 + i * 0.6)
                     continue
-                try:
-                    _append_bridge_log(f"order_error {side} {symbol} exc={e}")
-                except Exception:
-                    pass
                 raise
         else:
-            if last_exc is not None:
-                try:
-                    _append_bridge_log(f"order_error {side} {symbol} final={last_exc}")
-                except Exception:
-                    pass
             raise last_exc
+        latency_ms = (time.time() - order_started) * 1000.0
 
         # Guardar equity en la entrada
         st["last_entry_equity"] = balance
+        st["scalp_open_forced"] = bool(strategy_meta.get("forced_entry"))
+        st["scalp_open_strategy_meta"] = strategy_meta if strategy_meta else None
         _save_state(st)
 
         # TP1 parcial + SL->BE
@@ -1263,10 +1334,28 @@ def _process_signal(sig: Signal):
             "%cerrado TP1": sig.tp1_close_pct or 0,
             "RiskScore": sig.risk_score or 1,
             "Confirmaciones": str(sig.confirmations.dict() if sig.confirmations else {}),
-            "Estrategia": sig.strategy_id or "default",
             "Comentario": f"orderId={placed.get('orderId','')} qty={qty_str}"
         })
         _append_decision_log(symbol, side, sig, qty_str, placed or {}, sig.price or price_live)
+        if strategy_meta.get("strategy") == "scalping_v1":
+            st_scalp = _load_state()
+            _bump_scalp_entry(st_scalp, bool(strategy_meta.get("forced_entry")))
+            _save_state(st_scalp)
+        strategy_meta = sig.strategy_meta or {}
+        if strategy_meta.get("strategy") == "scalping_v1":
+            hold_minutes = float(strategy_meta.get("max_hold_minutes") or 45)
+            expected_price = float(payload.get("price") or price_live)
+            try:
+                _SCALP_MANAGER.register(
+                    symbol=symbol,
+                    side=side,
+                    ttl_minutes=hold_minutes,
+                    expected_price=expected_price,
+                    latency_ms=latency_ms,
+                    strategy_meta=strategy_meta,
+                )
+            except Exception:
+                pass
         _append_bridge_log(f"order {side} {symbol} qty={qty_str} price={sig.price or price_live}")
 
         return {
@@ -1278,61 +1367,6 @@ def _process_signal(sig: Signal):
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
-
-
-@app.post(cfg.get("server", {}).get("webhook_path", "/webhook"))
-async def webhook(sig: Signal, request: Request):
-    if WEBHOOK_SECRET:
-        body = await request.body()
-        _verify_webhook_signature(request, body)
-    return _process_signal(sig)
-
-
-class LegacyIASignal(BaseModel):
-    simbolo: str
-    marco: str
-    modo: Optional[str] = "asesor"
-    riesgo_pct: Optional[float] = None
-    leverage: Optional[int] = None
-
-
-@app.post("/ia/signal")
-async def ia_signal(request: Request):
-    body = await request.json()
-
-    if WEBHOOK_SECRET and "signal" in body and "symbol" in body:
-        _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
-    elif WEBHOOK_SECRET and {"simbolo", "marco"}.issubset(body.keys()):
-        # Peticiones legacy solo consultan decisiones; se permite firmar opcionalmente.
-        header = request.headers.get(WEBHOOK_SIGNATURE_HEADER)
-        if header:
-            _verify_webhook_signature(request, json.dumps(body, separators=(",", ":")).encode())
-        else:
-            log.warning("/ia/signal legacy sin firma detectado (cliente externo) - permitiendo acceso solo lectura")
-
-    if "signal" in body and "symbol" in body:
-        sig = Signal(**body)
-        return _process_signal(sig)
-
-    if {"simbolo", "marco"}.issubset(body.keys()) and ia_signal_engine:
-        legacy = LegacyIASignal(**body)
-        payload, evidence, meta = ia_signal_engine.decide(
-            symbol=legacy.simbolo,
-            marco=legacy.marco,
-            riesgo_pct_user=legacy.riesgo_pct,
-            leverage_user=legacy.leverage,
-        )
-        return {
-            "status": "ok",
-            "decision": payload,
-            "evidence": evidence,
-            "meta": meta,
-        }
-
-    raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail="Formato de solicitud IA inválido",
-    )
 
 # ====== RESUMEN DIARIO ======
 @app.get("/daily/summary")
@@ -1367,6 +1401,7 @@ def daily_summary(date: Optional[str] = None, write: bool = True):
             "end": resumen.get("End Equity"),
             "trades": resumen.get("Trades"),
         })
+        _append_scalp_daily_summary(_load_state())
     return {"status": "ok", "summary": resumen}
 
 def _daily_scheduler():
@@ -1378,14 +1413,14 @@ def _daily_scheduler():
         time.sleep((target - now).total_seconds())
         try:
             daily_summary(write=True)
+            _append_scalp_daily_summary(_load_state())
         except Exception:
             pass
 
-if not SKIP_BACKGROUND_JOBS:
-    try:
-        threading.Thread(target=_daily_scheduler, daemon=True).start()
-    except Exception:
-        pass
+try:
+    threading.Thread(target=_daily_scheduler, daemon=True).start()
+except Exception:
+    pass
 
 
 def _collect_closed_pnl_entries(start_ms: int, end_ms: int) -> list[dict]:
@@ -1469,11 +1504,10 @@ def _pnl_symbol_worker():
         time.sleep(interval)
 
 
-if not SKIP_BACKGROUND_JOBS:
-    try:
-        threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
-    except Exception:
-        pass
+try:
+    threading.Thread(target=_pnl_symbol_worker, daemon=True).start()
+except Exception:
+    pass
 
 
 def _bridge_heartbeat():
@@ -1490,8 +1524,7 @@ def _bridge_heartbeat():
         time.sleep(interval)
 
 
-if not SKIP_BACKGROUND_JOBS:
-    try:
-        threading.Thread(target=_bridge_heartbeat, daemon=True).start()
-    except Exception:
-        pass
+try:
+    threading.Thread(target=_bridge_heartbeat, daemon=True).start()
+except Exception:
+    pass
